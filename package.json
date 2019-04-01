@@ -1,0 +1,45 @@
+{
+  "name": "node-jql-core",
+  "version": "0.0.1",
+  "description": "In-memory SQL database written in JavaScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "jest",
+    "lint": "tslint -p tsconfig.json",
+    "lint:script": "tslint -p tsconfig.script.json",
+    "lint:test": "tslint -p tsconfig.test.json",
+    "build": "npm run lint && tsc && ts-node script/remove-tsd",
+    "prepublishOnly": "npm i && npm run build",
+    "postpublish": "rm package-lock.json && rimraf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://kennysng@github.com/kennysng/node-jql-core.git"
+  },
+  "author": "Kennys Ng <kennysng@hotmail.com.hk>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/kennysng/node-jql-core/issues"
+  },
+  "homepage": "https://github.com/kennysng/node-jql-core#readme",
+  "devDependencies": {
+    "@types/event-stream": "^3.3.34",
+    "@types/jest": "^24.0.11",
+    "@types/minimist": "^1.2.0",
+    "@types/node": "^11.12.2",
+    "@types/recursive-readdir": "^2.2.0",
+    "chalk": "^2.4.2",
+    "event-stream": "^4.0.1",
+    "jest": "^24.5.0",
+    "minimist": "^1.2.0",
+    "recursive-readdir": "^2.2.2",
+    "rimraf": "^2.6.3",
+    "ts-jest": "^24.0.1",
+    "ts-node": "^8.0.3",
+    "tslint": "^5.14.0",
+    "typescript": "^3.4.1"
+  },
+  "dependencies": {
+  }
+}
