@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "umd",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false
+  },
+  "include": [
+    "script/**/*.ts"
+  ],
+  "exclude": [
+    "src",
+    "node_modules"
+  ]
+}
