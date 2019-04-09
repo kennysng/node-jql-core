@@ -1,7 +1,7 @@
 {
   "name": "node-jql-core",
   "version": "0.0.1",
-  "description": "In-memory SQL database written in JavaScript",
+  "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -25,21 +25,32 @@
   "homepage": "https://github.com/kennysng/node-jql-core#readme",
   "devDependencies": {
     "@types/event-stream": "^3.3.34",
+    "@types/is-regexp": "^2.0.0",
     "@types/jest": "^24.0.11",
+    "@types/lodash": "^4.14.123",
     "@types/minimist": "^1.2.0",
-    "@types/node": "^11.12.2",
+    "@types/moment": "^2.13.0",
+    "@types/node": "^11.13.0",
     "@types/recursive-readdir": "^2.2.0",
+    "@types/semaphore": "^1.1.0",
+    "@types/uuid": "^3.4.4",
     "chalk": "^2.4.2",
     "event-stream": "^4.0.1",
-    "jest": "^24.5.0",
+    "jest": "^24.7.1",
     "minimist": "^1.2.0",
     "recursive-readdir": "^2.2.2",
     "rimraf": "^2.6.3",
-    "ts-jest": "^24.0.1",
+    "ts-jest": "^24.0.2",
     "ts-node": "^8.0.3",
-    "tslint": "^5.14.0",
-    "typescript": "^3.4.1"
+    "tslint": "^5.15.0",
+    "typescript": "^3.4.2"
   },
   "dependencies": {
+    "is-regexp": "^2.0.0",
+    "lodash": "^4.17.11",
+    "moment": "^2.24.0",
+    "node-jql": "^1.1.1",
+    "semaphore": "^1.1.0",
+    "uuid": "^3.3.2"
   }
 }

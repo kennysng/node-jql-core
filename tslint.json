@@ -3,6 +3,7 @@
     "tslint:recommended"
   ],
   "rules": {
+    "arrow-parens": false,
     "ban-types": false,
     "curly": [
       true,
