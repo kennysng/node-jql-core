@@ -2584,13 +2584,12 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.1.1.tgz#9c74fd9daf4bb46f3ac49ea735a1f3b5c4c344cb"
-  integrity sha512-u3PHD//nDnDx4oA0GgjWZS1+U2ynZ3oOSTFxfoZkWNl9vhMAjudCM4tX8FQM+AV2LywTDs+9W1YJzIR4Jb5ntw==
+node-jql@^1.1.4:
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.1.4.tgz#e052ac349e9e4648839b065bbeeec4b3dc880599"
+  integrity sha512-+BFoDqLB7hSidPDXXCHOGoisxFAjsdXFw5JzqbMTPzVYFsWuPfEh1IYoomLQ+dF47XG4yJhiV8Fqfz7gaPBKtQ==
   dependencies:
     deep-diff "^1.0.2"
-    is-regexp "^2.0.0"
     squel "^5.12.2"
 
 node-modules-regexp@^1.0.0:
