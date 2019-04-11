@@ -1,14 +1,9 @@
 import uuid = require('uuid/v4')
 import { AlreadyExistsError } from '../utils/error/AlreadyExistsError'
 import { NotFoundError } from '../utils/error/NotFoundError'
-import { Logger } from '../utils/logger'
+import { Column } from './column'
 import { Table } from './table'
 
-const logger = new Logger(__filename)
-
-/**
- * Define the properties of a Database
- */
 export class Database {
   private readonly tablesMapping: { [key: string]: Table } = {}
 
@@ -20,13 +15,9 @@ export class Database {
   constructor(readonly name: string, readonly key = uuid()) {
   }
 
-  /**
-   * List the Tables in this Database
-   */
-  get tables(): Table[] {
-    return Object.keys(this.tablesMapping)
-      .map(key => this.tablesMapping[key])
-      .sort((l, r) => l.name < r.name ? -1 : l.name > r.name ? 1 : 0)
+  // @override
+  get [Symbol.toStringTag](): string {
+    return 'Database'
   }
 
   /**
@@ -36,61 +27,84 @@ export class Database {
     return Object.keys(this.tablesMapping).length
   }
 
-  // @override
-  get [Symbol.toStringTag]() {
-    return 'Database'
+  /**
+   * List the Tables in this Database ordered by Table name
+   */
+  get tables(): Table[] {
+    return Object.keys(this.tablesMapping)
+      .map(key => this.tablesMapping[key])
+      .sort((l, r) => l.name < r.name ? -1 : l.name > r.name ? 1 : 0)
   }
 
   /**
-   * Get the Table with the given name
-   * @param name [string] Table name
+   * Get the Table with the given name or given key
+   * @param nameOrKey [string] Table name or Table key
    */
-  public getTable(name: string): Table {
-    const table = this.tables.find(table => table.name === name)
-    if (!table) throw new NotFoundError(`Table '${name}' not found in Database '${this.name}'`)
+  public getTable(nameOrKey: string): Table {
+    const table = this.tables.find(table => table.key === nameOrKey || table.name === nameOrKey)
+    if (!table) throw new NotFoundError(`Table '${nameOrKey}' not found in Database '${this.name}'`)
     return table
   }
 
   /**
+   * Add Table to the Database. Throw error if the Table with the same name exists
+   * @param table [Table]
+   * @param columns [Array<Column>]
+   */
+  public createTable(table: Table, columns: Column[]): Table
+
+  /**
    * Add Table to the Database
    * @param table [Table]
-   * @param ifNotExists [boolean] Whether to suppress error if the Table with the same name exists
+   * @param columns [Array<Column>]
+   * @param ifNotExists [boolean] Suppress error if the Table with the same name exists
    */
-  public createTable(table: Table, ifNotExists?: boolean): Database {
-    this.createTable_(table, ifNotExists)
-    logger.info(`CREATE TABLE ${ifNotExists ? 'IF NOT EXISTS ' : ''}\`${this.name}\`.\`${table.name}\``)
-    return this
-  }
-
-  /**
-   * Remove the Table with the given name from the Database
-   * @param name [string]
-   * @param ifExists [boolean] Whether to suppress error if the Table does not exist
-   */
-  public dropTable(name: string, ifExists?: boolean): Table|undefined {
-    const result = this.dropTable_(name, ifExists)
-    logger.info(`DROP TABLE ${ifExists ? 'IF EXISTS ' : ''}\`${this.name}\`.\`${name}\``)
-    return result
-  }
-
-  /**
-   * Update the Table properties. Should be used when Transaction is committed to the DatabaseCore
-   * @param table [Table]
-   */
-  public updateTable(table: Table): Database {
-    if (this.getTable(table.name).equals(table)) {
-      this.tablesMapping[table.key] = table
+  public createTable(table: Table, columns: Column[], ifNotExists?: true): Table|undefined {
+    try {
+      this.getTable(table.name)
+      if (!ifNotExists) throw new AlreadyExistsError(`Table '${table.name}' already exists in Database '${this.name}'`)
     }
-    return this
+    catch (e) {
+      if (e instanceof NotFoundError) {
+        if (!columns.length) throw new SyntaxError('Table must have at least 1 Column')
+        table = new Table(table, this)
+        for (const column of columns) table.addColumn(column)
+        this.tablesMapping[table.key] = table
+        return table
+      }
+      throw e
+    }
+  }
+
+  /**
+   * Remove the Table with the given name or the given key from the Database. Throw error if the Table does not exist
+   * @param nameOrKey [string]
+   */
+  public dropTable(nameOrKey: string): Table
+
+  /**
+   * Remove the Table with the given name or the given key from the Database
+   * @param nameOrKey [string]
+   * @param ifExists [boolean] Suppress error if the Table does not exist
+   */
+  public dropTable(nameOrKey: string, ifExists?: true): Table|undefined {
+    try {
+      const table = this.getTable(nameOrKey)
+      delete this.tablesMapping[table.key]
+      return table
+    }
+    catch (e) {
+      if (!ifExists) throw e
+    }
   }
 
   /**
    * Clone the Database
    */
   public clone(): Database {
-    const result = new Database(this.name, this.key)
-    for (const table of this.tables) result.createTable_(table)
-    return result
+    const newDatabase = new Database(this.name, this.key)
+    for (const table of this.tables) newDatabase.createTable(table, table.columns)
+    return newDatabase
   }
 
   /**
@@ -98,32 +112,6 @@ export class Database {
    * @param database [Database]
    */
   public equals(database: Database): boolean  {
-    return this.name === database.name && this.key === database.key
-  }
-
-  private createTable_(table: Table, ifNotExists?: boolean) {
-    try {
-      this.getTable(table.name)
-      if (!ifNotExists) throw new AlreadyExistsError(`Table '${table.name}' already exists in Database '${this.name}'`)
-    }
-    catch (e) {
-      if (e instanceof NotFoundError) {
-        if (!table.columns.length) throw new SyntaxError('Table must have at least 1 Column')
-        table = new Table(this, table)
-        return this.tables[table.key] = table
-      }
-      throw e
-    }
-  }
-
-  private dropTable_(name: string, ifExists?: boolean): Table|undefined {
-    try {
-      const table = this.getTable(name)
-      delete this.tables[table.key]
-      return table
-    }
-    catch (e) {
-      if (!ifExists) throw e
-    }
+    return this === database || this.key === database.key
   }
 }
