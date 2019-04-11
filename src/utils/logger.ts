@@ -29,7 +29,7 @@ export class Logger {
   }
 
   // @override
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return 'Logger'
   }
 
@@ -37,7 +37,7 @@ export class Logger {
    * The list of levels that will be shown
    * @param levels [...Array<string>] Accepts DEBUG, INFO, WARN, ERROR only
    */
-  public setLogLevels(...levels: LogLevel[]) {
+  public setLogLevels(...levels: LogLevel[]): void {
     this.levels = levels
   }
 
@@ -45,7 +45,7 @@ export class Logger {
    * Same as console.debug
    * @param args [any]
    */
-  public debug(...args: any[]) {
+  public debug(...args: any[]): void {
     this.print('DEBUG', ...args)
   }
 
@@ -53,7 +53,7 @@ export class Logger {
    * Same as console.info
    * @param args [any]
    */
-  public info(...args: any[]) {
+  public info(...args: any[]): void {
     this.print('INFO', ...args)
   }
 
@@ -61,7 +61,7 @@ export class Logger {
    * Same as console.warn
    * @param args [any]
    */
-  public warn(...args: any[]) {
+  public warn(...args: any[]): void {
     this.print('WARN', ...args)
   }
 
@@ -69,11 +69,11 @@ export class Logger {
    * Same as console.error
    * @param args [any]
    */
-  public error(...args: any[]) {
+  public error(...args: any[]): void {
     this.print('ERROR', ...args)
   }
 
-  private print(level: LogLevel, ...args: any[]) {
+  private print(level: LogLevel, ...args: any[]): void {
     if (this.levels.indexOf(level) > -1) {
       switch (level) {
         case 'DEBUG':

@@ -9,7 +9,8 @@ export function getEnv(key: string): string|undefined {
 /**
  * Set environmental variable for JQL with the given key
  * @param key [string]
+ * @param value [string]
  */
-export function setEnv(key: string, value: string) {
+export function setEnv(key: string, value: string): void {
   process.env[`JQL_${key.toLocaleUpperCase()}`] = value
 }

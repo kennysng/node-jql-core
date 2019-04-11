@@ -18,7 +18,7 @@ export class JQLError extends Error {
   constructor(name: string, message: string, error?: Error)
 
   constructor(...args: any[]) {
-    super(typeof args[1] === 'string' ? `${args[0]}: ${args[1]}` : `JQLError: ${args[0]}`)
+    super(typeof args[1] === 'string' ? args[1] : args[0])
     let name: string, error: Error|undefined
     if (typeof args[1] === 'string') {
       name = args[0]
@@ -29,11 +29,11 @@ export class JQLError extends Error {
       error = args[1]
     }
     this.name = name
-    if (error) this.stack = `${this.stack}\n--------------------\nThrown by ${error.stack}`
+    if (error) this.stack = `${this.stack}\n--------------------\n\nThrown by ${error.stack}`
   }
 
   // @override
-  get [Symbol.toStringTag]() {
+  get [Symbol.toStringTag](): string {
     return this.name
   }
 }
