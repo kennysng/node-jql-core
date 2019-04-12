@@ -5,7 +5,7 @@ import { Column } from './column'
 import { Database } from './database'
 
 export class Table {
-  public readonly name: string
+  public name: string
   public readonly key: string
   public readonly database?: string
 
@@ -75,7 +75,7 @@ export class Table {
    * @param nameOrKey [string] Column name or Column key
    */
   public getColumn(nameOrKey: string): Column {
-    const column = this.columns.find(column => column.key === nameOrKey || column.name === nameOrKey)
+    const column = this.columnsMapping[nameOrKey] || this.columns.find(column => column.name === nameOrKey)
     if (!column) throw new NotFoundError(`Column '${nameOrKey}' not found in Table '${this.name}'`)
     return column
   }

@@ -22,7 +22,7 @@ export class Schema {
    * @param nameOrKey [string] Database name or Database key
    */
   public getDatabase(nameOrKey: string): Database {
-    const database = this.databases.find(schema => schema.key === nameOrKey || schema.name === nameOrKey)
+    const database = this.databasesMapping[nameOrKey] || this.databases.find(schema => schema.name === nameOrKey)
     if (!database) throw new NotFoundError(`Database '${nameOrKey}' not found`)
     return database
   }
@@ -38,6 +38,8 @@ export class Schema {
    * @param name [string]
    * @param ifNotExists [boolean] Suppress error if the Database with the same name exists
    */
+  public createDatabase(name: string, ifNotExists: true): Database|undefined
+
   public createDatabase(name: string, ifNotExists?: true): Database|undefined {
     try {
       this.getDatabase(name)
@@ -63,6 +65,8 @@ export class Schema {
    * @param nameOrKey [string]
    * @param ifExists [boolean] Suppress error if the Database does not exist
    */
+  public dropDatabase(nameOrKey: string, ifExists: true): Database|undefined
+
   public dropDatabase(nameOrKey: string, ifExists?: true): Database|undefined {
     try {
       const database = this.getDatabase(nameOrKey)
@@ -82,7 +86,7 @@ export class Schema {
     for (const database of this.databases) {
       const newDatabase = newSchema.createDatabase(database.name)
       for (const table of database.tables) {
-        newDatabase.createTable(table, table.columns)
+        newDatabase.createTable(table.name, table.columns)
       }
     }
     return newSchema
