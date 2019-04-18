@@ -35,6 +35,7 @@
       true,
       "never"
     ],
+    "unified-signatures": false,
     "variable-name": [
       true,
       "allow-leading-underscore",

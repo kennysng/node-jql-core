@@ -30,24 +30,17 @@ export class Schema {
   /**
    * Add Database to the Schema. Throw error if the Database with the same name exists
    * @param name [string]
+   * @param key [string]
    */
-  public createDatabase(name: string): Database
-
-  /**
-   * Add Database to the Schema
-   * @param name [string]
-   * @param ifNotExists [boolean] Suppress error if the Database with the same name exists
-   */
-  public createDatabase(name: string, ifNotExists: true): Database|undefined
-
-  public createDatabase(name: string, ifNotExists?: true): Database|undefined {
+  public createDatabase(name: string, key?: string): Database {
     try {
+      if (key && this.databasesMapping[key]) throw new AlreadyExistsError(`Database key '${key}' already in use`)
       this.getDatabase(name)
-      if (!ifNotExists) throw new AlreadyExistsError(`Database '${name}' already exists`)
+      throw new AlreadyExistsError(`Database '${name}' already exists`)
     }
     catch (e) {
       if (e instanceof NotFoundError) {
-        const database = new Database(name)
+        const database = new Database(name, key)
         return this.databasesMapping[database.key] = database
       }
       throw e
@@ -58,24 +51,10 @@ export class Schema {
    * Remove the Database with the given name or the given key from the Schema. Throw error if the Database does not exist
    * @param nameOrKey [string]
    */
-  public dropDatabase(nameOrKey: string): Database
-
-  /**
-   * Remove the Database with the given name or the given key from the Schema
-   * @param nameOrKey [string]
-   * @param ifExists [boolean] Suppress error if the Database does not exist
-   */
-  public dropDatabase(nameOrKey: string, ifExists: true): Database|undefined
-
-  public dropDatabase(nameOrKey: string, ifExists?: true): Database|undefined {
-    try {
-      const database = this.getDatabase(nameOrKey)
-      delete this.databasesMapping[database.key]
-      return database
-    }
-    catch (e) {
-      if (!ifExists) throw e
-    }
+  public dropDatabase(nameOrKey: string): Database {
+    const database = this.getDatabase(nameOrKey)
+    delete this.databasesMapping[database.key]
+    return database
   }
 
   /**

@@ -7,7 +7,7 @@ import { Database } from './database'
 export class Table {
   public name: string
   public readonly key: string
-  public readonly database?: string
+  public readonly databaseKey?: string
 
   protected readonly columnsMapping: { [key: string]: Column } = {}
   protected readonly columnsOrder: string[] = []
@@ -32,7 +32,7 @@ export class Table {
       const table = args[0] as Table
       name = table.name
       key = table.key
-      this.database = (args[1] as Database).key
+      this.databaseKey = (args[1] as Database).key
       for (const column of table.columns) this.addColumn(column)
     }
     else {
@@ -53,7 +53,7 @@ export class Table {
    * Check whether the Table is binded to a Database
    */
   get isBinded(): boolean {
-    return !!this.database
+    return !!this.databaseKey
   }
 
   /**

@@ -54,22 +54,31 @@ export class Database {
   public createTable(name: string, columns: Column[]): Table
 
   /**
-   * Add Table to the Database
+   * Add Table to the Database. Throw error if the Table with the same name exists
    * @param name [string]
+   * @param key [string]
    * @param columns [Array<Column>]
-   * @param ifNotExists [boolean] Suppress error if the Table with the same name exists
    */
-  public createTable(name: string, columns: Column[], ifNotExists: true): Table|undefined
+  public createTable(name: string, key: string, columns: Column[]): Table
 
-  public createTable(name: string, columns: Column[], ifNotExists?: true): Table|undefined {
+  public createTable(name: string, ...args: any[]): Table {
+    let key: string|undefined, columns: Column[]
+    if (typeof args[0] === 'string') {
+      key = args[0]
+      columns = args[1]
+    }
+    else {
+      columns = args[0]
+    }
     try {
+      if (key && this.tablesMapping[key]) throw new AlreadyExistsError(`Table key '${key}' already in use`)
       this.getTable(name)
-      if (!ifNotExists) throw new AlreadyExistsError(`Table '${name}' already exists in Database '${this.name}'`)
+      throw new AlreadyExistsError(`Table '${name}' already exists in Database '${this.name}'`)
     }
     catch (e) {
       if (e instanceof NotFoundError) {
         if (!columns.length) throw new SyntaxError('A Table must have at least 1 Column')
-        const table = new Table(new Table(name), this)
+        const table = new Table(new Table(name, key), this)
         for (const column of columns) table.addColumn(column)
         this.tablesMapping[table.key] = table
         return table
@@ -82,24 +91,10 @@ export class Database {
    * Remove the Table with the given name or the given key from the Database. Throw error if the Table does not exist
    * @param nameOrKey [string]
    */
-  public dropTable(nameOrKey: string): Table
-
-  /**
-   * Remove the Table with the given name or the given key from the Database
-   * @param nameOrKey [string]
-   * @param ifExists [boolean] Suppress error if the Table does not exist
-   */
-  public dropTable(nameOrKey: string, ifExists: true): Table|undefined
-
-  public dropTable(nameOrKey: string, ifExists?: true): Table|undefined {
-    try {
-      const table = this.getTable(nameOrKey)
-      delete this.tablesMapping[table.key]
-      return table
-    }
-    catch (e) {
-      if (!ifExists) throw e
-    }
+  public dropTable(nameOrKey: string): Table {
+    const table = this.getTable(nameOrKey)
+    delete this.tablesMapping[table.key]
+    return table
   }
 
   /**

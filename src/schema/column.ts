@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import moment = require('moment')
 import { defaults, Type } from 'node-jql'
 import uuid = require('uuid/v4')
@@ -20,7 +21,7 @@ export class Column implements IColumnOptions {
   public readonly name: string
   public readonly type: Type
   public readonly key: string
-  public readonly table?: string
+  public readonly tableKey?: string
 
   public readonly default: any
   public readonly nullable: boolean
@@ -57,7 +58,7 @@ export class Column implements IColumnOptions {
         name = column.name
         type = column.type
         options = column
-        if (args[1]) this.table = (args[1] as Table).key
+        if (args[1]) this.tableKey = (args[1] as Table).key
       }
       else {
         name = args[0]
@@ -96,7 +97,7 @@ export class Column implements IColumnOptions {
    * Check whether the Column is binded to a Table
    */
   get isBinded(): boolean {
-    return !!this.table
+    return !!this.tableKey
   }
 
   /**
@@ -110,7 +111,8 @@ export class Column implements IColumnOptions {
    * Check whether the provided value is suitable to this Column
    * @param value [any] inserted value
    */
-  public validate(value: any): void {
+  public validate(value: any): any {
+    if (isUndefined(value) && !isUndefined(this.default)) value = _.cloneDeep(this.default)
     if (!this.nullable && isUndefined(value)) throw new TypeError(`Column '${this.name}' is not nullable but received undefined`)
     switch (this.type) {
       case 'any':
@@ -127,6 +129,7 @@ export class Column implements IColumnOptions {
         if (type !== this.type) throw new TypeError(`Column '${this.name}' expects '${this.type}' but received '${type}'`)
         break
     }
+    return value
   }
 
   /**
