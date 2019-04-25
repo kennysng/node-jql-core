@@ -1,7 +1,7 @@
 /* tslint:disable:no-console */
 
 import moment = require('moment')
-import { BetweenExpression, BinaryExpression, ColumnExpression, ExistsExpression, InExpression, IsNullExpression, LikeExpression, Query, ResultColumn, TableOrSubquery, Value } from 'node-jql'
+import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, InExpression, IsNullExpression, LikeExpression, Query, ResultColumn, TableOrSubquery, Value } from 'node-jql'
 import { InMemoryEngine } from '.'
 import { DatabaseCore } from '../../core'
 import { Connection } from '../../core/connection'
@@ -106,6 +106,35 @@ test('Query for Students born in April 1992', callback => {
       start: moment.utc('1992-04-01', 'YYYY-MM-DD').toDate(),
       end: moment.utc('1992-05-01', 'YYYY-MM-DD').toDate(),
     }),
+  })
+  connection.query(query)
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Test CASE ... WHEN ...', callback => {
+  const query = new Query({
+    $select: [
+      new ResultColumn({ expression: new ColumnExpression('id') }),
+      new ResultColumn({ expression: new ColumnExpression('name') }),
+      new ResultColumn({
+        expression: new CaseExpression({
+          cases: [
+            new Case({
+              $when: new BinaryExpression({ left: new ColumnExpression('name'), operator: '=', right: 'Kennys Ng' }),
+              $then: new Value('Hi, I\'m Kennys Ng'),
+            }),
+            new Case({
+              $when: new BinaryExpression({ left: new ColumnExpression('gender'), operator: '=', right: 'M' }),
+              $then: new Value('Hi, I\'m male'),
+            }),
+          ],
+          $else: new Value('Hi, I\'m female'),
+        }),
+        $as: 'greeting',
+      }),
+    ],
+    $from: 'Student',
   })
   connection.query(query)
     .then(() => callback())

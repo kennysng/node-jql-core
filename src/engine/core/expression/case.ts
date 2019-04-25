@@ -41,7 +41,7 @@ export class CompiledCaseExpression extends CompiledExpression {
     super(expression)
     try {
       this.cases = expression.cases.map(case_ => new CompiledCase(case_, options))
-      if (expression.$else) this.$else = compile(expression, options)
+      if (expression.$else) this.$else = compile(expression.$else, options)
     }
     catch (e) {
       throw new InstantiateError('Fail to compile CaseExpression', e)
@@ -73,7 +73,7 @@ export class CompiledCaseExpression extends CompiledExpression {
     return new Promise(resolve => {
       const { $when, $then } = this.cases[i]
       $when.evaluate(cursor, sandbox)
-        .then(result => {
+        .then(({ value: result }) => {
           if (result) {
             return resolve($then.evaluate(cursor, sandbox))
           }
@@ -81,7 +81,7 @@ export class CompiledCaseExpression extends CompiledExpression {
             return resolve(this.evaluate_(i + 1, cursor, sandbox))
           }
           else {
-            return resolve(this.$else ? this.$else.evaluate(cursor, sandbox) : undefined)
+            return resolve(this.$else ? this.$else.evaluate(cursor, sandbox) : { value: undefined, type: 'any' })
           }
         })
     })
