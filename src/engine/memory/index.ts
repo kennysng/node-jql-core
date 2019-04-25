@@ -257,9 +257,6 @@ export class InMemoryEngine extends DatabaseEngine {
   // @override
   public query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
 
-  // @override
-  public query(databaseNameOrKey: string|undefined, query: CompiledQuery): Promise<IQueryResult>
-
   public query(...args: any[]): Promise<IQueryResult> {
     let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
     if (typeof args[0] === 'string') {

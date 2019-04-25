@@ -1,3 +1,5 @@
+/* tslint:disable:no-console */
+
 import { mapSync, split } from 'event-stream'
 import { createReadStream, statSync, unlink } from 'fs'
 import minimist = require('minimist')
@@ -59,6 +61,11 @@ getTsdPaths(baseFile)
   .then(() => {
     recursive(baseDir, ['*.js', baseFile, ...tsdfiles], (err, files) => {
       if (err) throw err
-      for (const file of files) unlink(file, (e) => { if (e) throw e })
+      for (const file of files) {
+        unlink(file, (e) => {
+          if (e) throw e
+          console.log(`${file} deleted`)
+        })
+      }
     })
   })

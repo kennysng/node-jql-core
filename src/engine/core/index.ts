@@ -4,7 +4,6 @@ import { Schema } from '../../schema'
 import { Column } from '../../schema/column'
 import { Database } from '../../schema/database'
 import { Table } from '../../schema/table'
-import { CompiledQuery } from './query'
 
 /**
  * Define how the Database stores and retrieves data
@@ -106,13 +105,6 @@ export abstract class DatabaseEngine {
    * @param args [Array<any>]
    */
   public abstract query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
-
-  /**
-   * Run a CompiledQuery
-   * @param databaseNameOrKey [string]
-   * @param query [CompiledQuery]
-   */
-  public abstract query(databaseNameOrKey: string|undefined, query: CompiledQuery): Promise<IQueryResult>
 
   /**
    * Insert data into a Table

@@ -22,6 +22,9 @@
   "bugs": {
     "url": "https://github.com/kennysng/node-jql-core/issues"
   },
+  "files": [
+    "dist"
+  ],
   "homepage": "https://github.com/kennysng/node-jql-core#readme",
   "devDependencies": {
     "@types/event-stream": "^3.3.34",
@@ -49,7 +52,7 @@
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.11",
     "moment": "^2.24.0",
-    "node-jql": "^1.1.11",
+    "node-jql": "^1.1.12",
     "timsort": "^0.3.0",
     "uuid": "^3.3.2"
   }
