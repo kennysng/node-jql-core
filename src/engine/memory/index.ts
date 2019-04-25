@@ -282,9 +282,17 @@ export class InMemoryEngine extends DatabaseEngine {
       for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
     }
     const sql = query.toString()
-    return Promise.all(query.tables.map(key => this.tableLocks.startReading(key)))
-      .then(() => new Sandbox(this).run(query as CompiledQuery))
-      .then(result => ({ ...result, sql, time: Date.now() - base }))
+    const compiled: CompiledQuery = query
+    return Promise.all(compiled.tables.map(key => this.tableLocks.startReading(key)))
+      .then(() => new Sandbox(this).run(compiled))
+      .then(result => {
+        for (const key of compiled.tables) this.tableLocks.endReading(key)
+        return { ...result, sql, time: Date.now() - base }
+      })
+      .catch(e => {
+        for (const key of compiled.tables) this.tableLocks.endReading(key)
+        throw e
+      })
   }
 
   // @override
