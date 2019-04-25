@@ -2,26 +2,26 @@
 
 import moment = require('moment')
 import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, InExpression, IsNullExpression, LikeExpression, Query, ResultColumn, TableOrSubquery, Value } from 'node-jql'
-import { InMemoryEngine } from '.'
-import { DatabaseCore } from '../../core'
-import { Connection } from '../../core/connection'
-import { Column } from '../../schema/column'
-import { randomDate, randomFrom, randomName } from '../../utils/random'
-import { numberList } from '../../utils/simple'
+import { DatabaseCore } from '../src/core'
+import { Connection } from '../src/core/connection'
+import { InMemoryEngine } from '../src/engine/memory'
+import { Column } from '../src/schema/column'
+import { randomDate, randomFrom, randomName } from './utils/random'
+import { numberList } from './utils/simple'
 
 let databaseCore: DatabaseCore
 let connection: Connection
 
 const students = [
-  ...numberList(98).map(id => ({ id,
+  ...numberList(198).map(id => ({ id,
     name: randomName(),
     gender: randomFrom(['M', 'F']),
     birthday: moment.utc(randomDate(moment.utc('1992-01-01', 'YYYY-MM-DD').toDate(), moment.utc('1993-01-01', 'YYYY-MM-DD').toDate())).startOf('d').toDate(),
     createdAt: randomDate(moment.utc('2010-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2012-01-01', 'YYYY-MM-DD').toDate()),
     leaveAt: randomFrom([undefined, randomDate(moment.utc('2015-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2017-01-01', 'YYYY-MM-DD').toDate())]),
   })),
-  { id: 99, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
-  { id: 100, name: 'Rina Christina', gender: 'F', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
+  { id: 199, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
+  { id: 200, name: 'Rina Christina', gender: 'F', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
 ]
 
 test('Instantiate DatabaseCore', () => {

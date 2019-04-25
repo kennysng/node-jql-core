@@ -15,7 +15,6 @@
     "src/**/*.ts"
   ],
   "exclude": [
-    "src/**/*.test.ts",
     "src/**/*.old/**",
     "script",
     "node_modules"
