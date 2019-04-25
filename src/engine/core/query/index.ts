@@ -135,7 +135,7 @@ export class CompiledQuery extends CompiledSql {
   }
 
   /**
-   * Estimate the structure of the ResultSet
+   * Estimate the structure of the result set
    */
   get structure(): Table {
     const table = new Table(this.$as || 'TEMP_TABLE', this.key)

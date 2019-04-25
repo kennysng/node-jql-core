@@ -1,5 +1,6 @@
 import _ = require('lodash')
-import { denormalize, Sql } from 'node-jql'
+import { denormalize, normalize } from 'node-jql'
+import timsort = require('timsort')
 import { DatabaseEngine } from '.'
 import { TEMP_DB_KEY } from '../../core'
 import { IDataSource, IMapping, IQueryResult, IRow } from '../../core/interfaces'
@@ -10,7 +11,6 @@ import { Cursors, ICursor } from './cursor'
 import { TableCursor } from './cursor/table'
 import { CompiledColumnExpression } from './expression/column'
 import { CompiledQuery } from './query'
-import { CompiledResultColumn } from './query/resultColumn'
 import { CompiledJoinedTableOrSubquery, CompiledTableOrSubquery } from './query/tableOrSubquery'
 
 export interface IQueryOptions {
@@ -96,7 +96,6 @@ export class Sandbox {
             }))
         })
     }
-    // TODO special cases, for optimized performance
     else if (!query.$from) {
       // TODO special case, no $from clause
     }
@@ -107,8 +106,13 @@ export class Sandbox {
         promise = promise.then(() => Promise.all($from.map<Promise<void>>(tableOrSubquery => this.prepareTable(tableOrSubquery, options.cursor))))
       }
 
+      // TODO optimize queries with InExpression with independent subqueries -> prepare the temp table(s) first
+      // TODO set InExpression.tempTable
+
       const cursors = query.$from.map(tableOrSubquery => new TableCursor(this, tableOrSubquery, options.cursor))
       const cursor: ICursor = cursors.length > 1 ? new Cursors(cursors) : cursors[0]
+
+      // get immediate result set
       promise = promise.then(() => {
         return cursor.moveToFirst()
           .then((cursor: ICursor) => {
@@ -123,7 +127,28 @@ export class Sandbox {
             throw e
           })
       })
-      // TODO
+
+      // distinct
+      if (query.$distinct) {
+        promise = (promise as Promise<IRow[]>).then<IRow[]>(data => _.uniqBy(data, row => query.$select.reduce<string>((result, { key }) => {
+          return result + normalize(row[key])
+        }, '')))
+      }
+
+      // ordering
+      if (query.$order) {
+        const $order = query.$order
+        promise = (promise as Promise<IRow[]>).then<IRow[]>(data => {
+          timsort.sort(data, (l, r) => {
+            for (const { key } of $order) {
+              if (normalize(l[key]) < normalize(r[key])) return -1
+              if (normalize(l[key]) > normalize(r[key])) return 1
+            }
+            return 0
+          })
+          return data
+        })
+      }
     }
 
     return (promise as Promise<IRow[]>)
@@ -166,6 +191,7 @@ export class Sandbox {
             Promise.resolve(options.cursor ? new Cursors([options.cursor, cursor], '+') : cursor)
               .then(cursor => this.processCursor(cursor, query, resultset))
               .then(() => options.exists && resultset.length > 0 ? resultset : this.traverseCursor(cursor, query, options, resultset)),
+              // TODO optimize queries with InExpression -> return if the required value exists
           )
         })
         .catch(e => {

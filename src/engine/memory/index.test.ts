@@ -187,7 +187,7 @@ test('Query Students in the given name list', callback => {
     $from: 'Student',
     $where: new InExpression({
       left: new ColumnExpression('name'),
-      right: ['Kennys Ng', ...numberList(4).map(() => randomName())],
+      right: ['Kennys Ng', ...numberList(9).map(() => randomName())],
     }),
   })
   connection.query(query)
@@ -214,6 +214,20 @@ test('Query for all Students with surname \'Ng\'', callback => {
     $where: new LikeExpression({ left: new ColumnExpression('name') }),
   })
   connection.query(query, 'Ng$')
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('List names in alphabetical order', callback => {
+  const query = new Query({
+    $distinct: true,
+    $select: new ResultColumn({
+      expression: new ColumnExpression('name'),
+    }),
+    $from: 'Student',
+    $order: 'name',
+  })
+  connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
 })
