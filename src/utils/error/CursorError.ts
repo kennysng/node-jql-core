@@ -1,5 +1,4 @@
 import { JQLError } from '.'
-import { Table } from '../../schema/table'
 
 /**
  * Throw when the Cursor throws Error

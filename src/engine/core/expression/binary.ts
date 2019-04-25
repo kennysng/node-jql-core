@@ -1,9 +1,9 @@
 import _ = require('lodash')
-import { BinaryExpression, BinaryOperator } from 'node-jql'
-import { CompiledConditionalExpression, CompiledExpression } from '.'
+import { BinaryExpression, BinaryOperator, Type } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
+import { CompiledConditionalExpression, CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 
@@ -15,7 +15,7 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression {
     super(expression)
     try {
       this.left = compile(expression.left, options)
-      this.right = compile(expression.left, options)
+      this.right = compile(expression.right, options)
     }
     catch (e) {
       throw new InstantiateError('Fail to compile BinaryExpression', e)
@@ -41,25 +41,31 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
     return Promise.all([this.left.evaluate(cursor, sandbox), this.right.evaluate(cursor, sandbox)])
-      .then(([left, right]) => {
+      .then(([{ value: left }, { value: right }]) => {
+        let value: boolean = false
         switch (this.operator) {
           case '<':
-            return left < right
+            value = left < right
+            break
           case '<=':
-            return left < right || _.isEqual(left, right)
+            value = left < right || _.isEqual(left, right)
+            break
           case '<>':
-            return !_.isEqual(left, right)
+            value = !_.isEqual(left, right)
+            break
           case '=':
-            return _.isEqual(left, right)
+            value = _.isEqual(left, right)
+            break
           case '>':
-            return left > right
+            value = left > right
+            break
           case '>=':
-            return left > right || _.isEqual(left, right)
-          default:
-            return false
+            value = left > right || _.isEqual(left, right)
+            break
         }
+        return { value, type: 'boolean' }
       })
   }
 }

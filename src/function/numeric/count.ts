@@ -1,4 +1,4 @@
-import { ColumnExpression, Expression, FunctionExpression } from 'node-jql'
+import { ColumnExpression, Expression } from 'node-jql'
 import { JQLAggregateFunction } from '..'
 import { isUndefined } from '../../utils/isUndefined'
 

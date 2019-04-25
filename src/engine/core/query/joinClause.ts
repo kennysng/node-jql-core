@@ -13,7 +13,7 @@ export class CompiledJoinClause {
     try {
       this.tableOrSubquery = new CompiledTableOrSubquery(sql.tableOrSubquery, options)
       if (sql.$on) {
-        this.$on = compile(sql.$on, { ...options, tables: [tableOrSubquery.tableInfo, this.tableOrSubquery.tableInfo] })
+        this.$on = compile(sql.$on, { ...options, tables: [tableOrSubquery, this.tableOrSubquery] })
       }
     }
     catch (e) {

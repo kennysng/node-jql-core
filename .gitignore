@@ -62,3 +62,7 @@ typings/
 
 # build folder
 dist
+
+# ignore some name pattern
+*.tmp
+*.old

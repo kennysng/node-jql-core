@@ -1,13 +1,13 @@
-import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, ColumnExpression, ExistsExpression, Expression, FunctionExpression, IsNullExpression, LikeExpression, OrExpressions, Unknown as Unknown_, Value as Value_ } from 'node-jql'
-import { CompiledExpression } from '.'
+import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, ColumnExpression, ExistsExpression, Expression, FunctionExpression, InExpression, IsNullExpression, LikeExpression, OrExpressions, Unknown as Unknown_, Value as Value_ } from 'node-jql'
 import { ICompilingQueryOptions } from '../compiledSql'
+import { CompiledExpression } from '../expression'
 import { CompiledBetweenExpression } from './between'
 import { CompiledBinaryExpression } from './binary'
 import { CompiledCaseExpression } from './case'
 import { CompiledColumnExpression } from './column'
 import { CompiledExistsExpression } from './exists'
-import { CompiledFunctionExpression } from './function'
 import { CompiledGroupedExpressions } from './grouped'
+import { CompiledInExpression } from './in'
 import { CompiledIsNullExpression } from './isNull'
 import { CompiledLikeExpression } from './like'
 import { Unknown } from './unknown'
@@ -29,11 +29,14 @@ export function compile(expression: Expression, options: ICompilingQueryOptions)
   else if (expression instanceof ExistsExpression) {
     return new CompiledExistsExpression(expression, options)
   }
-  else if (expression instanceof FunctionExpression) {
+  /* TODO else if (expression instanceof FunctionExpression) {
     return new CompiledFunctionExpression(expression, options)
-  }
+  } */
   else if (expression instanceof AndExpressions || expression instanceof OrExpressions) {
     return new CompiledGroupedExpressions(expression, options)
+  }
+  else if (expression instanceof InExpression) {
+    return new CompiledInExpression(expression, options)
   }
   else if (expression instanceof IsNullExpression) {
     return new CompiledIsNullExpression(expression, options)

@@ -1,10 +1,10 @@
+import { Query } from 'node-jql'
 import { DatabaseCore } from '.'
-import { Transaction } from '../engine/core/transaction'
 import { Column } from '../schema/column'
 import { AlreadyClosedError } from '../utils/error/AlreadyClosedError'
 import { NoDatabaseSelectedError } from '../utils/error/NoDatabaseSelectedError'
 import { Logger } from '../utils/logger'
-import { IResult, IRow } from './interfaces'
+import { IQueryResult, IResult, IRow } from './interfaces'
 
 /**
  * For each Connection
@@ -204,6 +204,19 @@ export class Connection {
   }
 
   /**
+   * Run a Query
+   * @param query [Query|CompiledQuery]
+   * @param args [Array<any>]
+   */
+  public query(query: Query, ...args: any[]): Promise<IQueryResult> {
+    return (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
+      .then(result => {
+        this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
+        return result
+      })
+  }
+
+  /**
    * Insert data into a Table
    * @param name [string]
    * @param values [Array<IRow>]
@@ -212,7 +225,7 @@ export class Connection {
 
   /**
    * Insert data into a Table
-   * @param databaseNameOrKey [string]
+   * @param databaseName [string]
    * @param name [string]
    * @param values [Array<IRow>]
    */
@@ -233,19 +246,9 @@ export class Connection {
     if (!database) throw new NoDatabaseSelectedError()
     return this.core.engine.insertInto(database, name, values)
       .then(result => {
-        this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
+        this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
         return result
       })
-  }
-
-  /**
-   * Start a Transaction
-   */
-  public startTransaction(): Transaction {
-    this.checkClosed()
-    const transaction = this.core.engine.startTransaction(this, this.core)
-    this.logger.info(`BEGIN TRANSACTION #${transaction.id}`)
-    return transaction
   }
 
   /**

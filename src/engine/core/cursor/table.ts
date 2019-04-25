@@ -1,21 +1,20 @@
-import { ICursor } from '.'
+import { Cursors, ICursor } from '.'
 import { IRow } from '../../../core/interfaces'
 import { CursorError } from '../../../utils/error/CursorError'
-import { ITableInfo } from '../compiledSql'
+import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
 import { CompiledConditionalExpression } from '../expression'
 import { CompiledJoinedTableOrSubquery, CompiledTableOrSubquery } from '../query/tableOrSubquery'
 import { Sandbox } from '../sandbox'
 
 export class TableCursor implements ICursor {
   private currentIndex = -1
-  private readonly tables: ITableInfo[]
-
   private currentRow: IRow
+  private readonly tables: CompiledTableOrSubquery[]
 
-  constructor(private readonly sandbox: Sandbox, private readonly tableOrSubquery: CompiledTableOrSubquery) {
-    this.tables = [tableOrSubquery.tableInfo]
+  constructor(private readonly sandbox: Sandbox, private readonly tableOrSubquery: CompiledTableOrSubquery, private readonly baseCursor?: ICursor) {
+    this.tables = [tableOrSubquery]
     if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
-      this.tables.push(...tableOrSubquery.joinClauses.map(joinClause => joinClause.tableOrSubquery.tableInfo))
+      this.tables.push(...tableOrSubquery.joinClauses.map(joinClause => joinClause.tableOrSubquery))
     }
   }
 
@@ -52,7 +51,7 @@ export class TableCursor implements ICursor {
 
   // This is only the maximum possible length, but not the actual length
   private length(): Promise<number> {
-    return Promise.all(this.tables.map(({ database, key }) => this.sandbox.getCount(database, key)))
+    return Promise.all(this.tables.map(({ databaseKey, tableKey }) => this.sandbox.getCount(databaseKey, tableKey)))
       .then(lengths => lengths.reduce((total, length) => total * length, 1))
   }
 
@@ -60,7 +59,7 @@ export class TableCursor implements ICursor {
     return Promise.all([this.currentIndex + 1, this.length()])
       .then(([index, length]) => {
         index = this.currentIndex = Math.max(-1, Math.min(length, index))
-        if (index < 0 || index >= length) throw new CursorError('The Cursor has reached the end')
+        if (index < 0 || index >= length) throw new CursorReachEndError()
         return index
       })
   }
@@ -70,9 +69,9 @@ export class TableCursor implements ICursor {
     const indices = [] as number[]
     for (let i = this.tables.length - 1, base = 1; i >= 0; i -= 1) {
       ((i, base) => {
-        const { database, key } = this.tables[i]
+        const { databaseKey, tableKey } = this.tables[i]
         promise = promise
-          .then(() => this.sandbox.getCount(database, key))
+          .then(() => this.sandbox.getCount(databaseKey, tableKey))
           .then(length => {
             indices[i] = Math.floor(this.currentIndex / base) % length
             base *= length
@@ -88,9 +87,12 @@ export class TableCursor implements ICursor {
         const row = this.currentRow = {} as IRow
         let promise = Promise.resolve(row)
         for (let i = 0, length = this.tables.length; i < length; i += 1) {
-          const { database, key } = this.tables[i]
+          const { databaseKey, tableKey, key } = this.tables[i]
           const index = indices[i]
-          promise = promise.then(row => this.sandbox.getContext(database, key, index).then(row_ => Object.assign(row, row_)))
+          promise = promise.then(row => this.sandbox.getContext(databaseKey, tableKey, index).then(row_ => {
+            for (const key_ in row_) row[`${key}-${key_}`] = row_[key_]
+            return row_
+          }))
         }
         return promise
       })
@@ -99,16 +101,17 @@ export class TableCursor implements ICursor {
   private validateRow(i: number, expressions: CompiledConditionalExpression[]): Promise<TableCursor> {
     return new Promise((resolve, reject) => {
       const expression = expressions[i]
-      expression.evaluate(this, this.sandbox)
+      Promise.resolve<ICursor>(this.baseCursor ? new Cursors([this.baseCursor, this], '+') : this)
+        .then(cursor => expression.evaluate(cursor, this.sandbox))
         .then(result => {
-          if (!result) {
+          if (!result.value) {
             return resolve(this.next())
           }
           else if (i + 1 < expressions.length) {
             return resolve(this.validateRow(i + 1, expressions))
           }
           else {
-            return reject(new CursorError('The Cursor has reached the end'))
+            return reject(new CursorReachEndError())
           }
         })
     })

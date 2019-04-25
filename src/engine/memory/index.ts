@@ -1,7 +1,6 @@
 import { Query } from 'node-jql'
-import { DatabaseCore } from '../../core'
-import { Connection } from '../../core/connection'
 import { IDataSource, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { Functions } from '../../function/functions'
 import { Schema } from '../../schema'
 import { Column } from '../../schema/column'
 import { Database } from '../../schema/database'
@@ -9,9 +8,8 @@ import { Table } from '../../schema/table'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
 import { DatabaseEngine } from '../core'
-import { CompiledQuery, PreparedQuery } from '../core/query'
+import { CompiledQuery } from '../core/query'
 import { Sandbox } from '../core/sandbox'
-import { InMemoryTransaction } from './transaction'
 
 export class InMemoryEngine extends DatabaseEngine {
   protected readonly schema = new Schema()
@@ -208,6 +206,7 @@ export class InMemoryEngine extends DatabaseEngine {
         }
         catch (e) {
           this.databaseLocks.endReading(database.key)
+          throw e
         }
       })
       .then(() => ({ time: Date.now() - base }))
@@ -246,43 +245,46 @@ export class InMemoryEngine extends DatabaseEngine {
         }
         catch (e) {
           this.databaseLocks.endWriting(database.key)
+          throw e
         }
       })
       .then(() => ({ time: Date.now() - base }))
   }
 
   // @override
-  public prepare(query: Query): Promise<PreparedQuery> {
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          return super.prepare(query) as PreparedQuery
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-  }
+  public query(query: Query, ...args: any[]): Promise<IQueryResult>
 
   // @override
   public query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
 
   // @override
-  public query(databaseNameOrKey: string, query: CompiledQuery): Promise<IQueryResult>
+  public query(databaseNameOrKey: string|undefined, query: CompiledQuery): Promise<IQueryResult>
 
-  public query(databaseNameOrKey: string, query: Query|CompiledQuery, ...args: any[]): Promise<IQueryResult> {
+  public query(...args: any[]): Promise<IQueryResult> {
+    let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
+    if (typeof args[0] === 'string') {
+      databaseNameOrKey = args[0]
+      query = args[1]
+      args_ = args.slice(2)
+    }
+    else {
+      query = args[0]
+      args_ = args.slice(1)
+    }
+
     const base = Date.now()
     if (query instanceof Query) {
-      return this.prepare(query)
-        .then(preparedQuery => {
-          for (let i = 0, length = args.length; i < length; i += 1) preparedQuery.setArg(i, args[i])
-          return preparedQuery.execute(databaseNameOrKey)
-        })
-        .then(result => ({ ...result, time: Date.now() - base }))
+      query = new CompiledQuery(query, {
+        defaultDatabase: databaseNameOrKey,
+        functions: new Functions(),
+        schema: this.getSchema(),
+      })
+      for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
     }
-    return Promise.all(query.tables.map(({ key }) => this.tableLocks.startReading(key)))
-      .then(() => new Sandbox(databaseNameOrKey, this).run(query))
-      .then(result => ({ ...result, time: Date.now() - base }))
+    const sql = query.toString()
+    return Promise.all(query.tables.map(key => this.tableLocks.startReading(key)))
+      .then(() => new Sandbox(this).run(query as CompiledQuery))
+      .then(result => ({ ...result, sql, time: Date.now() - base }))
   }
 
   // @override
@@ -320,27 +322,19 @@ export class InMemoryEngine extends DatabaseEngine {
         }
         catch (e) {
           this.databaseLocks.endReading(database.key)
+          throw e
         }
       })
       .then(() => ({ time: Date.now() - base }))
   }
 
   // @override
-  public startTransaction(connection: Connection, core: DatabaseCore): InMemoryTransaction {
-    return new InMemoryTransaction(connection, core)
-  }
-
-  // @override
-  public commitTransaction(transaction: InMemoryTransaction): Promise<IResult> {
-    // TODO
-    return Promise.resolve({ time: 0 })
-  }
-
-  // @override
-  public getContext(databaseNameOrKey: string, tableNameOrKey: string, rowIndex: number): IRow {
+  public getContext(databaseNameOrKey: string, tableNameOrKey: string): IRow[]
+  public getContext(databaseNameOrKey: string, tableNameOrKey: string, rowIndex: number): IRow
+  public getContext(databaseNameOrKey: string, tableNameOrKey: string, rowIndex?: number): IRow|IRow[] {
     const database = this.getSchema().getDatabase(databaseNameOrKey)
     const table = database.getTable(tableNameOrKey)
-    return this.context[database.key][table.key][rowIndex]
+    return rowIndex === undefined ? this.context[database.key][table.key] : this.context[database.key][table.key][rowIndex]
   }
 
   // @override

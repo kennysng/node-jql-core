@@ -1,6 +1,6 @@
-import { equals, Type, Value as Value_ } from 'node-jql'
-import { CompiledExpression } from '.'
+import { equals, normalize, Type, Value as Value_ } from 'node-jql'
 import { ICursor } from '../cursor'
+import { CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 
 export class Value extends CompiledExpression {
@@ -30,7 +30,7 @@ export class Value extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<any> {
-    return this.value
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
+    return Promise.resolve({ value: normalize(this.value), type: this.type })
   }
 }

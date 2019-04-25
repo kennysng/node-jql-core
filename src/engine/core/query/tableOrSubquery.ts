@@ -1,48 +1,57 @@
 import { JoinedTableOrSubquery, Query, TableOrSubquery } from 'node-jql'
-import { CompiledQuery } from '.'
-import { TEMP_DB_KEY as TEMP_DATABASE_KEY } from '../../../core'
+import uuid = require('uuid/v4')
+import { TEMP_DB_KEY } from '../../../core'
 import { Database } from '../../../schema/database'
-import { Table } from '../../../schema/table'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { NoDatabaseSelectedError } from '../../../utils/error/NoDatabaseSelectedError'
-import { ICompilingQueryOptions, ITableInfo } from '../compiledSql'
+import { ICompilingQueryOptions } from '../compiledSql'
+import { CompiledQuery } from '../query'
 import { CompiledJoinClause } from './joinClause'
 
 export class CompiledTableOrSubquery {
   public readonly databaseKey: string
   public readonly tableKey: string
+  public readonly aliasKey?: string
+
   public readonly query?: CompiledQuery
 
   constructor(protected readonly sql: TableOrSubquery, options: ICompilingQueryOptions) {
     try {
-      let database: Database
       if (sql.table instanceof Query) {
-        this.databaseKey = TEMP_DATABASE_KEY
-        this.query = new CompiledQuery(sql.table, options)
-        this.tableKey = this.query.structure.key
+        this.databaseKey = TEMP_DB_KEY
+        this.tableKey = this.aliasKey = uuid()
+        this.query = new CompiledQuery(sql.table, options, sql.$as, this.aliasKey)
         options.unknowns.push(...this.query.unknowns)
+        options.aliases[sql.$as as string] = this.aliasKey
       }
       else {
+        let database: Database
         if (sql.database) {
           database = options.schema.getDatabase(sql.database)
           this.databaseKey = database.key
         }
         else if (options.defaultDatabase) {
-          database = options.schema.getDatabase(this.databaseKey = options.defaultDatabase)
+          this.databaseKey = options.defaultDatabase
+          database = options.schema.getDatabase(this.databaseKey)
         }
         else {
           throw new NoDatabaseSelectedError()
         }
-
         this.tableKey = database.getTable(sql.table).key
+        if (sql.$as) this.aliasKey = options.aliases[sql.$as] = uuid()
       }
-
-      // register alias
-      if (sql.$as) options.aliases[sql.$as] = this.tableKey
     }
     catch (e) {
       throw new InstantiateError('Fail to compile TableOrSubquery', e)
     }
+  }
+
+  get $as(): string|undefined {
+    return this.sql.$as || this.sql.table as string
+  }
+
+  get key(): string {
+    return this.aliasKey || this.tableKey
   }
 
   // @override
@@ -50,34 +59,9 @@ export class CompiledTableOrSubquery {
     return 'CompiledTableOrSubquery'
   }
 
-  get tableInfo(): ITableInfo {
-    if (this.query) {
-      const query = this.query
-      return {
-        database: this.databaseKey,
-        name: this.$as,
-        key: this.tableKey,
-        get tempTable(): Table {
-          return query.structure
-        },
-      }
-    }
-    else {
-      return {
-        database: this.databaseKey,
-        name: this.$as || this.sql.table as string,
-        key: this.tableKey,
-      }
-    }
-  }
-
-  get $as(): string|undefined {
-    return this.sql.$as
-  }
-
   public equals(obj: CompiledTableOrSubquery): boolean {
     if (this === obj) return true
-    if (this.$as !== obj.$as || this.databaseKey !== obj.databaseKey || this.tableKey !== obj.tableKey) return false
+    if (this.databaseKey !== obj.databaseKey || this.tableKey !== obj.tableKey || this.aliasKey !== obj.aliasKey || this.$as !== obj.$as) return false
     return (this.query && obj.query && this.query.equals(obj.query)) || false
   }
 }

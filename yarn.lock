@@ -2542,10 +2542,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.1.5:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.1.5.tgz#f2fdd68d7f00056e4ca8b8e05683cdd179bd089e"
-  integrity sha512-oWI/bKuklHt7GG8vTD8B+kAL4ivbQ0tZ0+e9n7CC9hVejefOnuF8eVtH7oKIUq+wurXDIKaxnsTKTIVGi9zjjA==
+node-jql@^1.1.11:
+  version "1.1.11"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.1.11.tgz#6f560382a449d107361d527c9db863f66037e2c8"
+  integrity sha512-jLB0MfnXT8D5SkMWSd9zza9vYr8LAl7H3NrDWFzkg+Impb8QYfJzOllJLV0aWfM3E2tnthdpGrwOVaSFYCXkbw==
   dependencies:
     deep-diff "^1.0.2"
     squel "^5.12.2"

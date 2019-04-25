@@ -1,17 +1,11 @@
 import { ColumnExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
-import uuid = require('uuid/v4')
-import { DatabaseEngine } from '..'
-import { IQueryResult } from '../../../core/interfaces'
-import { Functions } from '../../../function/functions'
-import { Schema } from '../../../schema'
 import { Column } from '../../../schema/column'
 import { Table } from '../../../schema/table'
 import { NotFoundError } from '../../../utils/error/NotFoundError'
-import { CompiledSql, ICompilingOptions, ICompilingQueryOptions, isICompilingQueryOptions, ITableInfo } from '../compiledSql'
-import { CompiledExpression } from '../expression'
+import { CompiledSql, ICompilingOptions, ICompilingQueryOptions } from '../compiledSql'
+import { CompiledConditionalExpression } from '../expression'
 import { CompiledColumnExpression } from '../expression/column'
 import { compile } from '../expression/compile'
-import { CompiledFunctionExpression } from '../expression/function'
 import { Unknown } from '../expression/unknown'
 import { Value } from '../expression/value'
 import { CompiledGroupBy } from './groupBy'
@@ -22,30 +16,24 @@ import { CompiledJoinedTableOrSubquery, CompiledTableOrSubquery } from './tableO
 export class CompiledQuery extends CompiledSql {
   public readonly $select: CompiledResultColumn[]
   public readonly $from?: CompiledTableOrSubquery[]
-  public readonly $where?: CompiledExpression
+  public readonly $where?: CompiledConditionalExpression
   public readonly $group?: CompiledGroupBy
   public readonly $order?: CompiledOrderingTerm[]
 
-  public readonly aliases: { [key: string]: string } = {}
-  public readonly tables: ITableInfo[] = []
-  public readonly unknowns: Unknown[] = []
+  private flagSimpleQuery?: boolean = undefined
+  private flagTempTables?: boolean = undefined
 
-  private readonly key = uuid()
+  private readonly options: ICompilingQueryOptions
 
-  constructor(private readonly query: Query, private readonly baseOptions: ICompilingOptions) {
+  constructor(private readonly query: Query, baseOptions: ICompilingOptions, public readonly $as?: string, public readonly key?: string) {
     super(query)
 
-    if (isICompilingQueryOptions(baseOptions)) {
-      this.aliases = baseOptions.aliases
-      this.tables = baseOptions.tables
-      this.unknowns = baseOptions.unknowns
-    }
-
-    const options: ICompilingQueryOptions = {
+    // initialize compiling options
+    const options: ICompilingQueryOptions = this.options = {
+      aliases: {},
+      tables: [],
+      unknowns: [],
       ...baseOptions,
-      aliases: this.aliases,
-      tables: this.tables,
-      unknowns: this.unknowns,
     }
 
     // get the list of Tables involved
@@ -55,20 +43,24 @@ export class CompiledQuery extends CompiledSql {
         : new CompiledTableOrSubquery(tableOrSubquery, options),
       )
 
-      this.tables = options.tables = options.tables.concat(this.$from.reduce<ITableInfo[]>((result, tableOrSubquery) => {
-        result.push(tableOrSubquery.tableInfo)
+      for (const tableOrSubquery of this.$from) {
+        options.tables.push(tableOrSubquery)
         if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
-          result.push(...tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery.tableInfo))
+          options.tables.push(...tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery))
         }
-        return result
-      }, []))
+      }
     }
 
     // interpret wildcard columns
     const $select = query.$select.reduce<ResultColumn[]>((result, resultColumn, i) => {
       if (resultColumn.expression instanceof ColumnExpression && resultColumn.expression.isWildcard) {
         const expression = resultColumn.expression
-        const tables = options.tables.map(tableInfo => options.schema.getDatabase(tableInfo.database).getTable(tableInfo.key))
+        const tables = options.tables.map(({ databaseKey, tableKey, query, $as }) => {
+          if (query) return query.structure
+          let table = options.schema.getDatabase(databaseKey).getTable(tableKey as string)
+          if ($as) table = table.clone($as)
+          return table
+        })
         if (expression.table) {
           const table = tables.find(({ name }) => name === expression.table)
           if (!table) throw new NotFoundError(`Table '${expression.name}' not found`)
@@ -93,12 +85,10 @@ export class CompiledQuery extends CompiledSql {
     if (query.$where) this.$where = compile(query.$where, options)
 
     // compile $group
-    if (query.$group) this.$group = new CompiledGroupBy(query.$group, options)
+    if (query.$group) this.$group = new CompiledGroupBy(query.$group, this.$select, options)
 
     // compile $order
-    if (query.$order) this.$order = query.$order.map(orderingTerm => new CompiledOrderingTerm(orderingTerm, options))
-
-    // TODO validate
+    if (query.$order) this.$order = query.$order.map(orderingTerm => new CompiledOrderingTerm(orderingTerm, this.$select, options))
   }
 
   // @override
@@ -106,32 +96,58 @@ export class CompiledQuery extends CompiledSql {
     return 'CompiledQuery'
   }
 
+  /**
+   * DISTINCT
+   */
   get $distinct(): boolean {
     return this.query.$distinct || false
   }
 
+  /**
+   * LIMIT
+   */
   get $limit(): number {
     return this.query.$limit ? this.query.$limit.value : Number.MAX_SAFE_INTEGER
   }
 
+  /**
+   * OFFSET
+   */
   get $offset(): number {
     return this.query.$limit ? this.query.$limit.$offset || 0 : 0
+  }
+
+  /**
+   * List all the Unknowns
+   */
+  get unknowns(): Unknown[] {
+    return this.options.unknowns
+  }
+
+  /**
+   * List the Tables involved
+   */
+  get tables(): string[] {
+    return this.options.tables.reduce<string[]>((result, { tableKey }) => {
+      if (tableKey && result.indexOf(tableKey) === -1) result.push(tableKey)
+      return result
+    }, [])
   }
 
   /**
    * Estimate the structure of the ResultSet
    */
   get structure(): Table {
-    const table = new Table(this.key, this.key)
+    const table = new Table(this.$as || 'TEMP_TABLE', this.key)
     for (const { expression, $as, key } of this.$select) {
       if (expression instanceof CompiledColumnExpression) {
         const { databaseKey, tableKey, columnKey } = expression
-        const database = this.baseOptions.schema.getDatabase(databaseKey)
+        const database = this.options.schema.getDatabase(databaseKey)
         table.addColumn(database.getTable(tableKey).getColumn(columnKey))
       }
-      else if (expression instanceof CompiledFunctionExpression) {
+      /* TODO else if (expression instanceof CompiledFunctionExpression) {
         table.addColumn(new Column($as || expression.toString(), expression.jqlFunction.type, key))
-      }
+      } */
       else if (expression instanceof Value) {
         table.addColumn(new Column($as || expression.toString(), expression.type, key))
       }
@@ -143,6 +159,48 @@ export class CompiledQuery extends CompiledSql {
       }
     }
     return table
+  }
+
+  /**
+   * SELECT * FROM Table
+   */
+  get isSimpleQuery(): boolean {
+    if (this.flagSimpleQuery === undefined) {
+      this.flagSimpleQuery = (
+        this.query.$from &&
+        this.query.$from.length === 1 &&
+        !(this.query.$from[0] instanceof JoinedTableOrSubquery) &&
+        !this.query.$where &&
+        !this.query.$group &&
+        !this.query.$order &&
+        this.query.$select.length === 1 &&
+        this.query.$select[0].expression instanceof ColumnExpression &&
+        this.query.$select[0].expression.isWildcard
+      )
+    }
+    return this.flagSimpleQuery || false
+  }
+
+  /**
+   * SELECT * FROM (SELECT ...) t
+   */
+  get needTempTables(): boolean {
+    if (this.flagTempTables === undefined) {
+      this.flagTempTables = !!this.$from && this.needTempTables_(this.$from)
+    }
+    return this.flagTempTables || false
+  }
+
+  /**
+   * Assign value to specific Unknown
+   * @param i [number]
+   * @param value [any]
+   */
+  public setArg(i: number, value: any): CompiledQuery {
+    const unknown = this.unknowns[i]
+    if (!unknown) throw new NotFoundError(`Unknown #${i} not found`)
+    this.unknowns[i].assign(value)
+    return this
   }
 
   // @override
@@ -173,56 +231,12 @@ export class CompiledQuery extends CompiledSql {
     }
     return true
   }
-}
 
-/**
- * Bind CompiledQuery with DatabaseEngine
- */
-export class PreparedQuery {
-  private readonly compiled_: CompiledQuery
-
-  constructor(private readonly engine: DatabaseEngine, public readonly query: Query, schema: Schema) {
-    this.compiled_ = new CompiledQuery(query, {
-      functions: new Functions(),
-      schema,
-    })
-  }
-
-  // @override
-  get [Symbol.toStringTag](): string {
-    return 'PreparedQuery'
-  }
-
-  /**
-   * Predicted structure of the ResultSet
-   */
-  get structure(): Table {
-    return this.compiled_.structure
-  }
-
-  /**
-   * Reset all query parameters
-   */
-  public clearArgs(): void {
-    for (const unknown of this.compiled_.unknowns) unknown.reset()
-  }
-
-  /**
-   * Set query parameter
-   * @param i [number]
-   * @param value [any]
-   */
-  public setArg(i: number, value: any) {
-    const unknown = this.compiled_.unknowns[i]
-    if (!unknown) throw new NotFoundError(`Unknown #${i} not found`)
-    unknown.assign(value)
-  }
-
-  /**
-   * Run the Query
-   * @param databaseName [string]
-   */
-  public execute(databaseName: string): Promise<IQueryResult> {
-    return this.engine.query(databaseName, this.compiled_)
+  private needTempTables_($from: CompiledTableOrSubquery[]): boolean {
+    for (const tableOrSubquery of $from) {
+      if (tableOrSubquery.$as) return true
+      if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery && this.needTempTables_(tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery))) return true
+    }
+    return false
   }
 }

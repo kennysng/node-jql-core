@@ -1,3 +1,5 @@
+import { Type } from 'node-jql'
+import uuid = require('uuid/v4')
 import { CompiledSql } from '../compiledSql'
 import { ICursor } from '../cursor'
 import { Sandbox } from '../sandbox'
@@ -19,7 +21,7 @@ export abstract class CompiledExpression extends CompiledSql {
    * @param cursor [ICursor]
    * @param sandbox [Sandbox]
    */
-  public abstract evaluate(cursor: ICursor, sandbox: Sandbox): Promise<any>
+  public abstract evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }>
 }
 
 /**
@@ -33,5 +35,5 @@ export abstract class CompiledConditionalExpression extends CompiledExpression {
   }
 
   // @override
-  public abstract evaluate(cursor: ICursor, sandbox: Sandbox): Promise<boolean>
+  public abstract evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }>
 }

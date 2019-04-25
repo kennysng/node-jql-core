@@ -1,15 +1,14 @@
 import { ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { InstantiateError } from '../../../utils/error/InstantiateError'
-import { ICompilingQueryOptions } from '../compiledSql'
+import { ICompilingQueryOptions, IExpressionWithKey } from '../compiledSql'
 import { CompiledExpression } from '../expression'
 import { CompiledColumnExpression } from '../expression/column'
 import { compile } from '../expression/compile'
 
-export class CompiledResultColumn {
+export class CompiledResultColumn implements IExpressionWithKey {
   public readonly expression: CompiledExpression
-
-  private generatedKey = uuid()
+  private key_?: string
 
   constructor(private readonly sql: ResultColumn, options: ICompilingQueryOptions) {
     try {
@@ -30,7 +29,9 @@ export class CompiledResultColumn {
   }
 
   get key(): string {
-    return this.expression instanceof CompiledColumnExpression ? this.expression.columnKey : this.generatedKey
+    if (this.expression instanceof CompiledColumnExpression) return this.expression.key
+    if (!this.key_) this.key_ = uuid()
+    return this.key_
   }
 
   public equals(obj: CompiledResultColumn): boolean {

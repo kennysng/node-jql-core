@@ -1,6 +1,6 @@
 import _ = require('lodash')
 import moment = require('moment')
-import { defaults, Type } from 'node-jql'
+import { defaults, normalize, Type } from 'node-jql'
 import uuid = require('uuid/v4')
 import { InstantiateError } from '../utils/error/InstantiateError'
 import { isUndefined } from '../utils/isUndefined'
@@ -11,7 +11,6 @@ import { Table } from './table'
  */
 export interface IColumnOptions {
   default?: any
-  nullable?: boolean
 }
 
 /**
@@ -24,7 +23,6 @@ export class Column implements IColumnOptions {
   public readonly tableKey?: string
 
   public readonly default: any
-  public readonly nullable: boolean
 
   /**
    * Create a clean Column
@@ -78,10 +76,6 @@ export class Column implements IColumnOptions {
       this.key = key
       if (isUndefined(options.default)) options.default = defaults[type]
       Object.assign(this, options)
-
-      if (!this.nullable && isUndefined(this.default)) {
-        throw new TypeError(`Column '${name}' is not nullable but no default value is assigned`)
-      }
     }
     catch (e) {
       throw new InstantiateError('Fail to instantiate Column', e)
@@ -104,7 +98,7 @@ export class Column implements IColumnOptions {
    * Get SQL string of the Column
    */
   get sql(): string {
-    return `\`${this.name}\` ${this.type}${this.nullable ? '' : ' NOT NULL'}${!isUndefined(this.default) ? ` DEFAULT ${JSON.stringify(this.default)}` : ''}`
+    return `\`${this.name}\` ${this.type}${!isUndefined(this.default) ? ` DEFAULT ${JSON.stringify(this.default)}` : ''}`
   }
 
   /**
@@ -113,7 +107,7 @@ export class Column implements IColumnOptions {
    */
   public validate(value: any): any {
     if (isUndefined(value) && !isUndefined(this.default)) value = _.cloneDeep(this.default)
-    if (!this.nullable && isUndefined(value)) throw new TypeError(`Column '${this.name}' is not nullable but received undefined`)
+    if (isUndefined(value)) return value
     switch (this.type) {
       case 'any':
         // do nothing
@@ -129,7 +123,7 @@ export class Column implements IColumnOptions {
         if (type !== this.type) throw new TypeError(`Column '${this.name}' expects '${this.type}' but received '${type}'`)
         break
     }
-    return value
+    return normalize(value, this.type)
   }
 
   /**

@@ -1,9 +1,9 @@
 import isRegexp = require('is-regexp')
-import { LikeExpression, Unknown as Unknown_ } from 'node-jql'
-import { CompiledConditionalExpression, CompiledExpression } from '.'
+import { LikeExpression, Type, Unknown as Unknown_ } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
+import { CompiledConditionalExpression, CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 import { Unknown } from './unknown'
@@ -15,12 +15,12 @@ export class CompiledLikeExpression extends CompiledConditionalExpression {
   constructor(private readonly expression: LikeExpression, options: ICompilingQueryOptions) {
     super(expression)
     try {
-      this.left = compile(expression, options)
-      if (expression.right) {
+      this.left = compile(expression.left, options)
+      if (typeof expression.right === 'string') {
         this.right = new RegExp(expression.right)
       }
       else {
-        this.right = new Unknown(new Unknown_({ type: 'string' }), options)
+        this.right = new Unknown(expression.right, options)
         options.unknowns.push(this.right)
       }
     }
@@ -47,16 +47,16 @@ export class CompiledLikeExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
     return this.left.evaluate(cursor, sandbox)
-      .then(left => {
+      .then(({ value: left }) => {
         let right = this.right
         if (right instanceof Unknown) {
           right = new RegExp(right.value as string)
         }
-        let result = right.test(left)
-        if (this.$not) result = !result
-        return result
+        let value = right.test(left)
+        if (this.$not) value = !value
+        return { value, type: 'boolean' }
       })
   }
 }

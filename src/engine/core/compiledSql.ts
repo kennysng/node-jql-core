@@ -1,26 +1,26 @@
 import { Sql } from 'node-jql'
-import squel = require('squel')
 import { Functions } from '../../function/functions'
 import { Schema } from '../../schema'
-import { Table } from '../../schema/table'
+import { CompiledExpression } from './expression'
 import { Unknown } from './expression/unknown'
+import { CompiledTableOrSubquery } from './query/tableOrSubquery'
 
-/**
- * Compiled Table information
- */
-export interface ITableInfo {
-  database: string
-  name?: string
-  key: string
-  tempTable?: Table
+export interface IExpressionWithKey {
+  readonly expression: CompiledExpression
+  readonly key: string
 }
 
 /**
  * Parameters required for compiling SQLs
  */
 export interface ICompilingOptions {
+  // Default Database key
   defaultDatabase?: string
+
+  // list of available functions
   functions: Functions
+
+  // Database schema at this moment
   schema: Schema
 }
 
@@ -28,8 +28,13 @@ export interface ICompilingOptions {
  * Parameters required for compiling queries
  */
 export interface ICompilingQueryOptions extends ICompilingOptions {
+  // alias-to-table mapping
   aliases: { [key: string]: string }
-  tables: ITableInfo[]
+
+  // list of available Tables
+  tables: CompiledTableOrSubquery[]
+
+  // list of unknowns
   unknowns: Unknown[]
 }
 
@@ -51,13 +56,6 @@ export abstract class CompiledSql {
   // @override
   get [Symbol.toStringTag](): string {
     return 'CompiledSql'
-  }
-
-  /**
-   * Get squel instance
-   */
-  public toSquel(): squel.BaseBuilder {
-    return this.sql.toSquel()
   }
 
   // @override

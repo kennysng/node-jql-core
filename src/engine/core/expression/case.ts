@@ -1,9 +1,8 @@
-import { Case, CaseExpression } from 'node-jql'
-import { CompiledConditionalExpression, CompiledExpression } from '.'
-import { JQLError } from '../../../utils/error'
+import { Case, CaseExpression, Type } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
+import { CompiledConditionalExpression, CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 
@@ -13,7 +12,7 @@ export class CompiledCase {
 
   constructor(private readonly case_: Case, options: ICompilingQueryOptions) {
     try {
-      this.$when = compile(case_.$when, options)
+      this.$when = compile(case_.$when, options) as CompiledConditionalExpression
       this.$then = compile(case_.$then, options)
     }
     catch (e) {
@@ -66,11 +65,11 @@ export class CompiledCaseExpression extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<any> {
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
     return this.evaluate_(0, cursor, sandbox)
   }
 
-  private evaluate_(i: number, cursor: ICursor, sandbox: Sandbox): Promise<any> {
+  private evaluate_(i: number, cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
     return new Promise(resolve => {
       const { $when, $then } = this.cases[i]
       $when.evaluate(cursor, sandbox)

@@ -32,7 +32,7 @@ export class Table {
       const table = args[0] as Table
       name = table.name
       key = table.key
-      this.databaseKey = (args[1] as Database).key
+      if (args[1]) this.databaseKey = (args[1] as Database).key
       for (const column of table.columns) this.addColumn(column)
     }
     else {
@@ -141,6 +141,16 @@ export class Table {
       for (const column of table.columns) newTable.addColumn(column)
     }
     return newTable
+  }
+
+  /**
+   * For generating alias table
+   * @param name [string]
+   */
+  public clone(name: string): Table {
+    const table = new Table(this)
+    table.name = name
+    return table
   }
 
   /**

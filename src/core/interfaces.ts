@@ -19,11 +19,23 @@ export interface IDataSource {
  */
 export interface IResult {
   time: number
+  sql?: string
+}
+
+/**
+ * Represent mapping information for the Query result
+ */
+export interface IMapping {
+  table?: string
+  column?: string
+  name: string
+  key: string
 }
 
 /**
  * Represent Query result
  */
 export interface IQueryResult extends IResult {
+  mappings: IMapping[],
   data: IRow[]
 }

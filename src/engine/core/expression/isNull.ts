@@ -1,9 +1,9 @@
-import { IsNullExpression } from 'node-jql'
-import { CompiledConditionalExpression, CompiledExpression } from '.'
+import { IsNullExpression, Type } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { isUndefined } from '../../../utils/isUndefined'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
+import { CompiledConditionalExpression, CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 
@@ -13,7 +13,7 @@ export class CompiledIsNullExpression extends CompiledConditionalExpression {
   constructor(private readonly expression: IsNullExpression, options: ICompilingQueryOptions) {
     super(expression)
     try {
-      this.left = compile(expression, options)
+      this.left = compile(expression.left, options)
     }
     catch (e) {
       throw new InstantiateError('Fail to compile CompiledIsNullExpression', e)
@@ -38,12 +38,12 @@ export class CompiledIsNullExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
     return this.left.evaluate(cursor, sandbox)
-      .then(left => {
-        let result = isUndefined(left)
-        if (this.$not) result = !result
-        return result
+      .then(({ value: left }) => {
+        let value = isUndefined(left)
+        if (this.$not) value = !value
+        return { value, type: 'boolean' }
       })
   }
 }

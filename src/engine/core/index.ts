@@ -1,13 +1,10 @@
 import { Query } from 'node-jql'
-import { DatabaseCore } from '../../core'
-import { Connection } from '../../core/connection'
 import { IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Schema } from '../../schema'
 import { Column } from '../../schema/column'
 import { Database } from '../../schema/database'
 import { Table } from '../../schema/table'
-import { CompiledQuery, PreparedQuery } from './query'
-import { Transaction } from './transaction'
+import { CompiledQuery } from './query'
 
 /**
  * Define how the Database stores and retrieves data
@@ -96,18 +93,11 @@ export abstract class DatabaseEngine {
   public abstract dropTable(databaseNameOrKey: string, name: string, ifExists?: true): Promise<IResult>
 
   /**
-   * Pre-compile a Query for reusability
+   * Run a Query
    * @param query [Query]
+   * @param args [Array<any>]
    */
-  public prepare(query: Query): PreparedQuery|Promise<PreparedQuery> {
-    const schema = this.getSchema()
-    if (schema instanceof Schema) {
-      return new PreparedQuery(this, query, schema)
-    }
-    else {
-      return schema.then(schema => new PreparedQuery(this, query, schema))
-    }
-  }
+  public abstract query(query: Query, ...args: any[]): Promise<IQueryResult>
 
   /**
    * Run a Query
@@ -118,11 +108,11 @@ export abstract class DatabaseEngine {
   public abstract query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
 
   /**
-   * Run a CompiledQuery. Called by PreparedQuery only
+   * Run a CompiledQuery
    * @param databaseNameOrKey [string]
    * @param query [CompiledQuery]
    */
-  public abstract query(databaseNameOrKey: string, query: CompiledQuery): Promise<IQueryResult>
+  public abstract query(databaseNameOrKey: string|undefined, query: CompiledQuery): Promise<IQueryResult>
 
   /**
    * Insert data into a Table
@@ -133,15 +123,11 @@ export abstract class DatabaseEngine {
   public abstract insertInto(databaseNameOrKey: string, name: string, values: IRow[]): Promise<IResult>
 
   /**
-   * Start a Transaction
+   * Get the required rows
+   * @param databaseNameOrKey [string]
+   * @param tableNameOrKey [string]
    */
-  public abstract startTransaction(connection: Connection, core: DatabaseCore): Transaction
-
-  /**
-   * Commit the changes in the Transaction
-   * @param transaction [Transaction]
-   */
-  public abstract commitTransaction(transaction: Transaction): Promise<IResult>
+  public abstract getContext(databaseNameOrKey: string, tableNameOrKey: string): IRow[]|Promise<IRow[]>
 
   /**
    * Get the required row of data

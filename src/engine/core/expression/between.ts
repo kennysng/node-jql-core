@@ -1,8 +1,8 @@
-import { BetweenExpression } from 'node-jql'
-import { CompiledConditionalExpression, CompiledExpression } from '.'
+import { BetweenExpression, Type } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
+import { CompiledConditionalExpression, CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 
@@ -43,12 +43,12 @@ export class CompiledBetweenExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
+  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
     return Promise.all([this.left.evaluate(cursor, sandbox), this.start.evaluate(cursor, sandbox), this.end.evaluate(cursor, sandbox)])
-      .then(([left, start, end]) => {
-        let result = start <= left && left <= end
-        if (this.$not) result = !result
-        return result
+      .then(([{ value: left }, { value: start }, { value: end }]) => {
+        let value = start <= left && left <= end
+        if (this.$not) value = !value
+        return { value, type: 'boolean' }
       })
   }
 }
