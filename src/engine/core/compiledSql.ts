@@ -2,11 +2,13 @@ import { Sql } from 'node-jql'
 import { Functions } from '../../function/functions'
 import { Schema } from '../../schema'
 import { CompiledExpression } from './expression'
+import { CompiledColumnExpression } from './expression/column'
+import { CompiledFunctionExpression } from './expression/function'
 import { Unknown } from './expression/unknown'
 import { CompiledTableOrSubquery } from './query/tableOrSubquery'
 
-export interface IExpressionWithKey {
-  readonly expression: CompiledExpression
+export interface IExpressionWithKey<T = CompiledExpression> {
+  readonly expression: T
   readonly key: string
 }
 
@@ -34,6 +36,12 @@ export interface ICompilingQueryOptions extends ICompilingOptions {
   // list of available Tables
   tables: CompiledTableOrSubquery[]
 
+  // list of columns
+  columns: CompiledColumnExpression[]
+
+  // list of aggregate functions
+  aggregateFunctions: CompiledFunctionExpression[]
+
   // list of unknowns
   unknowns: Unknown[]
 }
@@ -43,7 +51,7 @@ export interface ICompilingQueryOptions extends ICompilingOptions {
  * @param obj [ICompilingOptions]
  */
 export function isICompilingQueryOptions(obj: ICompilingOptions): obj is ICompilingQueryOptions {
-  return 'aliases' in obj && 'tables' in obj && 'unknowns' in obj
+  return 'aliases' in obj && 'tables' in obj && 'columns' in obj && 'unknowns' in obj
 }
 
 /**

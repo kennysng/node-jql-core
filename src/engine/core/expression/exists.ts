@@ -8,6 +8,7 @@ import { Sandbox } from '../sandbox'
 
 export class CompiledExistsExpression extends CompiledConditionalExpression {
   public readonly query: CompiledQuery
+  public readonly aggregateRequired = false
 
   constructor(private readonly expression: ExistsExpression, options: ICompilingQueryOptions) {
     super(expression)

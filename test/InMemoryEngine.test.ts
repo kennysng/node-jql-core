@@ -1,7 +1,7 @@
 /* tslint:disable:no-console */
 
 import moment = require('moment')
-import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, InExpression, IsNullExpression, LikeExpression, Query, ResultColumn, TableOrSubquery, Value } from 'node-jql'
+import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
 import { DatabaseCore } from '../src/core'
 import { Connection } from '../src/core/connection'
 import { InMemoryEngine } from '../src/engine/memory'
@@ -20,8 +20,11 @@ const students = [
     createdAt: randomDate(moment.utc('2010-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2012-01-01', 'YYYY-MM-DD').toDate()),
     leaveAt: randomFrom([undefined, randomDate(moment.utc('2015-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2017-01-01', 'YYYY-MM-DD').toDate())]),
   })),
-  { id: 199, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
-  { id: 200, name: 'Rina Christina', gender: 'F', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
+  { id: 199, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('1992-04-21', 'YYYY-MM-DD').toDate(),
+    createdAt: randomDate(moment.utc('2010-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2012-01-01', 'YYYY-MM-DD').toDate()),
+    leaveAt: randomDate(moment.utc('2015-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2017-01-01', 'YYYY-MM-DD').toDate()),
+  },
+  { id: 200, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
 ]
 
 test('Instantiate DatabaseCore', () => {
@@ -91,14 +94,29 @@ test('Insert into Student', callback => {
     .catch(e => callback(e))
 })
 
-test('Query for all Students', callback => {
+test('Test Query', callback => {
   const query = new Query({ $from: 'Student' })
   connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
 })
 
-test('Query for Students born in April 1992', callback => {
+test('Test Query w/o FROM', callback => {
+  const query = new Query({
+    $select: new ResultColumn({
+      expression: new MathExpression({
+        left: new Unknown(),
+        operator: '+',
+        right: new Unknown(),
+      }),
+    }),
+  })
+  connection.query(query, 1, 1)
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Test BetweenExpression', callback => {
   const query = new Query({
     $from: 'Student',
     $where: new BetweenExpression({
@@ -112,11 +130,24 @@ test('Query for Students born in April 1992', callback => {
     .catch(e => callback(e))
 })
 
-test('Test CASE ... WHEN ...', callback => {
+test('Test BinaryExpression', callback => {
   const query = new Query({
+    $from: 'Student',
+    $where: new BinaryExpression({
+      left: new ColumnExpression('gender'),
+      operator: '=',
+      right: 'M',
+    }),
+  })
+  connection.query(query)
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Test CaseExpression and DISTINCT', callback => {
+  const query = new Query({
+    $distinct: true,
     $select: [
-      new ResultColumn({ expression: new ColumnExpression('id') }),
-      new ResultColumn({ expression: new ColumnExpression('name') }),
       new ResultColumn({
         expression: new CaseExpression({
           cases: [
@@ -141,21 +172,7 @@ test('Test CASE ... WHEN ...', callback => {
     .catch(e => callback(e))
 })
 
-test('Query for all male Students', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new BinaryExpression({
-      left: new ColumnExpression('gender'),
-      operator: '=',
-      right: 'M',
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('Query Students with the same name', callback => {
+test('Test ExistsExpression', callback => {
   const query = new Query({
     $from: new TableOrSubquery(['Student', 's1']),
     $where: new ExistsExpression({
@@ -182,7 +199,19 @@ test('Query Students with the same name', callback => {
     .catch(e => callback(e))
 })
 
-test('Query Students in the given name list', callback => {
+test('Test FunctionExpression', callback => {
+  const query = new Query({
+    $select: new ResultColumn({
+      expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('id') }),
+    }),
+    $from: 'Student',
+  })
+  connection.query(query)
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Test InExpression', callback => {
   const query = new Query({
     $from: 'Student',
     $where: new InExpression({
@@ -195,39 +224,27 @@ test('Query Students in the given name list', callback => {
     .catch(e => callback(e))
 })
 
-test('Query for all graduated Students', callback => {
+test('Test IsNullExpression and ORDER BY', callback => {
   const query = new Query({
     $from: 'Student',
     $where: new IsNullExpression({
       left: new ColumnExpression('leaveAt'),
       $not: true,
     }),
+    $order: 'leaveAt',
+    $limit: 5,
   })
   connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
 })
 
-test('Query for all Students with surname \'Ng\'', callback => {
+test('Test LikeExpression', callback => {
   const query = new Query({
     $from: 'Student',
     $where: new LikeExpression({ left: new ColumnExpression('name') }),
   })
   connection.query(query, 'Ng$')
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('List names in alphabetical order', callback => {
-  const query = new Query({
-    $distinct: true,
-    $select: new ResultColumn({
-      expression: new ColumnExpression('name'),
-    }),
-    $from: 'Student',
-    $order: 'name',
-  })
-  connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
 })

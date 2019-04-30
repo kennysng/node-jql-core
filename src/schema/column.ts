@@ -113,7 +113,7 @@ export class Column implements IColumnOptions {
         // do nothing
         break
       case 'Date':
-        if (!moment(value).isValid()) throw new TypeError(`Invalid date value '${value}' for Column '${this.name}'`)
+        if (!moment.utc(value).isValid()) throw new TypeError(`Invalid date value '${value}' for Column '${this.name}'`)
         break
       case 'string':
       case 'number':

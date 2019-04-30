@@ -7,6 +7,7 @@ import { Sandbox } from '../sandbox'
 export class Unknown extends CompiledExpression {
   public value?: any
   public type: Type = 'any'
+  public readonly aggregateRequired = false
 
   constructor(private readonly unknown: Unknown_, options: ICompilingQueryOptions) {
     super(unknown)

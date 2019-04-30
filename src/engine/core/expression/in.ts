@@ -1,4 +1,5 @@
 import { denormalize, InExpression, Query, Type } from 'node-jql'
+import { TEMP_DB_KEY } from '../../../core'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
@@ -11,6 +12,7 @@ import { Unknown } from './unknown'
 export class CompiledInExpression extends CompiledConditionalExpression {
   public readonly left: CompiledExpression
   public readonly right: CompiledExpression|CompiledQuery
+  private tableKey?: string
 
   constructor(private readonly expression: InExpression, options: ICompilingQueryOptions) {
     super(expression)
@@ -39,6 +41,14 @@ export class CompiledInExpression extends CompiledConditionalExpression {
     return this.expression.$not || false
   }
 
+  get aggregateRequired(): boolean {
+    return this.left.aggregateRequired
+  }
+
+  set tempTable(key: string) {
+    this.tableKey = key
+  }
+
   // @override
   public equals(obj: CompiledInExpression): boolean {
     if (this === obj) return true
@@ -58,7 +68,8 @@ export class CompiledInExpression extends CompiledConditionalExpression {
 
   private evaluateRight(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
     if (this.right instanceof CompiledQuery) {
-      return sandbox.run(this.right, { cursor }).then(({ data }) => ({ value: data, type: 'Array' }))
+      const promise = this.tableKey ? sandbox.getContext(TEMP_DB_KEY, this.tableKey) : sandbox.run(this.right, { cursor }).then(({ data }) => data)
+      return promise.then(data => ({ value: data, type: 'Array' }))
     }
     else {
       return this.right.evaluate(cursor, sandbox)

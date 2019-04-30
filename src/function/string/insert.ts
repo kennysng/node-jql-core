@@ -1,0 +1,18 @@
+import { ParameterExpression } from 'node-jql'
+import { JQLFunction } from '..'
+
+/**
+ * Note that @params position uses 0-based index
+ */
+export class InsertFunction extends JQLFunction<string> {
+  public readonly type = 'string'
+
+  public preprocess(parameters: ParameterExpression[]): ParameterExpression[] {
+    if (parameters.length !== 4) throw new SyntaxError(`Invalid use of function ${this.name}(target, position, number, value)`)
+    return parameters
+  }
+
+  public run(target: any, start: number, length: number, value: any): string {
+    return String(target).substr(0, start) + String(value) + target.substr(start + 1 + length)
+  }
+}

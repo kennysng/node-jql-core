@@ -38,6 +38,10 @@ export class CompiledLikeExpression extends CompiledConditionalExpression {
     return this.expression.$not || false
   }
 
+  get aggregateRequired(): boolean {
+    return this.left.aggregateRequired
+  }
+
   // @override
   public equals(obj: CompiledLikeExpression): boolean {
     if (this === obj) return true

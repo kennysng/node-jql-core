@@ -1,11 +1,14 @@
-import { ColumnExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
+import _ = require('lodash')
+import { ColumnExpression, FunctionExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
+import { IMapping } from '../../../core/interfaces'
 import { Column } from '../../../schema/column'
 import { Table } from '../../../schema/table'
 import { NotFoundError } from '../../../utils/error/NotFoundError'
-import { CompiledSql, ICompilingOptions, ICompilingQueryOptions } from '../compiledSql'
+import { CompiledSql, ICompilingOptions, ICompilingQueryOptions, IExpressionWithKey } from '../compiledSql'
 import { CompiledConditionalExpression } from '../expression'
 import { CompiledColumnExpression } from '../expression/column'
 import { compile } from '../expression/compile'
+import { CompiledFunctionExpression } from '../expression/function'
 import { Unknown } from '../expression/unknown'
 import { Value } from '../expression/value'
 import { CompiledGroupBy } from './groupBy'
@@ -20,8 +23,16 @@ export class CompiledQuery extends CompiledSql {
   public readonly $group?: CompiledGroupBy
   public readonly $order?: CompiledOrderingTerm[]
 
-  private flagSimpleQuery?: boolean = undefined
-  private flagTempTables?: boolean = undefined
+  private ownTables: CompiledTableOrSubquery[] = []
+  private cacheMappings?: IMapping[]
+  private cacheTables?: string[]
+  private cacheColumns?: Array<IExpressionWithKey<CompiledColumnExpression>>
+  private cacheAggregateFunctions?: Array<IExpressionWithKey<CompiledFunctionExpression>>
+  private flagSimpleQuery?: boolean
+  private flagSimpleCount?: boolean
+  private flagFastQuery?: boolean
+  private flagTempTables?: boolean
+  private flagAggregate?: boolean
 
   private readonly options: ICompilingQueryOptions
 
@@ -32,6 +43,8 @@ export class CompiledQuery extends CompiledSql {
     const options: ICompilingQueryOptions = this.options = {
       aliases: {},
       tables: [],
+      columns: [],
+      aggregateFunctions: [],
       unknowns: [],
       ...baseOptions,
     }
@@ -44,15 +57,16 @@ export class CompiledQuery extends CompiledSql {
       )
 
       for (const tableOrSubquery of this.$from) {
-        options.tables.push(tableOrSubquery)
+        this.registerTable(this.ownTables, tableOrSubquery)
         if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
-          options.tables.push(...tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery))
+          this.registerTable(this.ownTables, ...tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery))
         }
       }
+      this.registerTable(options.tables, ...this.ownTables)
     }
 
     // interpret wildcard columns
-    const $select = query.$select.reduce<ResultColumn[]>((result, resultColumn, i) => {
+    const $select = query.$select.reduce<ResultColumn[]>((result, resultColumn) => {
       if (resultColumn.expression instanceof ColumnExpression && resultColumn.expression.isWildcard) {
         const expression = resultColumn.expression
         const tables = options.tables.map(({ databaseKey, tableKey, query, $as }) => {
@@ -125,13 +139,58 @@ export class CompiledQuery extends CompiledSql {
   }
 
   /**
+   * Column mappings for result set
+   */
+  get mappings(): IMapping[] {
+    if (this.cacheMappings === undefined) {
+      this.cacheMappings = this.$select.map<IMapping>(({ expression, key, $as }) => {
+        const result = { name: $as || expression.toString(), key } as IMapping
+        if (expression instanceof CompiledColumnExpression) {
+          result.table = expression.table
+          result.column = expression.name
+        }
+        return result
+      })
+    }
+    return this.cacheMappings
+  }
+
+  /**
    * List the Tables involved
    */
   get tables(): string[] {
-    return this.options.tables.reduce<string[]>((result, { tableKey }) => {
-      if (tableKey && result.indexOf(tableKey) === -1) result.push(tableKey)
-      return result
-    }, [])
+    if (this.cacheTables === undefined) {
+      const tables = this.options.tables.map<string>(({ tableKey }) => tableKey)
+      this.cacheTables = _.uniq(tables)
+    }
+    return this.cacheTables
+  }
+
+  /**
+   * List the Columns to be retrieved
+   */
+  get columns(): Array<IExpressionWithKey<CompiledColumnExpression>> {
+    if (this.cacheColumns === undefined) {
+      const columns = this.options.columns
+        .filter(column => this.ownTables.find(({ key }) => column.tableKey === key))
+        .map<IExpressionWithKey<CompiledColumnExpression>>(expression => ({ expression, key: expression.key }))
+      this.cacheColumns = _.uniqBy(columns, ({ key }) => key)
+    }
+    return this.cacheColumns
+  }
+
+  /**
+   * List the aggregate functions to be evaluated
+   */
+  get aggregateFunctions(): Array<IExpressionWithKey<CompiledFunctionExpression>> {
+    if (this.cacheAggregateFunctions === undefined) {
+      this.cacheAggregateFunctions = this.options.aggregateFunctions
+        .map(expression => ({
+          expression,
+          key: expression.key,
+        }))
+    }
+    return this.cacheAggregateFunctions
   }
 
   /**
@@ -145,14 +204,11 @@ export class CompiledQuery extends CompiledSql {
         const database = this.options.schema.getDatabase(databaseKey)
         table.addColumn(database.getTable(tableKey).getColumn(columnKey))
       }
-      /* TODO else if (expression instanceof CompiledFunctionExpression) {
+      else if (expression instanceof CompiledFunctionExpression) {
         table.addColumn(new Column($as || expression.toString(), expression.jqlFunction.type, key))
-      } */
-      else if (expression instanceof Value) {
-        table.addColumn(new Column($as || expression.toString(), expression.type, key))
       }
-      else if (expression instanceof Unknown) {
-        throw new TypeError('ResultColumn should not be an Unknown')
+      else if (expression instanceof Value || expression instanceof Unknown) {
+        table.addColumn(new Column($as || expression.toString(), expression.type, key))
       }
       else {
         table.addColumn(new Column($as || expression.toString(), 'boolean', key))
@@ -162,7 +218,16 @@ export class CompiledQuery extends CompiledSql {
   }
 
   /**
-   * SELECT * FROM Table
+   * Has LIMIT ... OFFSET ...
+   */
+  get hasLimitOffset(): boolean {
+    if (!this.query.$limit) return false
+    return !(this.$offset === 0 && this.$limit === Number.MAX_SAFE_INTEGER)
+  }
+
+  /**
+   * One wildcard Column, one Table, no WHERE, no GROUP BY, and simple ORDER BY
+   * -> Simply retrieve Rows from the DataSource
    */
   get isSimpleQuery(): boolean {
     if (this.flagSimpleQuery === undefined) {
@@ -172,7 +237,7 @@ export class CompiledQuery extends CompiledSql {
         !(this.query.$from[0] instanceof JoinedTableOrSubquery) &&
         !this.query.$where &&
         !this.query.$group &&
-        !this.query.$order &&
+        (!this.query.$order || this.query.$order.find(({ expression }) => !(expression instanceof ColumnExpression))) &&
         this.query.$select.length === 1 &&
         this.query.$select[0].expression instanceof ColumnExpression &&
         this.query.$select[0].expression.isWildcard
@@ -182,13 +247,60 @@ export class CompiledQuery extends CompiledSql {
   }
 
   /**
-   * SELECT * FROM (SELECT ...) t
+   * One COUNT(expr) Column, one Table, no WHERE, and no GROUP BY, and simple ORDER BY
+   * -> Simply retrieve Rows from the DataSource
+   * -> Simple aggregate the Rows retrieved
+   */
+  get isSimpleCount(): boolean {
+    if (this.flagSimpleCount === undefined) {
+      this.flagSimpleCount = (
+        this.query.$from &&
+        this.query.$from.length === 1 &&
+        !(this.query.$from[0] instanceof JoinedTableOrSubquery) &&
+        !this.query.$where &&
+        !this.query.$group &&
+        (!this.query.$order || this.query.$order.find(({ expression }) => !(expression instanceof ColumnExpression))) &&
+        this.query.$select.length === 1 &&
+        this.query.$select[0].expression instanceof FunctionExpression &&
+        this.query.$select[0].expression.name.toLocaleLowerCase() === 'count'
+      )
+    }
+    return this.flagSimpleCount || false
+  }
+
+  /**
+   * No DISTINCT, no GROUP BY, and no ORDER BY
+   * -> Do LIMIT at traverse level
+   */
+  get isFastQuery(): boolean {
+    if (this.flagFastQuery === undefined) {
+      this.flagFastQuery = (
+        !this.$distinct &&
+        !this.query.$group &&
+        !this.query.$order
+      )
+    }
+    return this.flagFastQuery || false
+  }
+
+  /**
+   * Has sub-Query
    */
   get needTempTables(): boolean {
     if (this.flagTempTables === undefined) {
       this.flagTempTables = !!this.$from && this.needTempTables_(this.$from)
     }
     return this.flagTempTables || false
+  }
+
+  /**
+   * Need aggregation
+   */
+  get needAggregate(): boolean {
+    if (this.flagAggregate === undefined) {
+      this.flagAggregate = !!this.$group || this.hasAggregateFunction(this.$select)
+    }
+    return this.flagAggregate || false
   }
 
   /**
@@ -232,11 +344,19 @@ export class CompiledQuery extends CompiledSql {
     return true
   }
 
+  private registerTable(array: CompiledTableOrSubquery[], ...tables: CompiledTableOrSubquery[]) {
+    array.push(...tables)
+  }
+
   private needTempTables_($from: CompiledTableOrSubquery[]): boolean {
     for (const tableOrSubquery of $from) {
       if (tableOrSubquery.$as) return true
       if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery && this.needTempTables_(tableOrSubquery.joinClauses.map(({ tableOrSubquery }) => tableOrSubquery))) return true
     }
     return false
+  }
+
+  private hasAggregateFunction($select: CompiledResultColumn[]): boolean {
+    return $select.reduce<boolean>((result, { expression }) => result || expression.aggregateRequired, false)
   }
 }

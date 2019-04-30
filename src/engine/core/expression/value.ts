@@ -4,6 +4,8 @@ import { CompiledExpression } from '../expression'
 import { Sandbox } from '../sandbox'
 
 export class Value extends CompiledExpression {
+  public readonly aggregateRequired = false
+
   constructor(private readonly value_: Value_) {
     super(value_)
   }

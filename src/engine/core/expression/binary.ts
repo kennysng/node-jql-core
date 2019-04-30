@@ -31,6 +31,10 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression {
     return this.expression.operator
   }
 
+  get aggregateRequired(): boolean {
+    return this.left.aggregateRequired || this.right.aggregateRequired
+  }
+
   // @override
   public equals(obj: CompiledBinaryExpression): boolean {
     return this === obj || (

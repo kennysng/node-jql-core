@@ -28,6 +28,10 @@ export class CompiledGroupedExpressions extends CompiledConditionalExpression {
     return this.expression instanceof AndExpressions ? 'AND' : 'OR'
   }
 
+  get aggregateRequired(): boolean {
+    return this.expressions.reduce<boolean>((result, expression) => result || expression.aggregateRequired, false)
+  }
+
   // @override
   public equals(obj: CompiledGroupedExpressions): boolean {
     if (this === obj) return true

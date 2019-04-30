@@ -1,11 +1,11 @@
-import { Expression } from 'node-jql'
+import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
 
 export class AsciiFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public preprocess(extra: string, parameters: Expression[]): Expression[] {
-    if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function 'ASCII(character)'`)
+  public preprocess(parameters: ParameterExpression[]): ParameterExpression[] {
+    if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function ${this.name}(character)`)
     return parameters
   }
 

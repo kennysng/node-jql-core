@@ -1,5 +1,4 @@
 import { Type } from 'node-jql'
-import uuid = require('uuid/v4')
 import { CompiledSql } from '../compiledSql'
 import { ICursor } from '../cursor'
 import { Sandbox } from '../sandbox'
@@ -8,6 +7,8 @@ import { Sandbox } from '../sandbox'
  * Compiled SQL expression, which should be optimized
  */
 export abstract class CompiledExpression extends CompiledSql {
+  public readonly aggregateRequired: boolean
+
   // @override
   get [Symbol.toStringTag](): string {
     return 'CompiledExpression'

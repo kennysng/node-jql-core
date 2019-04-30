@@ -53,6 +53,10 @@ export class CompiledCaseExpression extends CompiledExpression {
     return 'CompiledCaseExpression'
   }
 
+  get aggregateRequired(): boolean {
+    return this.cases.reduce<boolean>((result, case_) => result || case_.$when.aggregateRequired || case_.$then.aggregateRequired, false)
+  }
+
   // @override
   public equals(obj: CompiledCaseExpression): boolean {
     if (this === obj) return true

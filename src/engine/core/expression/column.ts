@@ -13,6 +13,7 @@ export class CompiledColumnExpression extends CompiledExpression {
   public readonly tableKey: string
   public readonly columnKey: string
   public readonly type: Type
+  public readonly aggregateRequired = false
 
   constructor(private readonly expression: ColumnExpression, options: ICompilingQueryOptions) {
     super(expression)
@@ -72,6 +73,8 @@ export class CompiledColumnExpression extends CompiledExpression {
         this.columnKey = column.key
         this.type = column.type
       }
+
+      options.columns.push(this)
     }
     catch (e) {
       throw new InstantiateError('Fail to compile ColumnExpression', e)

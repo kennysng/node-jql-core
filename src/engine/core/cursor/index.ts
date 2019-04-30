@@ -22,6 +22,23 @@ export interface ICursor {
   next(): Promise<ICursor>
 }
 
+export class DummyCursor implements ICursor {
+  // @override
+  public moveToFirst(): Promise<DummyCursor> {
+    return Promise.resolve(this)
+  }
+
+  // @override
+  public get(key: string): any {
+    return undefined
+  }
+
+  // @override
+  public next(): Promise<DummyCursor> {
+    return Promise.resolve(this)
+  }
+}
+
 /**
  * Joining multiple cursors
  */
@@ -56,7 +73,6 @@ export class Cursors implements ICursor {
       case '+':
         return this.plusNext()
       case '*':
-      default:
         return this.timesNext(this.cursors.length - 1)
     }
   }

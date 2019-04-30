@@ -14,6 +14,7 @@ import { Sandbox } from '../core/sandbox'
 export class InMemoryEngine extends DatabaseEngine {
   protected readonly schema = new Schema()
   protected readonly context: IDataSource = {}
+  protected readonly functions = new Functions()
 
   private readonly schemaLock = new ReadWriteLock()
   private readonly databaseLocks = new ReadWriteLocks()
@@ -273,7 +274,7 @@ export class InMemoryEngine extends DatabaseEngine {
     if (query instanceof Query) {
       query = new CompiledQuery(query, {
         defaultDatabase: databaseNameOrKey,
-        functions: new Functions(),
+        functions: new Functions(this.functions),
         schema: this.getSchema(),
       })
       for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])

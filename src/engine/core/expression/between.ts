@@ -32,6 +32,10 @@ export class CompiledBetweenExpression extends CompiledConditionalExpression {
     return this.expression.$not || false
   }
 
+  get aggregateRequired(): boolean {
+    return this.left.aggregateRequired || this.start.aggregateRequired || this.end.aggregateRequired
+  }
+
   // @override
   public equals(obj: CompiledBetweenExpression): boolean {
     return this === obj || (

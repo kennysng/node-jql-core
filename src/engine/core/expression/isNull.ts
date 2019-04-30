@@ -29,6 +29,10 @@ export class CompiledIsNullExpression extends CompiledConditionalExpression {
     return this.expression.$not || false
   }
 
+  get aggregateRequired(): boolean {
+    return this.left.aggregateRequired
+  }
+
   // @override
   public equals(obj: CompiledIsNullExpression): boolean {
     return this === obj || (

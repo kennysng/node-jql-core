@@ -2,13 +2,13 @@ import { GroupBy } from 'node-jql'
 import uuid = require('uuid/v4')
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions, IExpressionWithKey } from '../compiledSql'
-import { CompiledExpression } from '../expression'
+import { CompiledConditionalExpression } from '../expression'
 import { compile } from '../expression/compile'
 import { CompiledResultColumn } from './resultColumn'
 
 export class CompiledGroupBy {
   public readonly expressions: IExpressionWithKey[]
-  public readonly $having?: CompiledExpression
+  public readonly $having?: CompiledConditionalExpression
 
   constructor(private readonly sql: GroupBy, $select: CompiledResultColumn[], options: ICompilingQueryOptions) {
     try {
