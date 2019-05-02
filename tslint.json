@@ -3,6 +3,7 @@
     "tslint:recommended"
   ],
   "rules": {
+    "arrow-parens": false,
     "ban-types": false,
     "curly": [
       true,
@@ -34,6 +35,7 @@
       true,
       "never"
     ],
+    "unified-signatures": false,
     "variable-name": [
       true,
       "allow-leading-underscore",

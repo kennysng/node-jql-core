@@ -14,4 +14,4 @@ For some reason, I just restructured the project structure, and separated the re
 
 [![npm version](https://badge.fury.io/js/node-jql-core.svg)](https://badge.fury.io/js/node-jql-core)
 
-This is a in-memory SQL database mainly designed for providing an interface for JSON processing with the SQL syntax.
+This is a SQL database mainly designed for providing an interface for JSON processing with the SQL syntax.

@@ -59,3 +59,10 @@ typings/
 
 # next.js build output
 .next
+
+# build folder
+dist
+
+# ignore some name pattern
+*.tmp
+*.old
