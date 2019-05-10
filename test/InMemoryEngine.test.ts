@@ -2,10 +2,9 @@
 
 import moment = require('moment')
 import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
-import { DatabaseCore } from '../src/core'
-import { Connection } from '../src/core/connection'
+import { Connection, DatabaseCore } from '../src/core'
 import { InMemoryEngine } from '../src/engine/memory'
-import { Column } from '../src/schema/column'
+import { Column } from '../src/schema'
 import { randomDate, randomFrom, randomName } from './utils/random'
 import { numberList } from './utils/simple'
 

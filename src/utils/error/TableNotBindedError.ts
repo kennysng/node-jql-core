@@ -1,5 +1,5 @@
 import { JQLError } from '.'
-import { Table } from '../../schema/table'
+import { Table } from '../../schema'
 
 /**
  * Throw when Table is not binded to a Database but is being used

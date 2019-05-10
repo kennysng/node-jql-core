@@ -1,6 +1,6 @@
 import { ColumnExpression, Type } from 'node-jql'
 import { CompiledExpression } from '.'
-import { Table } from '../../../schema/table'
+import { Table } from '../../../schema'
 import { JQLError } from '../../../utils/error'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
