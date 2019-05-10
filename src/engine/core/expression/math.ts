@@ -1,5 +1,4 @@
-import { MathExpression, Type } from 'node-jql'
-import { MathOperator } from 'node-jql'
+import { MathExpression, MathOperator, Type } from 'node-jql'
 import { CompiledExpression } from '.'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'

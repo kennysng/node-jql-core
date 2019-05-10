@@ -1,6 +1,6 @@
 import { IsNullExpression, Type } from 'node-jql'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
-import { isUndefined } from '../../../utils/isUndefined'
+import isUndefined from '../../../utils/isUndefined'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
 import { CompiledConditionalExpression, CompiledExpression } from '../expression'

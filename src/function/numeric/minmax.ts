@@ -1,6 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
-import { isUndefined } from '../../utils/isUndefined'
+import isUndefined from '../../utils/isUndefined'
 
 export class MinMaxFunction extends JQLFunction<number> {
   public readonly type = 'number'
