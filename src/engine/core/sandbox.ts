@@ -3,7 +3,7 @@ import { denormalize, normalize } from 'node-jql'
 import timsort = require('timsort')
 import { DatabaseEngine } from '.'
 import { TEMP_DB_KEY } from '../../core'
-import { IDataSource, IMapping, IQueryResult, IRow } from '../../core/interfaces'
+import { IDataSource, IQueryResult, IRow } from '../../core/interfaces'
 import { Schema } from '../../schema'
 import { JQLError } from '../../utils/error'
 import { CursorReachEndError } from '../../utils/error/CursorReachEndError'

@@ -3,9 +3,9 @@ import { IRow } from '../../../core/interfaces'
 import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
 
 export class RowsCursor implements ICursor {
-  private currentIndex = -1
+  protected currentIndex = -1
 
-  constructor(private readonly rows: IRow[]) {
+  constructor(protected readonly rows: IRow[]) {
   }
 
   // @override
