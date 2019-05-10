@@ -1,4 +1,5 @@
 import { IMapping, IQueryResult } from '../../../core/interfaces'
+import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
 import { RowsCursor } from './rows'
 
 export class ResultSet<T = any> extends RowsCursor {
@@ -31,5 +32,17 @@ export class ResultSet<T = any> extends RowsCursor {
         break
     }
     return mapping ? row[mapping.key] : undefined
+  }
+
+  public traverse(fn: (cursor: ResultSet) => void): Promise<void> {
+    function traverse(cursor: ResultSet): Promise<void> {
+      return new Promise((resolve, reject) => {
+        cursor.next()
+          .then(() => fn(cursor))
+          .then(() => traverse(cursor))
+          .catch(e => e instanceof CursorReachEndError ? resolve() : reject(e))
+      })
+    }
+    return traverse(this)
   }
 }

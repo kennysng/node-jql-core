@@ -249,11 +249,11 @@ export class Connection {
    * @param query [Query|CompiledQuery]
    * @param args [Array<any>]
    */
-  public query(query: Query, ...args: any[]): Promise<ResultSet> {
+  public query<T>(query: Query, ...args: any[]): Promise<ResultSet<T>> {
     return (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
       .then(result => {
         this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
-        return new ResultSet(result)
+        return new ResultSet<T>(result)
       })
   }
 
