@@ -1,8 +1,7 @@
 import _ = require('lodash')
 import { ColumnExpression, FunctionExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
 import { IMapping } from '../../../core/interfaces'
-import { Column } from '../../../schema/column'
-import { Table } from '../../../schema/table'
+import { Column, Table } from '../../../schema'
 import { NotFoundError } from '../../../utils/error/NotFoundError'
 import { CompiledSql, ICompilingOptions, ICompilingQueryOptions, IExpressionWithKey } from '../compiledSql'
 import { CompiledConditionalExpression } from '../expression'

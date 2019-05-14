@@ -1,11 +1,8 @@
-export { Column } from './schema/column'
-export { Table } from './schema/table'
-export { Database } from './schema/database'
-export { Schema } from './schema'
+export { Schema, Column, Database, Table } from './schema'
 
-export { DatabaseCore } from './core'
-export { Connection } from './core/connection'
+export { DatabaseCore, Connection } from './core'
 export { IDataSource, IMapping, IQueryResult, IResult, IRow } from './core/interfaces'
+export { ResultSet } from './engine/core/cursor/result'
 
 export { DatabaseEngine } from './engine/core'
 export { InMemoryEngine } from './engine/memory'

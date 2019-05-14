@@ -1,6 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLAggregateFunction } from '../..'
-import { isUndefined } from '../../../utils/isUndefined'
+import isUndefined from '../../../utils/isUndefined'
 
 export class SumFunction extends JQLAggregateFunction<number> {
   public readonly type = 'number'

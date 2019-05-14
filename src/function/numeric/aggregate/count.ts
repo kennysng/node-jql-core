@@ -1,7 +1,7 @@
 import _ = require('lodash')
 import { ParameterExpression } from 'node-jql'
 import { JQLAggregateFunction } from '../..'
-import { isUndefined } from '../../../utils/isUndefined'
+import isUndefined from '../../../utils/isUndefined'
 
 /**
  * Neither COUNT(*), COUNT(DISTINCT *) nor COUNT(DISTINCT col1, col2, ...) is supported

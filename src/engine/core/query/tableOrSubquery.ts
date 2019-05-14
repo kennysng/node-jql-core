@@ -1,12 +1,13 @@
-import { JoinedTableOrSubquery, Query, TableOrSubquery } from 'node-jql'
+import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery } from 'node-jql'
 import uuid = require('uuid/v4')
 import { TEMP_DB_KEY } from '../../../core'
-import { Database } from '../../../schema/database'
+import { Database } from '../../../schema'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { NoDatabaseSelectedError } from '../../../utils/error/NoDatabaseSelectedError'
 import { ICompilingQueryOptions } from '../compiledSql'
+import { CompiledExpression } from '../expression'
+import { compile } from '../expression/compile'
 import { CompiledQuery } from '../query'
-import { CompiledJoinClause } from './joinClause'
 
 export class CompiledTableOrSubquery {
   public readonly databaseKey: string
@@ -63,6 +64,39 @@ export class CompiledTableOrSubquery {
     if (this === obj) return true
     if (this.databaseKey !== obj.databaseKey || this.tableKey !== obj.tableKey || this.aliasKey !== obj.aliasKey || this.$as !== obj.$as) return false
     return (this.query && obj.query && this.query.equals(obj.query)) || false
+  }
+}
+
+export class CompiledJoinClause {
+  public readonly tableOrSubquery: CompiledTableOrSubquery
+  public readonly $on?: CompiledExpression
+
+  constructor(private readonly sql: JoinClause, tableOrSubquery: CompiledJoinedTableOrSubquery, options: ICompilingQueryOptions) {
+    try {
+      this.tableOrSubquery = new CompiledTableOrSubquery(sql.tableOrSubquery, options)
+      if (sql.$on) {
+        this.$on = compile(sql.$on, { ...options, tables: [tableOrSubquery, this.tableOrSubquery] })
+      }
+    }
+    catch (e) {
+      throw new InstantiateError('Fail to compile JoinClause', e)
+    }
+  }
+
+  // @override
+  get [Symbol.toStringTag](): string {
+    return 'CompiledJoinClause'
+  }
+
+  get operator(): JoinOperator {
+    return this.sql.operator
+  }
+
+  public equals(obj: CompiledJoinClause): boolean {
+    if (this === obj) return true
+    if (!this.tableOrSubquery.equals(obj.tableOrSubquery)) return false
+    if (!this.$on && !obj.$on) return true
+    return (this.$on && obj.$on && this.$on.equals(obj.$on)) || false
   }
 }
 

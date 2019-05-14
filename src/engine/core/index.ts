@@ -1,9 +1,6 @@
 import { Query } from 'node-jql'
 import { IQueryResult, IResult, IRow } from '../../core/interfaces'
-import { Schema } from '../../schema'
-import { Column } from '../../schema/column'
-import { Database } from '../../schema/database'
-import { Table } from '../../schema/table'
+import { Column, Database, Schema, Table } from '../../schema'
 
 /**
  * Define how the Database stores and retrieves data

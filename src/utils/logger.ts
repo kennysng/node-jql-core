@@ -2,10 +2,7 @@
 
 import chalk = require('chalk')
 import moment = require('moment')
-import { resolve, sep } from 'path'
 import { getEnv } from './env'
-
-const ROOT = resolve(__dirname, '..')
 
 type LogLevel = 'DEBUG'|'INFO'|'WARN'|'ERROR'
 
@@ -17,12 +14,10 @@ export class Logger {
   private levels: LogLevel[]
 
   /**
-   * @param filepath [string]
+   * @param key [string]
    */
-  constructor(filepath: string) {
-    filepath = filepath.replace(ROOT, '')
-    if (filepath.startsWith(sep)) filepath = filepath.substr(1)
-    this.tag = `node-jql:${filepath}`
+  constructor(key: string) {
+    this.tag = `node-jql:${key}`
 
     const levels = (getEnv('log') || 'DEBUG,INFO,WARN,ERROR').split(',')
     this.setLogLevels(...levels as LogLevel[])

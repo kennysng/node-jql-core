@@ -1,5 +1,5 @@
 import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
-import { isUndefined } from '../../../utils/isUndefined'
+import isUndefined from '../../../utils/isUndefined'
 
 /**
  * Simulate Cursor in Java in order to reduce the memory usage
