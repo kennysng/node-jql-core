@@ -34,15 +34,12 @@ export class ResultSet<T = any> extends RowsCursor {
     return mapping ? row[mapping.key] : undefined
   }
 
-  public traverse(fn: (cursor: ResultSet) => void): Promise<void> {
-    function traverse(cursor: ResultSet): Promise<void> {
-      return new Promise((resolve, reject) => {
-        cursor.next()
-          .then(() => fn(cursor))
-          .then(() => traverse(cursor))
-          .catch(e => e instanceof CursorReachEndError ? resolve() : reject(e))
-      })
-    }
-    return traverse(this)
+  public toArray(): T[] {
+    return this.rows.map(row => this.result.mappings.reduce<any>((result, { column, name, key }) => {
+      result[column || name] = row[key]
+      return result
+    }, {}))
   }
 }
+
+export const EMPTY_RESULTSET = new ResultSet({ mappings: [], data: [], time: 0 })
