@@ -1,11 +1,11 @@
 /* tslint:disable:no-console */
 
 import moment = require('moment')
-import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
+import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, JoinClause, JoinedTableOrSubquery, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
 import { Connection, DatabaseCore } from '../src/core'
 import { InMemoryEngine } from '../src/engine/memory'
 import { Column } from '../src/schema'
-import { randomDate, randomFrom, randomName } from './utils/random'
+import { randomDate, randomFrom, randomInteger, randomName } from './utils/random'
 import { numberList } from './utils/simple'
 
 let databaseCore: DatabaseCore
@@ -19,15 +19,45 @@ const students = [
     createdAt: randomDate(moment.utc('2010-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2012-01-01', 'YYYY-MM-DD').toDate()),
     leaveAt: randomFrom([undefined, randomDate(moment.utc('2015-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2017-01-01', 'YYYY-MM-DD').toDate())]),
   })),
-  { id: 199, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('1992-04-21', 'YYYY-MM-DD').toDate(),
+  { id: 999, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('1992-04-21', 'YYYY-MM-DD').toDate(),
     createdAt: randomDate(moment.utc('2010-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2012-01-01', 'YYYY-MM-DD').toDate()),
     leaveAt: randomDate(moment.utc('2015-01-01', 'YYYY-MM-DD').toDate(), moment.utc('2017-01-01', 'YYYY-MM-DD').toDate()),
   },
-  { id: 200, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
+  { id: 1000, name: 'Kennys Ng', gender: 'M', birthday: moment.utc('2000-06-08', 'YYYY-MM-DD').toDate(), createdAt: moment.utc().toDate() },
+]
+
+const marks = [
+  ...students.map(student => ({
+    studentId: student.id,
+    test: 'Chinese',
+    mark: randomInteger(0, 100),
+  })),
+  ...students.map(student => ({
+    studentId: student.id,
+    test: 'English',
+    mark: randomInteger(0, 100),
+  })),
+  ...students.map(student => ({
+    studentId: student.id,
+    test: 'Science',
+    mark: randomInteger(0, 100),
+  })),
+  ...students.map(student => ({
+    studentId: student.id,
+    test: 'Mathematics',
+    mark: student.id === 999 ? 99 : randomInteger(0, 100),
+  })),
+  ...students.map(student => ({
+    studentId: student.id,
+    test: 'Computer',
+    mark: student.id === 999 ? 100 : randomInteger(0, 100),
+  })),
 ]
 
 test('Instantiate DatabaseCore', () => {
-  databaseCore = new DatabaseCore(new InMemoryEngine())
+  databaseCore = new DatabaseCore(new InMemoryEngine(), {
+    logging: true,
+  })
 })
 
 test('Create Connection', () => {
@@ -60,14 +90,22 @@ test('Use Database', callback => {
 })
 
 test('Create Table', callback => {
-  connection.createTable('Student', [
-    new Column('id', 'number'),
-    new Column('name', 'string'),
-    new Column('gender', 'string'),
-    new Column('birthday', 'Date'),
-    new Column('createdAt', 'Date'),
-    new Column('leaveAt', 'Date'),
-  ])
+  const promises = [
+    connection.createTable('Student', [
+      new Column('id', 'number'),
+      new Column('name', 'string'),
+      new Column('gender', 'string'),
+      new Column('birthday', 'Date'),
+      new Column('createdAt', 'Date'),
+      new Column('leaveAt', 'Date'),
+    ]),
+    connection.createTable('StudentMark', [
+      new Column('studentId', 'number'),
+      new Column('test', 'string'),
+      new Column('mark', 'number'),
+    ]),
+  ]
+  Promise.all(promises)
     .then(() => callback())
     .catch(e => callback(e))
 })
@@ -89,6 +127,12 @@ test('Drop Table', callback => {
 
 test('Insert into Student', callback => {
   connection.insertInto('Student', students)
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Insert into StudentMark', callback => {
+  connection.insertInto('StudentMark', marks)
     .then(() => callback())
     .catch(e => callback(e))
 })
@@ -244,6 +288,23 @@ test('Test LikeExpression', callback => {
     $where: new LikeExpression({ left: new ColumnExpression('name') }),
   })
   connection.query(query, 'Ng$')
+    .then(() => callback())
+    .catch(e => callback(e))
+})
+
+test('Test JoinClause', callback => {
+  const query = new Query({
+    $from: new JoinedTableOrSubquery({
+      table: 'Student',
+      $as: 's',
+      joinClauses: new JoinClause({
+        tableOrSubquery: ['StudentMark', 'sm'],
+        operator: 'LEFT',
+        $on: new BinaryExpression({ left: new ColumnExpression(['s', 'id']), operator: '=', right: new ColumnExpression(['sm', 'studentId']) }),
+      }),
+    }),
+  })
+  connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
 })
