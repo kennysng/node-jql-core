@@ -14,7 +14,7 @@ export interface ICursor {
    * Get the value of the given key from the current row
    * @param key [string]
    */
-  get(key: string): any
+  get(key: string): Promise<any>
 
   /**
    * Move to next column. Throw error if reaches the end
@@ -24,18 +24,18 @@ export interface ICursor {
 
 export class DummyCursor implements ICursor {
   // @override
-  public moveToFirst(): Promise<DummyCursor> {
-    return Promise.resolve(this)
+  public async moveToFirst(): Promise<DummyCursor> {
+    return this
   }
 
   // @override
-  public get(key: string): any {
+  public async get(key: string): Promise<any> {
     return undefined
   }
 
   // @override
-  public next(): Promise<DummyCursor> {
-    return Promise.resolve(this)
+  public async next(): Promise<DummyCursor> {
+    return this
   }
 }
 
@@ -47,17 +47,18 @@ export class Cursors implements ICursor {
   }
 
   // @override
-  public moveToFirst(): Promise<Cursors> {
-    return Promise.all(this.cursors.map(cursor => cursor.moveToFirst()))
-      .then(() => this)
+  public async moveToFirst(): Promise<Cursors> {
+    const promises = this.cursors.map(cursor => cursor.moveToFirst())
+    await Promise.all(promises)
+    return this
   }
 
   // @override
-  public get(key: string): any {
+  public async get(key: string): Promise<any> {
     let error: Error|undefined
     for (const cursor of this.cursors) {
       try {
-        const value = cursor.get(key)
+        const value = await cursor.get(key)
         if (!isUndefined(value)) return value
       }
       catch (e) {
@@ -78,24 +79,30 @@ export class Cursors implements ICursor {
   }
 
   private plusNext(i: number = 0): Promise<Cursors> {
-    return new Promise((resolve, reject) => {
-      this.cursors[i].next()
-        .then(() => this)
-        .catch(() => i + 1 < this.cursors.length
+    return new Promise(async (resolve, reject) => {
+      try {
+        await this.cursors[i].next()
+        resolve(this)
+      }
+      catch (e) {
+        return i + 1 < this.cursors.length
           ? resolve(this.plusNext(i + 1))
-          : reject(new CursorReachEndError()),
-        )
+          : reject(new CursorReachEndError())
+      }
     })
   }
 
   private timesNext(i: number): Promise<Cursors> {
-    return new Promise((resolve, reject) => {
-      this.cursors[i].next()
-        .then(() => resolve(this))
-        .catch(() => i === 0
+    return new Promise(async (resolve, reject) => {
+      try {
+        await this.cursors[i].next()
+        resolve(this)
+      }
+      catch (e) {
+        return i === 0
           ? reject(new CursorReachEndError())
-          : resolve(this.cursors[i].moveToFirst().then(() => this.timesNext(i - 1))),
-        )
+          : resolve(this.cursors[i].moveToFirst().then(() => this.timesNext(i - 1)))
+      }
     })
   }
 }

@@ -48,23 +48,21 @@ export class CompiledGroupedExpressions extends CompiledConditionalExpression {
   }
 
   private evaluate_(i: number, cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
       const expression = this.expressions[i]
-      expression.evaluate(cursor, sandbox)
-        .then(({ value: result }) => {
-          if (this.operator === 'AND' && !result) {
-            return resolve(false)
-          }
-          else if (this.operator === 'OR' && result) {
-            return resolve(true)
-          }
-          else if (i + 1 < this.expressions.length) {
-            return resolve(this.evaluate_(i + 1, cursor, sandbox))
-          }
-          else {
-            return resolve(this.operator === 'AND' ? true : false)
-          }
-        })
+      const { value: result } = await expression.evaluate(cursor, sandbox)
+      if (this.operator === 'AND' && !result) {
+        resolve(false)
+      }
+      else if (this.operator === 'OR' && result) {
+        resolve(true)
+      }
+      else if (i + 1 < this.expressions.length) {
+        resolve(this.evaluate_(i + 1, cursor, sandbox))
+      }
+      else {
+        resolve(this.operator === 'AND' ? true : false)
+      }
     })
   }
 }

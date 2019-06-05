@@ -33,87 +33,75 @@ export class TableCursor implements ICursor {
   }
 
   // @override
-  public next(): Promise<TableCursor> {
+  public async next(): Promise<TableCursor> {
     delete this.currentRow
-    return this.nextIndex()
-      .then(() => this.computeRow())
-      .then(() => {
-        if (this.tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
-          const expressions = this.tableOrSubquery.joinClauses.reduce<CompiledConditionalExpression[]>((result, joinClause) => {
-            if (joinClause.$on) result.push(joinClause.$on)
-            return result
-          }, [])
-          return this.validateRow(0, expressions)
-        }
-        return this
-      })
+    await this.nextIndex()
+    await this.computeRow()
+    if (this.tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
+      const expressions = this.tableOrSubquery.joinClauses.reduce<CompiledConditionalExpression[]>((result, joinClause) => {
+        if (joinClause.$on) result.push(joinClause.$on)
+        return result
+      }, [])
+      return (await this.validateRow(0, expressions)) ? this : this.next()
+    }
+    return this
   }
 
   // This is only the maximum possible length, but not the actual length
-  private length(): Promise<number> {
-    return Promise.all(this.tables.map(({ databaseKey, tableKey }) => this.sandbox.getCount(databaseKey, tableKey)))
-      .then(lengths => lengths.reduce((total, length) => total * length, 1))
+  private async length(): Promise<number> {
+    const promises = this.tables.map(({ databaseKey, tableKey }) => this.sandbox.getCount(databaseKey, tableKey))
+    const lengths = await Promise.all(promises)
+    return lengths.reduce((total, length) => total * length, 1)
   }
 
-  private nextIndex(): Promise<number> {
-    return Promise.all([this.currentIndex + 1, this.length()])
-      .then(([index, length]) => {
-        index = this.currentIndex = Math.max(-1, Math.min(length, index))
-        if (index < 0 || index >= length) throw new CursorReachEndError()
-        return index
-      })
+  private async nextIndex(): Promise<number> {
+    const length = await this.length()
+    const index = this.currentIndex = Math.max(-1, Math.min(length, this.currentIndex + 1))
+    if (index < 0 || index >= length) throw new CursorReachEndError()
+    return index
   }
 
-  private computeIndices(): Promise<number[]> {
-    let promise: Promise<any> = Promise.resolve()
+  private async computeIndices(): Promise<number[]> {
     const indices = [] as number[]
     for (let i = this.tables.length - 1, base = 1; i >= 0; i -= 1) {
-      ((i, base) => {
-        const { databaseKey, tableKey } = this.tables[i]
-        promise = promise
-          .then(() => this.sandbox.getCount(databaseKey, tableKey))
-          .then(length => {
-            indices[i] = Math.floor(this.currentIndex / base) % length
-            base *= length
-          })
-      })(i, base)
+      const { databaseKey, tableKey } = this.tables[i]
+      const length = await this.sandbox.getCount(databaseKey, tableKey)
+      indices[i] = Math.floor(this.currentIndex / base) % length
+      base *= length
     }
-    return promise.then(() => indices)
+    return indices
   }
 
-  private computeRow(): Promise<IRow> {
-    return this.computeIndices()
-      .then(indices => {
-        const row = this.currentRow = {} as IRow
-        let promise = Promise.resolve(row)
-        for (let i = 0, length = this.tables.length; i < length; i += 1) {
-          const { databaseKey, tableKey, key } = this.tables[i]
-          const index = indices[i]
-          promise = promise.then(row => this.sandbox.getContext(databaseKey, tableKey, index).then(row_ => {
-            for (const key_ in row_) row[`${key}-${key_}`] = row_[key_]
-            return row_
-          }))
+  private async computeRow(): Promise<IRow> {
+    const indices = await this.computeIndices()
+    const row = this.currentRow = {} as IRow
+    for (let i = 0, length = this.tables.length; i < length; i += 1) {
+      const { databaseKey, tableKey, key } = this.tables[i]
+      const index = indices[i]
+      const row_ = await this.sandbox.getContext(databaseKey, tableKey, index)
+      for (const key_ in row_) {
+        if (row_.hasOwnProperty(key_)) {
+          row[`${key}-${key_}`] = row_[key_]
         }
-        return promise
-      })
+      }
+    }
+    return row
   }
 
-  private validateRow(i: number, expressions: CompiledConditionalExpression[]): Promise<TableCursor> {
-    return new Promise((resolve, reject) => {
+  private async validateRow(i: number, expressions: CompiledConditionalExpression[]): Promise<boolean> {
+    return new Promise(async resolve => {
       const expression = expressions[i]
-      Promise.resolve<ICursor>(this.baseCursor ? new Cursors([this.baseCursor, this], '+') : this)
-        .then(cursor => expression.evaluate(cursor, this.sandbox))
-        .then(result => {
-          if (!result.value) {
-            return resolve(this.next())
-          }
-          else if (i + 1 < expressions.length) {
-            return resolve(this.validateRow(i + 1, expressions))
-          }
-          else {
-            return reject(new CursorReachEndError())
-          }
-        })
+      const cursor = this.baseCursor ? new Cursors([this.baseCursor, this], '+') : this
+      const { value } = await expression.evaluate(cursor, this.sandbox)
+      if (!value) {
+        resolve(false)
+      }
+      else if (i + 1 < expressions.length) {
+        resolve(this.validateRow(i + 1, expressions))
+      }
+      else {
+        resolve(true)
+      }
     })
   }
 }

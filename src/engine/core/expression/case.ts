@@ -74,20 +74,18 @@ export class CompiledCaseExpression extends CompiledExpression {
   }
 
   private evaluate_(i: number, cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
       const { $when, $then } = this.cases[i]
-      $when.evaluate(cursor, sandbox)
-        .then(({ value: result }) => {
-          if (result) {
-            return resolve($then.evaluate(cursor, sandbox))
-          }
-          else if (i + 1 < this.cases.length) {
-            return resolve(this.evaluate_(i + 1, cursor, sandbox))
-          }
-          else {
-            return resolve(this.$else ? this.$else.evaluate(cursor, sandbox) : { value: undefined, type: 'any' })
-          }
-        })
+      const { value: result } = await $when.evaluate(cursor, sandbox)
+      if (result) {
+        resolve($then.evaluate(cursor, sandbox))
+      }
+      else if (i + 1 < this.cases.length) {
+        resolve(this.evaluate_(i + 1, cursor, sandbox))
+      }
+      else {
+        resolve(this.$else ? this.$else.evaluate(cursor, sandbox) : { value: undefined, type: 'any' })
+      }
     })
   }
 }

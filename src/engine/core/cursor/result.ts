@@ -1,5 +1,4 @@
 import { IMapping, IQueryResult } from '../../../core/interfaces'
-import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
 import { RowsCursor } from './rows'
 
 export class ResultSet<T = any> extends RowsCursor {
@@ -16,7 +15,7 @@ export class ResultSet<T = any> extends RowsCursor {
   }
 
   // @override
-  public get(key: [string, string]|[string]|string): any {
+  public async get(key: [string, string]|[string]|string): Promise<any> {
     const row = this.rows[this.currentIndex]
     if (typeof key === 'string') {
       if (key in row) return row[key]

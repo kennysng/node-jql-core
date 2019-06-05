@@ -12,13 +12,20 @@ import { IResult, IRow } from './interfaces'
 
 export const TEMP_DB_KEY = uuid()
 
+export interface IDatabaseOptions {
+  logging?: boolean
+}
+
+export interface IConnectionOptions extends IDatabaseOptions {
+}
+
 /**
  * Main class of the Database
  */
 export class DatabaseCore {
   public readonly connections: Connection[] = []
 
-  constructor(public readonly engine: DatabaseEngine = new InMemoryEngine()) {
+  constructor(public readonly engine: DatabaseEngine = new InMemoryEngine(), protected readonly options?: IDatabaseOptions) {
   }
 
   // @override
@@ -30,8 +37,8 @@ export class DatabaseCore {
    * Create a Connection for access
    * @param useDatabase [string] Default database
    */
-  public createConnection(): Connection {
-    const connection = new Connection(this)
+  public createConnection(options?: IConnectionOptions): Connection {
+    const connection = new Connection(this, Object.assign({}, this.options, options))
     this.connections.push(connection)
     return connection
   }
@@ -59,7 +66,8 @@ export class Connection {
 
   protected readonly logger: Logger = new Logger(`[Connection#${this.id}]`)
 
-  constructor(protected readonly core: DatabaseCore) {
+  constructor(protected readonly core: DatabaseCore, protected readonly options?: IConnectionOptions) {
+    if (options && options.logging) this.logger.setEnabled(true)
   }
 
   // @override
@@ -78,17 +86,14 @@ export class Connection {
    * Set default Database
    * @param name [string]
    */
-  public useDatabase(name: string): Promise<IResult> {
+  public async useDatabase(name: string): Promise<IResult> {
     this.checkClosed()
     const base = Date.now()
-    return Promise.resolve(this.core.engine.getDatabase(name))
-      .then(database => this.databaseKey = database.key)
-      .then(() => {
-        const time = Date.now() - base
-        this.logger.info(`USE \`${name}\` - ${this.timestamp({ time })}`)
-        return time
-      })
-      .then(time => ({ time }))
+    const database = await Promise.resolve(this.core.engine.getDatabase(name))
+    this.databaseKey = database.key
+    const time = Date.now() - base
+    this.logger.info(`USE \`${name}\` - ${this.timestamp({ time })}`)
+    return { time }
   }
 
   /**
@@ -96,13 +101,11 @@ export class Connection {
    * @param name [string]
    * @param ifNotExists [boolean] Suppress error if the Database with the same name exists
    */
-  public createDatabase(name: string, ifNotExists?: true): Promise<IResult> {
+  public async createDatabase(name: string, ifNotExists?: true): Promise<IResult> {
     this.checkClosed()
-    return this.core.engine.createDatabase(name, ifNotExists)
-      .then(result => {
-        this.logger.info(`CREATE DATABASE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.createDatabase(name, ifNotExists)
+    this.logger.info(`CREATE DATABASE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
+    return result
   }
 
   /**
@@ -110,13 +113,11 @@ export class Connection {
    * @param name [string]
    * @param newName [string]
    */
-  public renameDatabase(name: string, newName: string): Promise<IResult> {
+  public async renameDatabase(name: string, newName: string): Promise<IResult> {
     this.checkClosed()
-    return this.core.engine.renameDatabase(name, newName)
-      .then(result => {
-        this.logger.info(`RENAME DATABASE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.renameDatabase(name, newName)
+    this.logger.info(`RENAME DATABASE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
+    return result
   }
 
   /**
@@ -124,13 +125,11 @@ export class Connection {
    * @param name [string]
    * @param ifExists [boolean] Suppress error if the Database does not exists
    */
-  public dropDatabase(name: string, ifExists?: true): Promise<IResult> {
+  public async dropDatabase(name: string, ifExists?: true): Promise<IResult> {
     this.checkClosed()
-    return this.core.engine.dropDatabase(name, ifExists)
-      .then(result => {
-        this.logger.info(`DROP DATABASE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.dropDatabase(name, ifExists)
+    this.logger.info(`DROP DATABASE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
+    return result
   }
 
   /**
@@ -150,7 +149,7 @@ export class Connection {
    */
   public createTable(databaseName: string, name: string, columns: Column[], ifNotExists?: true): Promise<IResult>
 
-  public createTable(...args: any[]): Promise<IResult> {
+  public async createTable(...args: any[]): Promise<IResult> {
     this.checkClosed()
     let databaseName = this.databaseKey, name: string, columns: Column[], ifNotExists: true | undefined
     if (typeof args[0] === 'string' && typeof args[1] === 'string') {
@@ -165,11 +164,9 @@ export class Connection {
       if (args[2]) ifNotExists = args[2]
     }
     if (!databaseName) throw new NoDatabaseSelectedError()
-    return this.core.engine.createTable(databaseName, name, columns, ifNotExists)
-      .then(result => {
-        this.logger.info(`CREATE TABLE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\`(${columns.map(column => column.sql).join(', ')}) - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.createTable(databaseName, name, columns, ifNotExists)
+    this.logger.info(`CREATE TABLE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\`(${columns.map(column => column.sql).join(', ')}) - ${this.timestamp(result)}`)
+    return result
   }
 
   // TODO create table as
@@ -189,7 +186,7 @@ export class Connection {
    */
   public renameTable(databaseName: string, name: string, newName: string): Promise<IResult>
 
-  public renameTable(...args: any[]): Promise<IResult> {
+  public async renameTable(...args: any[]): Promise<IResult> {
     this.checkClosed()
     let database = this.databaseKey, name: string, newName: string
     if (args.length === 2) {
@@ -202,11 +199,9 @@ export class Connection {
       newName = args[2]
     }
     if (!database) throw new NoDatabaseSelectedError()
-    return this.core.engine.renameTable(database, name, newName)
-      .then(result => {
-        this.logger.info(`RENAME TABLE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.renameTable(database, name, newName)
+    this.logger.info(`RENAME TABLE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
+    return result
   }
 
   /**
@@ -224,7 +219,7 @@ export class Connection {
    */
   public dropTable(databaseName: string, name: string, ifExists?: true): Promise<IResult>
 
-  public dropTable(...args: any[]): Promise<IResult> {
+  public async dropTable(...args: any[]): Promise<IResult> {
     this.checkClosed()
     let database = this.databaseKey, name: string, ifExists: true | undefined
     if (typeof args[0] === 'string' && typeof args[1] === 'string') {
@@ -237,11 +232,9 @@ export class Connection {
       if (args[1]) ifExists = args[1]
     }
     if (!database) throw new NoDatabaseSelectedError()
-    return this.core.engine.dropTable(database, name, ifExists)
-      .then(result => {
-        this.logger.info(`DROP TABLE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.dropTable(database, name, ifExists)
+    this.logger.info(`DROP TABLE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
+    return result
   }
 
   /**
@@ -249,12 +242,10 @@ export class Connection {
    * @param query [Query|CompiledQuery]
    * @param args [Array<any>]
    */
-  public query<T>(query: Query, ...args: any[]): Promise<ResultSet<T>> {
-    return (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
-      .then(result => {
-        this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
-        return new ResultSet<T>(result)
-      })
+  public async query<T>(query: Query, ...args: any[]): Promise<ResultSet<T>> {
+    const result = await (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
+    this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
+    return new ResultSet<T>(result)
   }
 
   /**
@@ -272,7 +263,7 @@ export class Connection {
    */
   public insertInto(databaseName: string, name: string, values: IRow[]): Promise<IResult>
 
-  public insertInto(...args: any[]): Promise<IResult> {
+  public async insertInto(...args: any[]): Promise<IResult> {
     this.checkClosed()
     let database = this.databaseKey, name: string, values: IRow[]
     if (typeof args[1] === 'string') {
@@ -285,11 +276,9 @@ export class Connection {
       values = args[1]
     }
     if (!database) throw new NoDatabaseSelectedError()
-    return this.core.engine.insertInto(database, name, values)
-      .then(result => {
-        this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
-        return result
-      })
+    const result = await this.core.engine.insertInto(database, name, values)
+    this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
+    return result
   }
 
   /**

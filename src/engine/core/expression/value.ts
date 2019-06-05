@@ -1,7 +1,5 @@
 import { equals, normalize, Type, Value as Value_ } from 'node-jql'
-import { ICursor } from '../cursor'
 import { CompiledExpression } from '../expression'
-import { Sandbox } from '../sandbox'
 
 export class Value extends CompiledExpression {
   public readonly aggregateRequired = false
@@ -32,7 +30,7 @@ export class Value extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
-    return Promise.resolve({ value: normalize(this.value), type: this.type })
+  public async evaluate(): Promise<{ value: any, type: Type }> {
+    return { value: normalize(this.value), type: this.type }
   }
 }

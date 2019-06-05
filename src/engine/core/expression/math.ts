@@ -44,32 +44,31 @@ export class CompiledMathExpression extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: number, type: Type }> {
-    return Promise.all([this.left.evaluate(cursor, sandbox), this.right.evaluate(cursor, sandbox)])
-      .then(([{ value: left }, { value: right }]) => {
-        let value: number = 0
-        switch (this.operator) {
-          case '+':
-            value = left + right
-            break
-          case '-':
-            value = left - right
-            break
-          case '*':
-            value = left * right
-            break
-          case '/':
-            value = left / right
-            break
-          case '%':
-          case 'MOD':
-            value = left % right
-            break
-          case 'DIV':
-            value = Math.floor(left / right)
-            break
-        }
-        return { value, type: 'number' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: number, type: Type }> {
+    const promises = [this.left.evaluate(cursor, sandbox), this.right.evaluate(cursor, sandbox)]
+    const [{ value: left }, { value: right }] = await Promise.all(promises)
+    let value: number = 0
+    switch (this.operator) {
+      case '+':
+        value = left + right
+        break
+      case '-':
+        value = left - right
+        break
+      case '*':
+        value = left * right
+        break
+      case '/':
+        value = left / right
+        break
+      case '%':
+      case 'MOD':
+        value = left % right
+        break
+      case 'DIV':
+        value = Math.floor(left / right)
+        break
+    }
+    return { value, type: 'number' }
   }
 }

@@ -39,8 +39,8 @@ export class CompiledExistsExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return sandbox.run(this.query, { cursor, exists: true })
-      .then(({ data }) => ({ value: data.length > 0, type: 'boolean' }))
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const { data } = await sandbox.run(this.query, { cursor, exists: true })
+    return { value: data.length > 0, type: 'boolean' }
   }
 }
