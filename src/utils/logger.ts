@@ -12,7 +12,7 @@ type LogLevel = 'DEBUG'|'INFO'|'WARN'|'ERROR'
 export class Logger {
   private readonly tag: string
   private levels: LogLevel[]
-  private enabled = typeof module !== 'undefined' && module.exports
+  private enabled = false
 
   /**
    * @param key [string]
