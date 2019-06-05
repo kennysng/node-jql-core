@@ -11,6 +11,9 @@ export class TableCursor implements ICursor {
   private currentRow: IRow
   private readonly tables: CompiledTableOrSubquery[]
 
+  private length = 0
+  private tableLengths: { [key: string]: number } = {}
+
   constructor(private readonly sandbox: Sandbox, private readonly tableOrSubquery: CompiledTableOrSubquery, private readonly baseCursor?: ICursor) {
     this.tables = [tableOrSubquery]
     if (tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
@@ -21,8 +24,19 @@ export class TableCursor implements ICursor {
   /**
    * Move the cursor to the first row
    */
-  public moveToFirst(): Promise<TableCursor> {
+  public async moveToFirst(): Promise<TableCursor> {
     this.currentIndex = -1
+    const promises = this.tables.map(({ databaseKey, tableKey }) => this.sandbox.getCount(databaseKey, tableKey))
+
+    // prepare table lengths and cursor length
+    // note that the lengths can be cached as no writing is allowed when reading
+    const lengths = await Promise.all(promises)
+    for (let i = 0, length = this.tables.length; i < length; i += 1) {
+      const { databaseKey, tableKey } = this.tables[i]
+      this.tableLengths[`${databaseKey}-${tableKey}`] = lengths[i]
+    }
+    this.length = lengths.reduce((total, length) => total * length, 1)
+
     return this.next()
   }
 
@@ -47,25 +61,17 @@ export class TableCursor implements ICursor {
     return this
   }
 
-  // This is only the maximum possible length, but not the actual length
-  private async length(): Promise<number> {
-    const promises = this.tables.map(({ databaseKey, tableKey }) => this.sandbox.getCount(databaseKey, tableKey))
-    const lengths = await Promise.all(promises)
-    return lengths.reduce((total, length) => total * length, 1)
-  }
-
   private async nextIndex(): Promise<number> {
-    const length = await this.length()
-    const index = this.currentIndex = Math.max(-1, Math.min(length, this.currentIndex + 1))
-    if (index < 0 || index >= length) throw new CursorReachEndError()
+    const index = this.currentIndex = Math.max(-1, Math.min(this.length, this.currentIndex + 1))
+    if (index < 0 || index >= this.length) throw new CursorReachEndError()
     return index
   }
 
-  private async computeIndices(): Promise<number[]> {
+  private computeIndices(): number[] {
     const indices = [] as number[]
     for (let i = this.tables.length - 1, base = 1; i >= 0; i -= 1) {
       const { databaseKey, tableKey } = this.tables[i]
-      const length = await this.sandbox.getCount(databaseKey, tableKey)
+      const length = this.tableLengths[`${databaseKey}-${tableKey}`]
       indices[i] = Math.floor(this.currentIndex / base) % length
       base *= length
     }
@@ -73,7 +79,7 @@ export class TableCursor implements ICursor {
   }
 
   private async computeRow(): Promise<IRow> {
-    const indices = await this.computeIndices()
+    const indices = this.computeIndices()
     const row = this.currentRow = {} as IRow
     for (let i = 0, length = this.tables.length; i < length; i += 1) {
       const { databaseKey, tableKey, key } = this.tables[i]

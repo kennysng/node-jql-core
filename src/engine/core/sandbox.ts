@@ -252,7 +252,7 @@ export class Sandbox {
         }
         // TODO optimize queries with InExpression -> return if the required value exists
         else {
-          resolve(await this.traverseCursor(cursor, query, columns, $where, options, finalize, true, resultset))
+          resolve(this.traverseCursor(cursor, query, columns, $where, options, finalize, true, resultset))
         }
       }
       catch (e) {
