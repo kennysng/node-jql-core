@@ -37,7 +37,7 @@ export class CompiledColumnExpression extends CompiledExpression {
         this.tableKey = tableOrSubquery.key
 
         // get column info
-        const table: Table = tableOrSubquery.query ? tableOrSubquery.query.structure : options.schema.getDatabase(this.databaseKey).getTable(tableOrSubquery.tableKey)
+        const table: Table = tableOrSubquery.structure || options.schema.getDatabase(this.databaseKey).getTable(tableOrSubquery.tableKey)
         const column = table.getColumn(expression.name)
         if (!column) throw new SyntaxError(`Unknown Column '${expression.name}'`)
         if (!column.isBinded) throw new JQLError(`Column '${expression.name}' is not binded to any Table`)
@@ -47,10 +47,10 @@ export class CompiledColumnExpression extends CompiledExpression {
       // no table specified
       else {
         // get table info
-        const tables = options.tables.filter(({ databaseKey, tableKey, query }) => {
+        const tables = options.tables.filter(({ databaseKey, tableKey, structure }) => {
           try {
-            if (query) {
-              query.structure.getColumn(expression.name)
+            if (structure) {
+              structure.getColumn(expression.name)
             }
             else {
               options.schema.getDatabase(databaseKey).getTable(tableKey as string).getColumn(expression.name)
@@ -63,12 +63,12 @@ export class CompiledColumnExpression extends CompiledExpression {
         })
         if (!tables.length) throw new SyntaxError(`Unknown Column '${expression.table}'`)
         if (tables.length > 1) throw new SyntaxError(`Ambiguous Column '${expression.name}'`)
-        const { databaseKey, tableKey, query } = tables[0]
+        const { databaseKey, tableKey, structure } = tables[0]
         this.databaseKey = databaseKey
         this.tableKey = tableKey as string
 
         // get column info
-        const column = (query ? query.structure : options.schema.getDatabase(databaseKey).getTable(tableKey as string)).getColumn(expression.name)
+        const column = (structure || options.schema.getDatabase(databaseKey).getTable(tableKey as string)).getColumn(expression.name)
         this.columnKey = column.key
         this.type = column.type
       }

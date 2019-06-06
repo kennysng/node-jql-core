@@ -1,7 +1,8 @@
-import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery } from 'node-jql'
+import axios, { AxiosPromise } from 'axios'
+import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery, Type } from 'node-jql'
 import uuid = require('uuid/v4')
 import { TEMP_DB_KEY } from '../../../core'
-import { Database } from '../../../schema'
+import { Column, Database, Table } from '../../../schema'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { NoDatabaseSelectedError } from '../../../utils/error/NoDatabaseSelectedError'
 import { ICompilingQueryOptions } from '../compiledSql'
@@ -15,15 +16,23 @@ export class CompiledTableOrSubquery {
   public readonly aliasKey?: string
 
   public readonly query?: CompiledQuery
+  public readonly remote?: Table
 
   constructor(protected readonly sql: TableOrSubquery, options: ICompilingQueryOptions) {
     try {
-      if (sql.table instanceof Query) {
+      if (sql.table instanceof Query || typeof sql.table !== 'string') {
         this.databaseKey = TEMP_DB_KEY
         this.tableKey = this.aliasKey = uuid()
-        this.query = new CompiledQuery(sql.table, options, sql.$as, this.aliasKey)
-        options.unknowns.push(...this.query.unknowns)
         options.aliases[sql.$as as string] = this.aliasKey
+
+        if (sql.table instanceof Query) {
+          this.query = new CompiledQuery(sql.table, options, sql.$as, this.aliasKey)
+          options.unknowns.push(...this.query.unknowns)
+        }
+        else {
+          const table = this.remote = new Table(sql.$as as string)
+          for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
+        }
       }
       else {
         let database: Database
@@ -53,6 +62,15 @@ export class CompiledTableOrSubquery {
 
   get key(): string {
     return this.aliasKey || this.tableKey
+  }
+
+  get structure(): Table|undefined {
+    return this.remote || this.query && this.query.structure
+  }
+
+  get request(): AxiosPromise<any[]>|undefined {
+    if (this.sql.table instanceof Query || typeof this.sql.table === 'string') return
+    return axios.request(this.sql.table)
   }
 
   // @override

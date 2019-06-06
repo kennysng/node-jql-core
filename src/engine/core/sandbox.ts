@@ -219,6 +219,13 @@ export class Sandbox {
   }
 
   private async prepareTable(tableOrSubquery: CompiledTableOrSubquery, cursor?: ICursor): Promise<void> {
+    // Remote Table
+    if (tableOrSubquery.remote) {
+      const response = await tableOrSubquery.request
+      if (!response) throw new JQLError('Fail to prepare remote table due to network error')
+      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data
+    }
+
     // Table from Query
     if (tableOrSubquery.query) {
       const query = tableOrSubquery.query
