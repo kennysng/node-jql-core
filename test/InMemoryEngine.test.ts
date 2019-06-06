@@ -1,10 +1,12 @@
 /* tslint:disable:no-console */
 
 import moment = require('moment')
+import { AddressInfo } from 'net'
 import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, JoinClause, JoinedTableOrSubquery, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
 import { Connection, DatabaseCore } from '../src/core'
 import { InMemoryEngine } from '../src/engine/memory'
 import { Column } from '../src/schema'
+import server from './remote/server'
 import { randomDate, randomFrom, randomInteger, randomName } from './utils/random'
 import { numberList } from './utils/simple'
 
@@ -307,6 +309,25 @@ test('Test JoinClause', callback => {
   connection.query(query)
     .then(() => callback())
     .catch(e => callback(e))
+})
+
+test('Test Remote Table', callback => {
+  const query = new Query({
+    $select: new ResultColumn({
+      expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
+    }),
+    $from: new TableOrSubquery({
+      table: {
+        url: `http://localhost:${(server.address() as AddressInfo).port}`,
+        columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
+      },
+      $as: 'Test',
+    }),
+  })
+  connection.query(query)
+    .then(() => callback())
+    .catch(e => callback(e))
+    .finally(() => server.close())
 })
 
 test('Close Connection', () => {
