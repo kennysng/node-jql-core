@@ -42,12 +42,10 @@ export class CompiledIsNullExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return this.left.evaluate(cursor, sandbox)
-      .then(({ value: left }) => {
-        let value = isUndefined(left)
-        if (this.$not) value = !value
-        return { value, type: 'boolean' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const { value: left } = await this.left.evaluate(cursor, sandbox)
+    let value = isUndefined(left)
+    if (this.$not) value = !value
+    return { value, type: 'boolean' }
   }
 }

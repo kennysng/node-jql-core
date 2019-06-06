@@ -15,17 +15,15 @@ export class RowsCursor implements ICursor {
   }
 
   // @override
-  public get(key: string): any {
+  public async get(key: string): Promise<any> {
     return this.rows[this.currentIndex][key]
   }
 
   // @override
-  public next(): Promise<RowsCursor> {
-    return Promise.resolve(this.currentIndex + 1)
-      .then(index => {
-        index = this.currentIndex = Math.max(-1, Math.min(index, this.rows.length))
-        if (index < 0 || index >= this.rows.length) throw new CursorReachEndError()
-      })
-      .then(() => this)
+  public async next(): Promise<RowsCursor> {
+    let index = this.currentIndex  + 1
+    index = this.currentIndex = Math.max(-1, Math.min(index, this.rows.length))
+    if (index < 0 || index >= this.rows.length) throw new CursorReachEndError()
+    return this
   }
 }

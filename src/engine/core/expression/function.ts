@@ -54,32 +54,35 @@ export class CompiledFunctionExpression extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
     const fn = this.jqlFunction
-    const value = cursor.get(this.key)
-    const promise = isUndefined(value)
-      ? (
-        fn instanceof JQLAggregateFunction
-          ? this.traverseCursor(cursor, sandbox, this.parameters[0])
-          : Promise.all(this.parameters.map(parameter => parameter.evaluate(cursor, sandbox)))
-            .then(results => results.map(result => result.value))
-      )
-        .then(args => fn.run(...args))
-      : Promise.resolve(value)
-    return promise.then(value => ({ value, type: fn.type }))
+    let value = await cursor.get(this.key)
+    if (isUndefined(value)) {
+      let args: any[]
+      if (fn instanceof JQLAggregateFunction) {
+        args = await this.traverseCursor(cursor, sandbox, this.parameters[0])
+      }
+      else {
+        const promises = this.parameters.map(parameter => parameter.evaluate(cursor, sandbox))
+        args = (await Promise.all(promises)).map(({ value }) => value)
+      }
+      value = fn.run(...args)
+    }
+    return { value, type: fn.type }
   }
 
-  public traverseCursor(cursor: ICursor, sandbox: Sandbox, expression: CompiledExpression, movedToFirst = false, result: any[] = []): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      (movedToFirst ? cursor.next() : cursor.moveToFirst())
-        .then(cursor => resolve(
-          expression.evaluate(cursor, sandbox)
-            .then(({ value }) => result.push(value))
-            .then(() => this.traverseCursor(cursor, sandbox, expression, true, result)),
-        ))
-        .catch(e => {
-          return e instanceof CursorReachEndError ? resolve(result) : reject(e)
-        })
-    })
+  public async traverseCursor(cursor: ICursor, sandbox: Sandbox, expression: CompiledExpression, result: any[] = []): Promise<any[]> {
+    let movedToFirst = false
+    while (true) {
+      try {
+        cursor = await (movedToFirst ? cursor.next() : cursor.moveToFirst())
+        movedToFirst = true
+        result.push((await expression.evaluate(cursor, sandbox)).value)
+      }
+      catch (e) {
+        if (e instanceof CursorReachEndError) return result
+        throw e
+      }
+    }
   }
 }

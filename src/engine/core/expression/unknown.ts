@@ -1,8 +1,6 @@
 import { equals, getType, Type, Unknown as Unknown_ } from 'node-jql'
 import { CompiledExpression } from '.'
 import { ICompilingQueryOptions } from '../compiledSql'
-import { ICursor } from '../cursor'
-import { Sandbox } from '../sandbox'
 
 export class Unknown extends CompiledExpression {
   public value?: any
@@ -39,7 +37,7 @@ export class Unknown extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
-    return Promise.resolve({ value: this.value, type: this.type })
+  public async evaluate(): Promise<{ value: any, type: Type }> {
+    return { value: this.value, type: this.type }
   }
 }

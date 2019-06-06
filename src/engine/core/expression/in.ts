@@ -58,18 +58,17 @@ export class CompiledInExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return Promise.all([this.left.evaluate(cursor, sandbox), this.evaluateRight(cursor, sandbox)])
-      .then(([{ value: left }, { value: right }]) => {
-        const value = denormalize(right, 'Array').indexOf(left) > -1
-        return { value, type: 'boolean' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const promises = [this.left.evaluate(cursor, sandbox), this.evaluateRight(cursor, sandbox)]
+    const [{ value: left }, { value: right }] = await Promise.all(promises)
+    const value = denormalize(right, 'Array').indexOf(left) > -1
+    return { value, type: 'boolean' }
   }
 
-  private evaluateRight(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
+  private async evaluateRight(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
     if (this.right instanceof CompiledQuery) {
-      const promise = this.tableKey ? sandbox.getContext(TEMP_DB_KEY, this.tableKey) : sandbox.run(this.right, { cursor }).then(({ data }) => data)
-      return promise.then(data => ({ value: data, type: 'Array' }))
+      const data = await (this.tableKey ? sandbox.getContext(TEMP_DB_KEY, this.tableKey) : sandbox.run(this.right, { cursor }).then(({ data }) => data))
+      return { value: data, type: 'Array' }
     }
     else {
       return this.right.evaluate(cursor, sandbox)

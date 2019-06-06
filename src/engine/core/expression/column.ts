@@ -6,7 +6,6 @@ import { InstantiateError } from '../../../utils/error/InstantiateError'
 import { ICompilingQueryOptions } from '../compiledSql'
 import { ICursor } from '../cursor'
 import { CompiledTableOrSubquery } from '../query/tableOrSubquery'
-import { Sandbox } from '../sandbox'
 
 export class CompiledColumnExpression extends CompiledExpression {
   public readonly databaseKey: string
@@ -104,7 +103,7 @@ export class CompiledColumnExpression extends CompiledExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: any, type: Type }> {
-    return Promise.resolve({ value: cursor.get(this.key), type: this.type })
+  public async evaluate(cursor: ICursor): Promise<{ value: any, type: Type }> {
+    return { value: await cursor.get(this.key), type: this.type }
   }
 }

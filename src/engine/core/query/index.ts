@@ -146,7 +146,7 @@ export class CompiledQuery extends CompiledSql {
         const result = { name: $as || expression.toString(), key } as IMapping
         if (expression instanceof CompiledColumnExpression) {
           result.table = expression.table
-          result.column = expression.name
+          result.column = $as || expression.name
         }
         return result
       })

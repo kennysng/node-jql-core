@@ -33,220 +33,221 @@ export class InMemoryEngine extends DatabaseEngine {
   }
 
   // @override
-  public getDatabase(nameOrKey: string): Promise<Database> {
-    return this.schemaLock.startReading()
-      .then(() => this.getSchema())
-      .then(schema => {
-        try {
-          return schema.getDatabase(nameOrKey)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
+  public async getDatabase(nameOrKey: string): Promise<Database> {
+    await this.schemaLock.startReading()
+    try {
+      const schema = this.getSchema()
+      return schema.getDatabase(nameOrKey)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
   }
 
   // @override
-  public getTable(databaseNameOrKey: string, nameOrKey: string): Promise<Table> {
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(databaseNameOrKey)
-          return this.databaseLocks.startReading(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        try {
-          return database.getTable(nameOrKey)
-        }
-        finally {
-          this.databaseLocks.endReading(database.key)
-        }
-      })
+  public async getTable(databaseNameOrKey: string, nameOrKey: string): Promise<Table> {
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // read database to get table
+    await this.databaseLocks.startReading(database.key)
+    try {
+      return database.getTable(nameOrKey)
+    }
+    finally {
+      this.databaseLocks.endReading(database.key)
+    }
   }
 
   // @override
-  public getCount(databaseNameOrKey: string, nameOrKey: string): number|Promise<number> {
-    return this.getTable(databaseNameOrKey, nameOrKey)
-      .then(table => this.tableLocks.startReading(table.key).then(() => table))
-      .then(table => {
-        try {
-          if (!table.databaseKey) throw new NoDatabaseSelectedError()
-          const rows = this.context[table.databaseKey][table.key]
-          return rows.length
-        }
-        finally {
-          this.tableLocks.endReading(table.key)
-        }
-      })
+  public async getCount(databaseNameOrKey: string, nameOrKey: string): Promise<number> {
+    const table = await this.getTable(databaseNameOrKey, nameOrKey)
+    if (!table.databaseKey) throw new NoDatabaseSelectedError()
+
+    await this.tableLocks.startReading(table.key)
+    try {
+      const rows = this.context[table.databaseKey][table.key]
+      return rows.length
+    }
+    finally {
+      this.tableLocks.endReading(table.key)
+    }
   }
 
   // @override
-  public createDatabase(name: string, ifNotExists?: true): Promise<IResult> {
+  public async createDatabase(name: string, ifNotExists?: true): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startWriting()
-      .then(() => {
-        try {
-          const database = this.schema.createDatabase(name)
-          this.setContext(database.key, {})
-        }
-        catch (e) {
-          if (!ifNotExists) throw e
-        }
-        finally {
-          this.schemaLock.endWriting()
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    await this.schemaLock.startWriting()
+    try {
+      const database = this.schema.createDatabase(name)
+      this.setContext(database.key, {})
+    }
+    catch (e) {
+      if (!ifNotExists) throw e
+    }
+    finally {
+      this.schemaLock.endWriting()
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override
-  public renameDatabase(name: string, newName: string): Promise<IResult> {
+  public async renameDatabase(name: string, newName: string): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(name)
-          return this.databaseLocks.startWriting(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        database.name = newName
-        this.databaseLocks.endWriting(database.key)
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(name)
+      await this.databaseLocks.startWriting(database.key)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // rename database
+    database.name = newName
+    this.databaseLocks.endWriting(database.key)
+
+    return { time: Date.now() - base }
   }
 
   // @override
-  public dropDatabase(databaseNameOrKey: string, ifExists?: true): Promise<IResult> {
+  public async dropDatabase(databaseNameOrKey: string, ifExists?: true): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startWriting()
-      .then(() => {
-        const database = this.getSchema().getDatabase(databaseNameOrKey)
-        return this.databaseLocks.startWriting(database.key).then(() => database)
-      })
-      .then(database => {
-        try {
-          this.setContext(database.key)
-          this.getSchema().dropDatabase(database.key)
-        }
-        catch (e) {
-          if (!ifExists) throw e
-        }
-        finally {
-          this.databaseLocks.endWriting(database.key)
-          this.schemaLock.endWriting()
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // lock schema & database
+    await this.schemaLock.startWriting()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+      await this.databaseLocks.startWriting(database.key)
+    }
+    catch (e) {
+      this.schemaLock.endWriting()
+      throw e
+    }
+
+    // drop database
+    try {
+      this.setContext(database.key)
+      this.getSchema().dropDatabase(database.key)
+    }
+    catch (e) {
+      if (!ifExists) throw e
+    }
+    finally {
+      this.databaseLocks.endWriting(database.key)
+      this.schemaLock.endWriting()
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override
-  public createTable(databaseNameOrKey: string, name: string, columns: Column[], ifNotExists?: true): Promise<IResult> {
+  public async createTable(databaseNameOrKey: string, name: string, columns: Column[], ifNotExists?: true): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(databaseNameOrKey)
-          return this.databaseLocks.startWriting(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        try {
-          const table = database.createTable(name, columns)
-          this.setContext(database.key, table.key, [])
-        }
-        catch (e) {
-          if (!ifNotExists) throw e
-        }
-        finally {
-          this.databaseLocks.endWriting(database.key)
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+      await this.databaseLocks.startWriting(database.key)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // create table
+    try {
+      const table = database.createTable(name, columns)
+      this.setContext(database.key, table.key, [])
+    }
+    catch (e) {
+      if (!ifNotExists) throw e
+    }
+    finally {
+      this.databaseLocks.endWriting(database.key)
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override
-  public renameTable(databaseNameOrKey: string, name: string, newName: string): Promise<IResult> {
+  public async renameTable(databaseNameOrKey: string, name: string, newName: string): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(databaseNameOrKey)
-          return this.databaseLocks.startReading(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        try {
-          const table = database.getTable(name)
-          return this.tableLocks.startWriting(table.key)
-            .then(() => {
-              try {
-                table.name = newName
-                this.tableLocks.endWriting(table.key)
-              }
-              finally {
-                this.databaseLocks.endReading(database.key)
-              }
-            })
-        }
-        catch (e) {
-          this.databaseLocks.endReading(database.key)
-          throw e
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+      await this.databaseLocks.startReading(database.key)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // rename table
+    try {
+      const table = database.getTable(name)
+      await this.tableLocks.startWriting(table.key)
+      table.name = newName
+      this.tableLocks.endWriting(table.key)
+    }
+    finally {
+      this.databaseLocks.endReading(database.key)
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override
-  public dropTable(databaseNameOrKey: string, name: string, ifExists?: true): Promise<IResult> {
+  public async dropTable(databaseNameOrKey: string, name: string, ifExists?: true): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(databaseNameOrKey)
-          return this.databaseLocks.startWriting(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        try {
-          const table = database.getTable(name)
-          return this.tableLocks.startWriting(table.key)
-            .then(() => {
-              try {
-                this.setContext(database.key, table.key)
-                database.dropTable(name)
-              }
-              catch (e) {
-                if (!ifExists) throw e
-              }
-              finally {
-                this.tableLocks.endWriting(table.key)
-                this.databaseLocks.endWriting(database.key)
-              }
-            })
-        }
-        catch (e) {
-          this.databaseLocks.endWriting(database.key)
-          throw e
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+      await this.databaseLocks.startWriting(database.key)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // drop table
+    try {
+      const table = database.getTable(name)
+      await this.tableLocks.startWriting(table.key)
+      try {
+        this.setContext(database.key, table.key)
+        database.dropTable(name)
+      }
+      catch (e) {
+        if (!ifExists) throw e
+      }
+      finally {
+        this.tableLocks.endWriting(table.key)
+      }
+    }
+    finally {
+      this.databaseLocks.endWriting(database.key)
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override
@@ -255,7 +256,7 @@ export class InMemoryEngine extends DatabaseEngine {
   // @override
   public query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
 
-  public query(...args: any[]): Promise<IQueryResult> {
+  public async query(...args: any[]): Promise<IQueryResult> {
     let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
     if (typeof args[0] === 'string') {
       databaseNameOrKey = args[0]
@@ -278,57 +279,56 @@ export class InMemoryEngine extends DatabaseEngine {
     }
     const sql = query.toString()
     const compiled: CompiledQuery = query
-    return Promise.all(compiled.tables.map(key => this.tableLocks.startReading(key)))
-      .then(() => new Sandbox(this).run(compiled))
-      .then(result => {
-        for (const key of compiled.tables) this.tableLocks.endReading(key)
-        return { ...result, sql, time: Date.now() - base }
-      })
-      .catch(e => {
-        for (const key of compiled.tables) this.tableLocks.endReading(key)
-        throw e
-      })
+
+    // run query
+    const promises = compiled.tables.map(key => this.tableLocks.startReading(key))
+    await Promise.all(promises)
+    try {
+      const result = await new Sandbox(this).run(compiled)
+      return { ...result, sql, time: Date.now() - base }
+    }
+    finally {
+      for (const key of compiled.tables) this.tableLocks.endReading(key)
+    }
   }
 
   // @override
-  public insertInto(databaseNameOrKey: string, name: string, values: IRow[]): Promise<IResult> {
+  public async insertInto(databaseNameOrKey: string, name: string, values: IRow[]): Promise<IResult> {
     const base = Date.now()
-    return this.schemaLock.startReading()
-      .then(() => {
-        try {
-          const database = this.getSchema().getDatabase(databaseNameOrKey)
-          return this.databaseLocks.startReading(database.key).then(() => database)
-        }
-        finally {
-          this.schemaLock.endReading()
-        }
-      })
-      .then(database => {
-        try {
-          const table = database.getTable(name)
-          return this.tableLocks.startWriting(table.key)
-            .then(() => {
-              try {
-                this.setContext(databaseNameOrKey, name, values.map(row => {
-                  const result = {}
-                  for (const column of table.columns) {
-                    result[column.key] = column.validate(row[column.name])
-                  }
-                  return result
-                }))
-                return this.tableLocks.endWriting(table.key)
-              }
-              finally {
-                this.databaseLocks.endReading(database.key)
-              }
-            })
-        }
-        catch (e) {
-          this.databaseLocks.endReading(database.key)
-          throw e
-        }
-      })
-      .then(() => ({ time: Date.now() - base }))
+
+    // read schema to get database
+    await this.schemaLock.startReading()
+    let database: Database
+    try {
+      database = this.getSchema().getDatabase(databaseNameOrKey)
+      await this.databaseLocks.startReading(database.key)
+    }
+    finally {
+      this.schemaLock.endReading()
+    }
+
+    // insert data
+    try {
+      const table = database.getTable(name)
+      await this.tableLocks.startWriting(table.key)
+      try {
+        this.setContext(databaseNameOrKey, name, values.map(row => {
+          const result = {}
+          for (const column of table.columns) {
+            result[column.key] = column.validate(row[column.name])
+          }
+          return result
+        }))
+      }
+      finally {
+        this.tableLocks.endWriting(table.key)
+      }
+    }
+    finally {
+      this.databaseLocks.endReading(database.key)
+    }
+
+    return { time: Date.now() - base }
   }
 
   // @override

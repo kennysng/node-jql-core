@@ -51,16 +51,14 @@ export class CompiledLikeExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return this.left.evaluate(cursor, sandbox)
-      .then(({ value: left }) => {
-        let right = this.right
-        if (right instanceof Unknown) {
-          right = new RegExp(right.value as string)
-        }
-        let value = right.test(left)
-        if (this.$not) value = !value
-        return { value, type: 'boolean' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const { value: left } = await this.left.evaluate(cursor, sandbox)
+    let right = this.right
+    if (right instanceof Unknown) {
+      right = new RegExp(right.value as string)
+    }
+    let value = right.test(left)
+    if (this.$not) value = !value
+    return { value, type: 'boolean' }
   }
 }

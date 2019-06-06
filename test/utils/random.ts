@@ -23,3 +23,12 @@ export function randomName(): string {
 export function randomFrom<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)]
 }
+
+/**
+ * Get a random integer from the given range
+ * @param from [number]
+ * @param to [number]
+ */
+export function randomInteger(from: number, to: number) {
+  return Math.ceil(from + Math.random() * (to - from))
+}

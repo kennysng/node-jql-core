@@ -45,31 +45,30 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return Promise.all([this.left.evaluate(cursor, sandbox), this.right.evaluate(cursor, sandbox)])
-      .then(([{ value: left }, { value: right }]) => {
-        let value: boolean = false
-        switch (this.operator) {
-          case '<':
-            value = left < right
-            break
-          case '<=':
-            value = left < right || _.isEqual(left, right)
-            break
-          case '<>':
-            value = !_.isEqual(left, right)
-            break
-          case '=':
-            value = _.isEqual(left, right)
-            break
-          case '>':
-            value = left > right
-            break
-          case '>=':
-            value = left > right || _.isEqual(left, right)
-            break
-        }
-        return { value, type: 'boolean' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const promises = [this.left.evaluate(cursor, sandbox), this.right.evaluate(cursor, sandbox)]
+    const [{ value: left }, { value: right }] = await Promise.all(promises)
+    let value: boolean = false
+    switch (this.operator) {
+      case '<':
+        value = left < right
+        break
+      case '<=':
+        value = left < right || _.isEqual(left, right)
+        break
+      case '<>':
+        value = !_.isEqual(left, right)
+        break
+      case '=':
+        value = _.isEqual(left, right)
+        break
+      case '>':
+        value = left > right
+        break
+      case '>=':
+        value = left > right || _.isEqual(left, right)
+        break
+    }
+    return { value, type: 'boolean' }
   }
 }

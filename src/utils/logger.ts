@@ -12,6 +12,7 @@ type LogLevel = 'DEBUG'|'INFO'|'WARN'|'ERROR'
 export class Logger {
   private readonly tag: string
   private levels: LogLevel[]
+  private enabled = false
 
   /**
    * @param key [string]
@@ -26,6 +27,13 @@ export class Logger {
   // @override
   get [Symbol.toStringTag](): string {
     return 'Logger'
+  }
+
+  /**
+   * @param value [boolean]
+   */
+  public setEnabled(value: boolean): void {
+    this.enabled = value
   }
 
   /**
@@ -69,32 +77,34 @@ export class Logger {
   }
 
   private print(level: LogLevel, ...args: any[]): void {
-    if (this.levels.indexOf(level) > -1) {
-      switch (level) {
-        case 'DEBUG':
-          args.unshift(chalk.default.gray(this.tag))
-          args.unshift(chalk.default.bgBlackBright('[DEBUG]'))
-          args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-          console.debug(...args)
-          break
-        case 'INFO':
-          args.unshift(this.tag)
-          args.unshift(chalk.default.inverse('[INFO]'))
-          args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-          console.info(...args)
-          break
-        case 'WARN':
-          args.unshift(chalk.default.yellow(this.tag))
-          args.unshift(chalk.default.bgYellow('[WARN]'))
-          args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-          console.warn(...args)
-          break
-        case 'ERROR':
-          args.unshift(chalk.default.red(this.tag))
-          args.unshift(chalk.default.bgRed('[ERROR]'))
-          args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-          console.error(...args)
-          break
+    if (this.enabled) {
+      if (this.levels.indexOf(level) > -1) {
+        switch (level) {
+          case 'DEBUG':
+            args.unshift(chalk.default.gray(this.tag))
+            args.unshift(chalk.default.bgBlackBright('[DEBUG]'))
+            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
+            console.debug(...args)
+            break
+          case 'INFO':
+            args.unshift(this.tag)
+            args.unshift(chalk.default.inverse('[INFO]'))
+            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
+            console.info(...args)
+            break
+          case 'WARN':
+            args.unshift(chalk.default.yellow(this.tag))
+            args.unshift(chalk.default.bgYellow('[WARN]'))
+            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
+            console.warn(...args)
+            break
+          case 'ERROR':
+            args.unshift(chalk.default.red(this.tag))
+            args.unshift(chalk.default.bgRed('[ERROR]'))
+            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
+            console.error(...args)
+            break
+        }
       }
     }
   }

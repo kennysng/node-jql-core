@@ -47,12 +47,11 @@ export class CompiledBetweenExpression extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return Promise.all([this.left.evaluate(cursor, sandbox), this.start.evaluate(cursor, sandbox), this.end.evaluate(cursor, sandbox)])
-      .then(([{ value: left }, { value: start }, { value: end }]) => {
-        let value = start <= left && left <= end
-        if (this.$not) value = !value
-        return { value, type: 'boolean' }
-      })
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    const promises = [this.left.evaluate(cursor, sandbox), this.start.evaluate(cursor, sandbox), this.end.evaluate(cursor, sandbox)]
+    const [{ value: left }, { value: start }, { value: end }] = await Promise.all(promises)
+    let value = start <= left && left <= end
+    if (this.$not) value = !value
+    return { value, type: 'boolean' }
   }
 }
