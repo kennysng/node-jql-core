@@ -30,7 +30,7 @@ export class CompiledTableOrSubquery {
           options.unknowns.push(...this.query.unknowns)
         }
         else {
-          const table = this.remote = new Table(sql.$as as string)
+          const table = this.remote = new Table(sql.$as as string, this.tableKey)
           for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
         }
       }

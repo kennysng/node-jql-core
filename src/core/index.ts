@@ -64,7 +64,7 @@ export class Connection {
   public databaseKey?: string
   public closed: boolean = false
 
-  protected readonly logger: Logger = new Logger(`[Connection#${this.id}]`)
+  protected readonly logger = new Logger(`[Connection#${this.id}]`)
 
   constructor(protected readonly core: DatabaseCore, protected readonly options?: IConnectionOptions) {
     if (options && options.logging) this.logger.setEnabled(true)

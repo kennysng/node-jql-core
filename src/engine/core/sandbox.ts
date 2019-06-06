@@ -88,6 +88,12 @@ export class Sandbox {
     const base = Date.now()
     let result: IRow[]
 
+    // prepare temporary Tables
+    if (query.needTempTables && query.$from) {
+      const $from = query.$from
+      await Promise.all($from.map<Promise<void>>(tableOrSubquery => this.prepareTable(tableOrSubquery, options.cursor)))
+    }
+
     try {
       // simple SELECT * FROM table or SELECT COUNT(expr) FROM table
       if (query.isSimpleQuery || query.isSimpleCount) {
@@ -118,12 +124,6 @@ export class Sandbox {
 
       // complete flow
       else {
-        // prepare temporary Tables
-        if (query.needTempTables) {
-          const $from = query.$from
-          await Promise.all($from.map<Promise<void>>(tableOrSubquery => this.prepareTable(tableOrSubquery, options.cursor)))
-        }
-
         // TODO optimize queries with InExpression with independent subqueries -> prepare the temp table(s) first
         // TODO set InExpression.tempTable
 
@@ -140,7 +140,7 @@ export class Sandbox {
         if (result.length === 0) throw new EmptyResultsetError()
 
         // grouping
-        let dictionary: _.Dictionary<IRow[]>
+        let dictionary: _.Dictionary<IRow[]> = {}
         if (query.$group) {
           const $group = query.$group
           const result_ = await this.traverseCursor(new RowsCursor(result), query, $group.expressions, undefined, options)
@@ -152,8 +152,8 @@ export class Sandbox {
         if (query.needAggregate) {
           if (!query.$group) dictionary = { default: result }
           const $having = query.$group ? query.$group.$having : undefined
-          const promises = Object.keys(result).map(async key => {
-            const rows = result[key]
+          const promises = Object.keys(dictionary).map(async key => {
+            const rows = dictionary[key]
             const row = await this.aggregate(rows, query.aggregateFunctions)
             return Object.assign({}, rows[0], row)
           })
@@ -221,9 +221,15 @@ export class Sandbox {
   private async prepareTable(tableOrSubquery: CompiledTableOrSubquery, cursor?: ICursor): Promise<void> {
     // Remote Table
     if (tableOrSubquery.remote) {
+      const table = tableOrSubquery.remote
+      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
+
       const response = await tableOrSubquery.request
       if (!response) throw new JQLError('Fail to prepare remote table due to network error')
-      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data
+      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
+        result[key] = row[name]
+        return result
+      }, {}))
     }
 
     // Table from Query
