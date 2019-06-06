@@ -236,29 +236,28 @@ export class Sandbox {
     }
   }
 
-  private traverseCursor(cursor: ICursor, query: CompiledQuery, columns: IExpressionWithKey[], $where: CompiledConditionalExpression|undefined, options: IQueryOptions, finalize = false, movedToFirst = false, resultset: IRow[] = []): Promise<IRow[]> {
-    return new Promise(async (resolve, reject) => {
+  private async traverseCursor(cursor: ICursor, query: CompiledQuery, columns: IExpressionWithKey[], $where: CompiledConditionalExpression|undefined, options: IQueryOptions, finalize = false, resultset: IRow[] = []): Promise<IRow[]> {
+    let movedToFirst = false
+    while (true) {
       try {
-        let cursor_ = movedToFirst ? await cursor.next() : await cursor.moveToFirst()
-        if (options.cursor) cursor_ = new Cursors([options.cursor, cursor_], '+')
-        if (!$where || (await $where.evaluate(cursor_, this)).value) {
-          resultset = await this.processCursor(cursor_, columns, resultset)
+        let tmpCursor = movedToFirst ? await cursor.next() : await cursor.moveToFirst()
+        movedToFirst = true
+        if (options.cursor) tmpCursor = new Cursors([options.cursor, tmpCursor], '+')
+        if (!$where || (await $where.evaluate(tmpCursor, this)).value) {
+          resultset = await this.processCursor(tmpCursor, columns, resultset)
         }
-        if (options.exists && (finalize || !query.$group) && resultset.length > 0) {
-          resolve(resultset)
-        }
-        else if (query.isFastQuery && resultset.length === query.$offset + query.$limit) {
-          resolve(resultset)
-        }
-        // TODO optimize queries with InExpression -> return if the required value exists
-        else {
-          resolve(this.traverseCursor(cursor, query, columns, $where, options, finalize, true, resultset))
+        if (
+          (options.exists && (finalize || !query.$group) && resultset.length > 0) ||
+          (query.isFastQuery && resultset.length === query.$offset + query.$limit)
+        ) {
+          return resultset
         }
       }
       catch (e) {
-        return e instanceof CursorReachEndError ? resolve(resultset) : reject(e)
+        if (e instanceof CursorReachEndError) return resultset
+        throw e
       }
-    })
+    }
   }
 
   private async processCursor(cursor: ICursor, expressions: IExpressionWithKey[], resultset: IRow[] = []): Promise<IRow[]> {

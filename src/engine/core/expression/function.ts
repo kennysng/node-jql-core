@@ -71,16 +71,18 @@ export class CompiledFunctionExpression extends CompiledExpression {
     return { value, type: fn.type }
   }
 
-  public traverseCursor(cursor: ICursor, sandbox: Sandbox, expression: CompiledExpression, movedToFirst = false, result: any[] = []): Promise<any[]> {
-    return new Promise(async (resolve, reject) => {
+  public async traverseCursor(cursor: ICursor, sandbox: Sandbox, expression: CompiledExpression, result: any[] = []): Promise<any[]> {
+    let movedToFirst = false
+    while (true) {
       try {
         cursor = await (movedToFirst ? cursor.next() : cursor.moveToFirst())
+        movedToFirst = true
         result.push((await expression.evaluate(cursor, sandbox)).value)
-        resolve(this.traverseCursor(cursor, sandbox, expression, true, result))
       }
       catch (e) {
-        return e instanceof CursorReachEndError ? resolve(result) : reject(e)
+        if (e instanceof CursorReachEndError) return result
+        throw e
       }
-    })
+    }
   }
 }

@@ -74,35 +74,40 @@ export class Cursors implements ICursor {
       case '+':
         return this.plusNext()
       case '*':
-        return this.timesNext(this.cursors.length - 1)
+        return this.timesNext()
     }
   }
 
-  private plusNext(i: number = 0): Promise<Cursors> {
-    return new Promise(async (resolve, reject) => {
+  private async plusNext(): Promise<Cursors> {
+    let i = 0
+    while (true) {
       try {
         await this.cursors[i].next()
-        resolve(this)
+        return this
       }
       catch (e) {
-        return i + 1 < this.cursors.length
-          ? resolve(this.plusNext(i + 1))
-          : reject(new CursorReachEndError())
+        if (!(e instanceof CursorReachEndError) || i === this.cursors.length - 1) {
+          throw e
+        }
       }
-    })
+      i += 1
+    }
   }
 
-  private timesNext(i: number): Promise<Cursors> {
-    return new Promise(async (resolve, reject) => {
+  private async timesNext(): Promise<Cursors> {
+    let i = this.cursors.length - 1
+    while (true) {
       try {
         await this.cursors[i].next()
-        resolve(this)
+        return this
       }
       catch (e) {
-        return i === 0
-          ? reject(new CursorReachEndError())
-          : resolve(this.cursors[i].moveToFirst().then(() => this.timesNext(i - 1)))
+        if (!(e instanceof CursorReachEndError) || i === 0) {
+          throw e
+        }
+        await this.cursors[i].moveToFirst()
+        i -= 1
       }
-    })
+    }
   }
 }

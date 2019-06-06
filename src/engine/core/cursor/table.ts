@@ -49,19 +49,19 @@ export class TableCursor implements ICursor {
   // @override
   public async next(): Promise<TableCursor> {
     delete this.currentRow
-    await this.nextIndex()
+    this.nextIndex()
     await this.computeRow()
     if (this.tableOrSubquery instanceof CompiledJoinedTableOrSubquery) {
       const expressions = this.tableOrSubquery.joinClauses.reduce<CompiledConditionalExpression[]>((result, joinClause) => {
         if (joinClause.$on) result.push(joinClause.$on)
         return result
       }, [])
-      return (await this.validateRow(0, expressions)) ? this : this.next()
+      return (await this.validateRow(expressions)) ? this : this.next()
     }
     return this
   }
 
-  private async nextIndex(): Promise<number> {
+  private nextIndex(): number {
     const index = this.currentIndex = Math.max(-1, Math.min(this.length, this.currentIndex + 1))
     if (index < 0 || index >= this.length) throw new CursorReachEndError()
     return index
@@ -94,20 +94,12 @@ export class TableCursor implements ICursor {
     return row
   }
 
-  private async validateRow(i: number, expressions: CompiledConditionalExpression[]): Promise<boolean> {
-    return new Promise(async resolve => {
-      const expression = expressions[i]
+  private async validateRow(expressions: CompiledConditionalExpression[]): Promise<boolean> {
+    for (const expression of expressions) {
       const cursor = this.baseCursor ? new Cursors([this.baseCursor, this], '+') : this
       const { value } = await expression.evaluate(cursor, this.sandbox)
-      if (!value) {
-        resolve(false)
-      }
-      else if (i + 1 < expressions.length) {
-        resolve(this.validateRow(i + 1, expressions))
-      }
-      else {
-        resolve(true)
-      }
-    })
+      if (!value) return false
+    }
+    return true
   }
 }

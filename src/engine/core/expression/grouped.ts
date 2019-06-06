@@ -43,26 +43,12 @@ export class CompiledGroupedExpressions extends CompiledConditionalExpression {
   }
 
   // @override
-  public evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
-    return this.evaluate_(0, cursor, sandbox).then(value => ({ value, type: 'boolean' }))
-  }
-
-  private evaluate_(i: number, cursor: ICursor, sandbox: Sandbox): Promise<boolean> {
-    return new Promise(async resolve => {
-      const expression = this.expressions[i]
+  public async evaluate(cursor: ICursor, sandbox: Sandbox): Promise<{ value: boolean, type: Type }> {
+    for (const expression of this.expressions) {
       const { value: result } = await expression.evaluate(cursor, sandbox)
-      if (this.operator === 'AND' && !result) {
-        resolve(false)
-      }
-      else if (this.operator === 'OR' && result) {
-        resolve(true)
-      }
-      else if (i + 1 < this.expressions.length) {
-        resolve(this.evaluate_(i + 1, cursor, sandbox))
-      }
-      else {
-        resolve(this.operator === 'AND' ? true : false)
-      }
-    })
+      if (this.operator === 'AND' && !result) return { value: false, type: 'boolean' }
+      if (this.operator === 'OR' && result) return { value: true, type: 'boolean' }
+    }
+    return { value: this.operator === 'AND', type: 'boolean' }
   }
 }
