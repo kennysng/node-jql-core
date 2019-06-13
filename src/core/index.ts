@@ -40,6 +40,7 @@ export class DatabaseCore {
         break
       default:
         this.options = args[0] || {}
+        this.engine = new InMemoryEngine(this.options)
     }
   }
 
