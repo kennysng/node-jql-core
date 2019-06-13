@@ -250,12 +250,12 @@ export class Sandbox {
 
   private async prepareTable(tableOrSubquery: CompiledTableOrSubquery, cursor?: ICursor): Promise<void> {
     // Remote Table
-    if (tableOrSubquery.remote) {
+    if (tableOrSubquery.remote && tableOrSubquery.request) {
       const table = tableOrSubquery.remote
       this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
 
-      const data = await tableOrSubquery.request
-      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
+      const response = await tableOrSubquery.request
+      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
         result[key] = row[name]
         return result
       }, {}))
