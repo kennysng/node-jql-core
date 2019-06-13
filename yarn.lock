@@ -285,7 +285,7 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.0.3":
+"@kennysng/c-promise@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.0.tgz#af6f4d145c61b11d1fc7644accbde6ccae354297"
   integrity sha512-qiOPBvb3xrMbsSSSTZAeAWpoHGzRO8p4G45gE0ANTRbLvVgU9FM4STWivxHYOu25p84Ks2Kub3Ozd/1twV1NDA==
