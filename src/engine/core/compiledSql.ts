@@ -1,4 +1,5 @@
 import { Sql } from 'node-jql'
+import { IDatabaseOptions } from '../../core'
 import { Functions } from '../../function/functions'
 import { Schema } from '../../schema'
 import { CompiledExpression } from './expression'
@@ -16,6 +17,9 @@ export interface IExpressionWithKey<T = CompiledExpression> {
  * Parameters required for compiling SQLs
  */
 export interface ICompilingOptions {
+  // Database options
+  databaseOptions?: IDatabaseOptions
+
   // Default Database key
   defaultDatabase?: string
 

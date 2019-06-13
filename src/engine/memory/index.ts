@@ -1,5 +1,6 @@
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
+import { IDatabaseOptions } from '../../core'
 import { IDataSource, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
@@ -17,6 +18,10 @@ export class InMemoryEngine extends DatabaseEngine {
   private readonly schemaLock = new ReadWriteLock()
   private readonly databaseLocks = new ReadWriteLocks()
   private readonly tableLocks = new ReadWriteLocks()
+
+  constructor(public readonly options?: IDatabaseOptions) {
+    super()
+  }
 
   // @override
   get [Symbol.toStringTag](): string {
@@ -272,6 +277,7 @@ export class InMemoryEngine extends DatabaseEngine {
     const base = Date.now()
     if (query instanceof Query) {
       query = new CompiledQuery(query, {
+        databaseOptions: this.options,
         defaultDatabase: databaseNameOrKey,
         functions: new Functions(this.functions),
         schema: this.getSchema(),

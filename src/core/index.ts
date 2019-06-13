@@ -1,3 +1,4 @@
+import { AxiosInstance } from 'axios'
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { DatabaseEngine, IRunningQuery } from '../engine/core'
@@ -13,6 +14,7 @@ import { IResult, IRow } from './interfaces'
 export const TEMP_DB_KEY = uuid()
 
 export interface IDatabaseOptions {
+  axiosInstance?: AxiosInstance
   logging?: boolean
 }
 
@@ -23,9 +25,11 @@ export interface IConnectionOptions extends IDatabaseOptions {
  * Main class of the Database
  */
 export class DatabaseCore {
+  public readonly engine: DatabaseEngine
   public readonly connections: Connection[] = []
 
-  constructor(public readonly engine: DatabaseEngine = new InMemoryEngine(), protected readonly options?: IDatabaseOptions) {
+  constructor(engine: DatabaseEngine, protected readonly options?: IDatabaseOptions) {
+    this.engine = engine || new InMemoryEngine(options)
   }
 
   // @override
