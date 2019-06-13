@@ -396,10 +396,10 @@
   dependencies:
     "@types/jest-diff" "*"
 
-"@types/lodash@^4.14.133":
-  version "4.14.133"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.133.tgz#430721c96da22dd1694443e68e6cec7ba1c1003d"
-  integrity sha512-/3JqnvPnY58GLzG3Y7fpphOhATV1DDZ/Ak3DQufjlRK5E4u+s0CfClfNFtAGBabw+jDGtRFbOZe+Z02ZMWCBNQ==
+"@types/lodash@^4.14.134":
+  version "4.14.134"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.134.tgz#9032b440122db3a2a56200e91191996161dde5b9"
+  integrity sha512-2/O0khFUCFeDlbi7sZ7ZFRCcT812fAeOLm7Ev4KbwASkZ575TDrDcY7YyaoHdTOzKcNbfiwLYZqPmoC4wadrsw==
 
 "@types/mime@*":
   version "2.0.1"
@@ -423,10 +423,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-12.0.4.tgz#46832183115c904410c275e34cf9403992999c32"
   integrity sha512-j8YL2C0fXq7IONwl/Ud5Kt0PeXw22zGERt+HSSnwbKOJVsAGkEz3sFCYwaF9IOuoG1HOtE0vKCj6sXF7Q0+Vaw==
 
-"@types/node@^12.0.5":
-  version "12.0.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.0.5.tgz#ac14404c33d1a789973c45379a67f7f7e58a01b9"
-  integrity sha512-CFLSALoE+93+Hcb5pFjp0J1uMrrbLRe+L1+gFwerJ776R3TACSF0kTVRQ7AvRa7aFx70nqYHAc7wQPlt9kY2Mg==
+"@types/node@^12.0.8":
+  version "12.0.8"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.0.8.tgz#551466be11b2adc3f3d47156758f610bd9f6b1d8"
+  integrity sha512-b8bbUOTwzIY3V5vDTY1fIJ+ePKDUBqt2hC2woVGotdQQhG/2Sh62HOKHrT7ab+VerXAcPyAiTEipPu/FsreUtg==
 
 "@types/numeral@^0.0.25":
   version "0.0.25"
@@ -2784,10 +2784,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.5.5:
-  version "1.5.5"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.5.tgz#d64e4e2e46aad1856e16d5e620fc389a9cbdf9d6"
-  integrity sha512-s7ESn50Fn++aJ5VMNJIwoSWLOWWlmKJYleNLC34GKC9+USUogF7jP+Z2XSJlG9enVFbMag8Gb3t3ARD+KhdCMg==
+node-jql@^1.5.6:
+  version "1.5.6"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.6.tgz#119b0436741f722f9562da555f85a4e31ecc5b84"
+  integrity sha512-xliPQD5VzYsfDdfd5RrumIfZiMVFtjxQNOz7mZQn6mJdrHwO//wGF+ocgtCFIidtv+tDp0xRCqgU7nwrRdepvw==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
