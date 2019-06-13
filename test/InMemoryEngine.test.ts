@@ -1,5 +1,6 @@
 /* tslint:disable:no-console */
 
+import { CancelError } from '@kennysng/c-promise'
 import moment = require('moment')
 import { AddressInfo } from 'net'
 import { BetweenExpression, BinaryExpression, Case, CaseExpression, ColumnExpression, ExistsExpression, FunctionExpression, InExpression, IsNullExpression, JoinClause, JoinedTableOrSubquery, LikeExpression, MathExpression, OrderingTerm, Query, ResultColumn, TableOrSubquery, Unknown, Value } from 'node-jql'
@@ -66,252 +67,354 @@ test('Create Connection', () => {
   connection = databaseCore.createConnection()
 })
 
-test('Create Database', callback => {
-  connection.createDatabase('School')
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Create Database', async callback => {
+  try {
+    await connection.createDatabase('School')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Rename Database', callback => {
-  connection.createDatabase('Test1')
-    .then(() => connection.renameDatabase('Test1', 'Test2'))
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Rename Database', async callback => {
+  try {
+    await connection.createDatabase('Test1')
+    await connection.renameDatabase('Test1', 'Test2')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Drop Database', callback => {
-  connection.dropDatabase('Test2')
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Drop Database', async callback => {
+  try {
+    await connection.dropDatabase('Test2')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Use Database', callback => {
-  connection.useDatabase('School')
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Use Database', async callback => {
+  try {
+    await connection.useDatabase('School')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Create Table', callback => {
-  const promises = [
-    connection.createTable('Student', [
-      new Column('id', 'number'),
-      new Column('name', 'string'),
-      new Column('gender', 'string'),
-      new Column('birthday', 'Date'),
-      new Column('createdAt', 'Date'),
-      new Column('leaveAt', 'Date'),
-    ]),
-    connection.createTable('StudentMark', [
-      new Column('studentId', 'number'),
-      new Column('test', 'string'),
-      new Column('mark', 'number'),
-    ]),
-  ]
-  Promise.all(promises)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Create Table', async callback => {
+  try {
+    const promises = [
+      connection.createTable('Student', [
+        new Column('id', 'number'),
+        new Column('name', 'string'),
+        new Column('gender', 'string'),
+        new Column('birthday', 'Date'),
+        new Column('createdAt', 'Date'),
+        new Column('leaveAt', 'Date'),
+      ]),
+      connection.createTable('StudentMark', [
+        new Column('studentId', 'number'),
+        new Column('test', 'string'),
+        new Column('mark', 'number'),
+      ]),
+    ]
+    await Promise.all(promises)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Rename Table', callback => {
-  connection.createTable('Test1', [
-    new Column('value', 'string'),
-  ])
-    .then(() => connection.renameTable('Test1', 'Test2'))
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Rename Table', async callback => {
+  try {
+    await connection.createTable('Test1', [
+      new Column('value', 'string'),
+    ])
+    await connection.renameTable('Test1', 'Test2')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Drop Table', callback => {
-  connection.dropTable('Test2')
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Drop Table', async callback => {
+  try {
+    await connection.dropTable('Test2')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Insert into Student', callback => {
-  connection.insertInto('Student', students)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Insert into Student', async callback => {
+  try {
+    await connection.insertInto('Student', students)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Insert into StudentMark', callback => {
-  connection.insertInto('StudentMark', marks)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Insert into StudentMark', async callback => {
+  try {
+    await connection.insertInto('StudentMark', marks)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test Query', callback => {
-  const query = new Query({ $from: 'Student' })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Test Query', async callback => {
+  try {
+    const query = new Query({ $from: 'Student' })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test Query w/o FROM', callback => {
-  const query = new Query({
-    $select: new ResultColumn({
-      expression: new MathExpression({
-        left: new Unknown(),
-        operator: '+',
-        right: new Unknown(),
+test('Test Query w/o FROM', async callback => {
+  try {
+    const query = new Query({
+      $select: new ResultColumn({
+        expression: new MathExpression({
+          left: new Unknown(),
+          operator: '+',
+          right: new Unknown(),
+        }),
       }),
-    }),
-  })
-  connection.query(query, 1, 1)
-    .then(() => callback())
-    .catch(e => callback(e))
+    })
+    await connection.query(query, 1, 1)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test BetweenExpression', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new BetweenExpression({
-      left: new ColumnExpression('birthday'),
-      start: moment.utc('1992-04-01', 'YYYY-MM-DD').toDate(),
-      end: moment.utc('1992-05-01', 'YYYY-MM-DD').toDate(),
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Test BetweenExpression', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new BetweenExpression({
+        left: new ColumnExpression('birthday'),
+        start: moment.utc('1992-04-01', 'YYYY-MM-DD').toDate(),
+        end: moment.utc('1992-05-01', 'YYYY-MM-DD').toDate(),
+      }),
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test BinaryExpression', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new BinaryExpression({
-      left: new ColumnExpression('gender'),
-      operator: '=',
-      right: 'M',
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+test('Test BinaryExpression', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new BinaryExpression({
+        left: new ColumnExpression('gender'),
+        operator: '=',
+        right: 'M',
+      }),
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test CaseExpression and DISTINCT', callback => {
-  const query = new Query({
-    $distinct: true,
-    $select: [
-      new ResultColumn({
-        expression: new CaseExpression({
-          cases: [
-            new Case({
-              $when: new BinaryExpression({ left: new ColumnExpression('name'), operator: '=', right: 'Kennys Ng' }),
-              $then: new Value('Hi, I\'m Kennys Ng'),
+test('Test CaseExpression and DISTINCT', async callback => {
+  try {
+    const query = new Query({
+      $distinct: true,
+      $select: [
+        new ResultColumn({
+          expression: new CaseExpression({
+            cases: [
+              new Case({
+                $when: new BinaryExpression({ left: new ColumnExpression('name'), operator: '=', right: 'Kennys Ng' }),
+                $then: new Value('Hi, I\'m Kennys Ng'),
+              }),
+              new Case({
+                $when: new BinaryExpression({ left: new ColumnExpression('gender'), operator: '=', right: 'M' }),
+                $then: new Value('Hi, I\'m male'),
+              }),
+            ],
+            $else: new Value('Hi, I\'m female'),
+          }),
+          $as: 'greeting',
+        }),
+      ],
+      $from: 'Student',
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test ExistsExpression', async callback => {
+  try {
+    const query = new Query({
+      $from: new TableOrSubquery(['Student', 's1']),
+      $where: new ExistsExpression({
+        query: new Query({
+          $select: [new ResultColumn({ expression: new Value('x') })],
+          $from: new TableOrSubquery(['Student', 's2']),
+          $where: [
+            new BinaryExpression({
+              left: new ColumnExpression(['s1', 'id']),
+              operator: '<>',
+              right: new ColumnExpression(['s2', 'id']),
             }),
-            new Case({
-              $when: new BinaryExpression({ left: new ColumnExpression('gender'), operator: '=', right: 'M' }),
-              $then: new Value('Hi, I\'m male'),
+            new BinaryExpression({
+              left: new ColumnExpression(['s1', 'name']),
+              operator: '=',
+              right: new ColumnExpression(['s2', 'name']),
             }),
           ],
-          $else: new Value('Hi, I\'m female'),
         }),
-        $as: 'greeting',
       }),
-    ],
-    $from: 'Student',
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test ExistsExpression', callback => {
-  const query = new Query({
-    $from: new TableOrSubquery(['Student', 's1']),
-    $where: new ExistsExpression({
-      query: new Query({
-        $select: [new ResultColumn({ expression: new Value('x') })],
-        $from: new TableOrSubquery(['Student', 's2']),
-        $where: [
-          new BinaryExpression({
-            left: new ColumnExpression(['s1', 'id']),
-            operator: '<>',
-            right: new ColumnExpression(['s2', 'id']),
-          }),
-          new BinaryExpression({
-            left: new ColumnExpression(['s1', 'name']),
-            operator: '=',
-            right: new ColumnExpression(['s2', 'name']),
-          }),
-        ],
+test('Test FunctionExpression', async callback => {
+  try {
+    const query = new Query({
+      $select: new ResultColumn({
+        expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('id') }),
       }),
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+      $from: 'Student',
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test FunctionExpression', callback => {
-  const query = new Query({
-    $select: new ResultColumn({
-      expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('id') }),
-    }),
-    $from: 'Student',
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('Test InExpression', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new InExpression({
-      left: new ColumnExpression('name'),
-      right: ['Kennys Ng', ...numberList(9).map(() => randomName())],
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('Test IsNullExpression and ORDER BY', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new IsNullExpression({
-      left: new ColumnExpression('leaveAt'),
-      $not: true,
-    }),
-    $order: 'leaveAt',
-    $limit: 5,
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('Test LikeExpression', callback => {
-  const query = new Query({
-    $from: 'Student',
-    $where: new LikeExpression({ left: new ColumnExpression('name') }),
-  })
-  connection.query(query, 'Ng$')
-    .then(() => callback())
-    .catch(e => callback(e))
-})
-
-test('Test JoinClause', callback => {
-  const query = new Query({
-    $from: new JoinedTableOrSubquery({
-      table: 'Student',
-      $as: 's',
-      joinClauses: new JoinClause({
-        tableOrSubquery: ['StudentMark', 'sm'],
-        operator: 'LEFT',
-        $on: new BinaryExpression({ left: new ColumnExpression(['s', 'id']), operator: '=', right: new ColumnExpression(['sm', 'studentId']) }),
+test('Test InExpression', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new InExpression({
+        left: new ColumnExpression('name'),
+        right: ['Kennys Ng', ...numberList(9).map(() => randomName())],
       }),
-    }),
-  })
-  connection.query(query)
-    .then(() => callback())
-    .catch(e => callback(e))
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
 })
 
-test('Test Remote Table', callback => {
+test('Test IsNullExpression and ORDER BY', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new IsNullExpression({
+        left: new ColumnExpression('leaveAt'),
+        $not: true,
+      }),
+      $order: 'leaveAt',
+      $limit: 5,
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test LikeExpression', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new LikeExpression({ left: new ColumnExpression('name') }),
+    })
+    await connection.query(query, 'Ng$')
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test JoinClause', async callback => {
+  try {
+    const query = new Query({
+      $from: new JoinedTableOrSubquery({
+        table: 'Student',
+        $as: 's',
+        joinClauses: new JoinClause({
+          tableOrSubquery: ['StudentMark', 'sm'],
+          operator: 'LEFT',
+          $on: new BinaryExpression({ left: new ColumnExpression(['s', 'id']), operator: '=', right: new ColumnExpression(['sm', 'studentId']) }),
+        }),
+      }),
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test Remote Table', async callback => {
+  try {
+    const query = new Query({
+      $select: new ResultColumn({
+        expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
+      }),
+      $from: new TableOrSubquery({
+        table: {
+          url: `http://localhost:${(server.address() as AddressInfo).port}`,
+          columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
+        },
+        $as: 'Test',
+      }),
+    })
+    await connection.query(query)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test cancel query', callback => {
   const query = new Query({
     $select: new ResultColumn({
       expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
@@ -326,10 +429,19 @@ test('Test Remote Table', callback => {
   })
   connection.query(query)
     .then(() => callback())
-    .catch(e => callback(e))
-    .finally(() => server.close())
+    .catch(e => {
+      try {
+        expect(e).toBeInstanceOf(CancelError)
+        callback()
+      }
+      catch (e) {
+        callback(e)
+      }
+    })
+  connection.cancel(connection.runningQueries[0].id)
 })
 
 test('Close Connection', () => {
   connection.close()
+  server.close()
 })

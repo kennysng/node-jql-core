@@ -1,6 +1,6 @@
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { DatabaseEngine } from '../engine/core'
+import { DatabaseEngine, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
 import { InMemoryEngine } from '../engine/memory'
 import { Column } from '../schema'
@@ -80,6 +80,14 @@ export class Connection {
    */
   get isClosed(): boolean {
     return this.closed
+  }
+
+  /**
+   * List all running queries
+   */
+  public get runningQueries(): IRunningQuery[] {
+    this.checkClosed()
+    return this.core.engine.runningQueries
   }
 
   /**
@@ -279,6 +287,11 @@ export class Connection {
     const result = await this.core.engine.insertInto(database, name, values)
     this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
     return result
+  }
+
+  public async cancel(id: any): Promise<void> {
+    this.checkClosed()
+    await this.core.engine.cancel(id)
   }
 
   /**

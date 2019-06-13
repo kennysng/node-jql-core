@@ -285,6 +285,13 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
+"@kennysng/c-promise@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.0.2.tgz#baaa85376a33e5f3ca892e20c55ad7196661db95"
+  integrity sha512-4Su5PG3yxlrD9dhUnYDsO64EKnEkXqhEfy6J+Ap/TLK4UtpvNm/St5pSdbxLYOUQL+y+h+tUMewzbqPxEu+9hg==
+  dependencies:
+    axios "^0.19.0"
+
 "@types/babel__core@^7.1.0":
   version "7.1.2"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.1.2.tgz#608c74f55928033fce18b99b213c16be4b3d114f"

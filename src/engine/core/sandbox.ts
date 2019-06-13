@@ -1,3 +1,4 @@
+import { CancelablePromise, CancelError } from '@kennysng/c-promise'
 import _ = require('lodash')
 import { denormalize, normalize } from 'node-jql'
 import timsort = require('timsort')
@@ -84,138 +85,167 @@ export class Sandbox {
    * @param query [CompiledQuery]
    * @param options [IQueryOptions] Some query options for e.g. optimization
    */
-  public async run(query: CompiledQuery, options: IQueryOptions = {}): Promise<IQueryResult> {
-    const base = Date.now()
-    let result: IRow[]
+  public run(query: CompiledQuery, options: IQueryOptions = {}): CancelablePromise<IQueryResult> {
+    return new CancelablePromise(async (resolve, reject, checkCancel) => {
+      const base = Date.now()
+      let result: IRow[]
 
-    // prepare temporary Tables
-    if (query.needTempTables && query.$from) {
-      const $from = query.$from
-      await Promise.all($from.map<Promise<void>>(tableOrSubquery => this.prepareTable(tableOrSubquery, options.cursor)))
-    }
-
-    try {
-      // simple SELECT * FROM table or SELECT COUNT(expr) FROM table
-      if (query.isSimpleQuery || query.isSimpleCount) {
-        const { databaseKey, tableKey, key } = (query.$from as CompiledTableOrSubquery[])[0]
-        const rows = await this.getContext(databaseKey, tableKey)
-        if (!rows.length) throw new EmptyResultsetError()
-        result = options.exists ? [rows[0]] : rows.map(row_ => {
-          const row = {} as IRow
-          for (const key_ in row_) row[`${key}-${key_}`] = row_[key_]
-          return row
-        })
-
-        if (query.isSimpleCount) {
-          const { expression, key } = query.$select[0]
-          let cursor = new RowsCursor(result)
-          cursor = await cursor.moveToFirst()
-          const { value } = await expression.evaluate(cursor, this)
-          result = [{ [key]: value }]
-        }
-      }
-
-      // no $from clause
-      else if (!query.$from) {
-        const cursor = options.cursor || new DummyCursor()
-        const flag = !query.$where || (await query.$where.evaluate(cursor, this)).value
-        result = flag ? await this.processCursor(cursor, query.$select, []) : []
-      }
-
-      // complete flow
-      else {
-        // TODO optimize queries with InExpression with independent subqueries -> prepare the temp table(s) first
-        // TODO set InExpression.tempTable
-
-        const cursors = query.$from.map(tableOrSubquery => new TableCursor(this, tableOrSubquery, options.cursor))
-        const cursor: ICursor = cursors.length > 1 ? new Cursors(cursors) : cursors[0]
-
-        // get immediate result set
-        try {
-          result = await this.traverseCursor(cursor, query, query.columns, query.$where, options)
-        }
-        catch (e) {
-          throw e instanceof CursorReachEndError ? new EmptyResultsetError() : e
-        }
-        if (result.length === 0) throw new EmptyResultsetError()
-
-        // grouping
-        let dictionary: _.Dictionary<IRow[]> = {}
-        if (query.$group) {
-          const $group = query.$group
-          const result_ = await this.traverseCursor(new RowsCursor(result), query, $group.expressions, undefined, options)
-          result = this.mergeRows(result, result_)
-          dictionary = _.groupBy(result, row => $group.expressions.map(({ key }) => normalize(row[key])).join(':'))
+      try {
+        // prepare temporary Tables
+        if (query.needTempTables && query.$from) {
+          const $from = query.$from
+          await Promise.all($from.map<Promise<void>>(tableOrSubquery => {
+            checkCancel()
+            return this.prepareTable(tableOrSubquery, options.cursor)
+          }))
+          checkCancel()
         }
 
-        // w/ aggregation
-        if (query.needAggregate) {
-          if (!query.$group) dictionary = { default: result }
-          const $having = query.$group ? query.$group.$having : undefined
-          const promises = Object.keys(dictionary).map(async key => {
-            const rows = dictionary[key]
-            const row = await this.aggregate(rows, query.aggregateFunctions)
-            return Object.assign({}, rows[0], row)
+        // simple SELECT * FROM table or SELECT COUNT(expr) FROM table
+        if (query.isSimpleQuery || query.isSimpleCount) {
+          const { databaseKey, tableKey, key } = (query.$from as CompiledTableOrSubquery[])[0]
+          checkCancel()
+          const rows = await this.getContext(databaseKey, tableKey)
+          checkCancel()
+          if (!rows.length) throw new EmptyResultsetError()
+          result = options.exists ? [rows[0]] : rows.map(row_ => {
+            const row = {} as IRow
+            for (const key_ in row_) row[`${key}-${key_}`] = row_[key_]
+            return row
           })
-          result = await Promise.all(promises)
-          result = await this.traverseCursor(new RowsCursor(result), query, query.$order ? (query.$select as IExpressionWithKey[]).concat(query.$order) : query.$select, $having, options, true)
+
+          if (query.isSimpleCount) {
+            const { expression, key } = query.$select[0]
+            let cursor = new RowsCursor(result)
+            checkCancel()
+            cursor = await cursor.moveToFirst()
+            checkCancel()
+            const { value } = await expression.evaluate(cursor, this)
+            checkCancel()
+            result = [{ [key]: value }]
+          }
         }
 
-        // w/o aggregation
+        // no $from clause
+        else if (!query.$from) {
+          const cursor = options.cursor || new DummyCursor()
+          checkCancel()
+          const flag = !query.$where || (await query.$where.evaluate(cursor, this)).value
+          checkCancel()
+          result = flag ? await this.processCursor(cursor, query.$select, []) : []
+          checkCancel()
+        }
+
+        // complete flow
         else {
+          // TODO optimize queries with InExpression with independent subqueries -> prepare the temp table(s) first
+          // TODO set InExpression.tempTable
+
+          const cursors = query.$from.map(tableOrSubquery => new TableCursor(this, tableOrSubquery, options.cursor))
+          const cursor: ICursor = cursors.length > 1 ? new Cursors(cursors) : cursors[0]
+
+          // get immediate result set
           try {
-            result = await this.traverseCursor(new RowsCursor(result), query, query.$order ? (query.$select as IExpressionWithKey[]).concat(query.$order) : query.$select, undefined, options, true)
+            checkCancel()
+            result = await this.traverseCursor(cursor, query, query.columns, query.$where, options)
+            checkCancel()
           }
           catch (e) {
             throw e instanceof CursorReachEndError ? new EmptyResultsetError() : e
           }
-        }
-      }
+          if (result.length === 0) throw new EmptyResultsetError()
 
-      // distinct
-      if (query.$distinct) {
-        result = _.uniqBy(result, row => query.$select.map(({ key }) => normalize(row[key])).join(':'))
-      }
-
-      // ordering
-      if (query.$order) {
-        const $order = query.$order
-        timsort.sort(result, (l, r) => {
-          for (const { key } of $order) {
-            if (normalize(l[key]) < normalize(r[key])) return -1
-            if (normalize(l[key]) > normalize(r[key])) return 1
+          // grouping
+          let dictionary: _.Dictionary<IRow[]> = {}
+          if (query.$group) {
+            const $group = query.$group
+            checkCancel()
+            const result_ = await this.traverseCursor(new RowsCursor(result), query, $group.expressions, undefined, options)
+            checkCancel()
+            result = this.mergeRows(result, result_)
+            dictionary = _.groupBy(result, row => $group.expressions.map(({ key }) => normalize(row[key])).join(':'))
           }
-          return 0
+
+          // w/ aggregation
+          if (query.needAggregate) {
+            if (!query.$group) dictionary = { default: result }
+            const $having = query.$group ? query.$group.$having : undefined
+            const promises = Object.keys(dictionary).map(async key => {
+              const rows = dictionary[key]
+              checkCancel()
+              const row = await this.aggregate(rows, query.aggregateFunctions)
+              checkCancel()
+              return Object.assign({}, rows[0], row)
+            })
+            result = await Promise.all(promises)
+            checkCancel()
+            result = await this.traverseCursor(new RowsCursor(result), query, query.$order ? (query.$select as IExpressionWithKey[]).concat(query.$order) : query.$select, $having, options, true)
+            checkCancel()
+          }
+
+          // w/o aggregation
+          else {
+            try {
+              checkCancel()
+              result = await this.traverseCursor(new RowsCursor(result), query, query.$order ? (query.$select as IExpressionWithKey[]).concat(query.$order) : query.$select, undefined, options, true)
+              checkCancel()
+            }
+            catch (e) {
+              throw e instanceof CursorReachEndError ? new EmptyResultsetError() : e
+            }
+          }
+        }
+
+        // distinct
+        if (query.$distinct) {
+          result = _.uniqBy(result, row => query.$select.map(({ key }) => normalize(row[key])).join(':'))
+        }
+
+        // ordering
+        if (query.$order) {
+          const $order = query.$order
+          timsort.sort(result, (l, r) => {
+            for (const { key } of $order) {
+              if (normalize(l[key]) < normalize(r[key])) return -1
+              if (normalize(l[key]) > normalize(r[key])) return 1
+            }
+            return 0
+          })
+        }
+
+        // limit and offset
+        if (query.hasLimitOffset) {
+          result = result.slice(query.$offset, query.$limit)
+        }
+
+        // remove redundant columns
+        result = result.map(row => query.$select.reduce((result, { key }) => {
+          result[key] = row[key]
+          return result
+        }, {} as IRow))
+
+        return resolve({
+          mappings: query.mappings,
+          data: result,
+          time: Date.now() - base,
         })
       }
-
-      // limit and offset
-      if (query.hasLimitOffset) {
-        result = result.slice(query.$offset, query.$limit)
-      }
-
-      // remove redundant columns
-      result = result.map(row => query.$select.reduce((result, { key }) => {
-        result[key] = row[key]
-        return result
-      }, {} as IRow))
-
-      return {
-        mappings: query.mappings,
-        data: result,
-        time: Date.now() - base,
-      }
-    }
-    catch (e) {
-      if (e instanceof EmptyResultsetError) {
-        return {
-          mappings: query.mappings,
-          data: [],
-          time: Date.now() - base,
+      catch (e) {
+        if (e instanceof EmptyResultsetError) {
+          return resolve({
+            mappings: query.mappings,
+            data: [],
+            time: Date.now() - base,
+          })
         }
+        else if (e instanceof CancelError && query.$from) {
+          for (const { request } of query.$from) {
+            if (request) request.cancel()
+          }
+        }
+        return reject(e)
       }
-      throw e
-    }
+    })
   }
 
   private async prepareTable(tableOrSubquery: CompiledTableOrSubquery, cursor?: ICursor): Promise<void> {
@@ -224,9 +254,8 @@ export class Sandbox {
       const table = tableOrSubquery.remote
       this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
 
-      const response = await tableOrSubquery.request
-      if (!response) throw new JQLError('Fail to prepare remote table due to network error')
-      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
+      const data = await tableOrSubquery.request
+      this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
         result[key] = row[name]
         return result
       }, {}))
