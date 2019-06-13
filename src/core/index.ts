@@ -28,8 +28,19 @@ export class DatabaseCore {
   public readonly engine: DatabaseEngine
   public readonly connections: Connection[] = []
 
-  constructor(engine: DatabaseEngine, protected readonly options?: IDatabaseOptions) {
-    this.engine = engine || new InMemoryEngine(options)
+  protected readonly options: IDatabaseOptions
+
+  constructor(options?: IDatabaseOptions)
+  constructor(engine: DatabaseEngine, options?: IDatabaseOptions)
+  constructor(...args: any[]) {
+    switch (args.length) {
+      case 2:
+        this.engine = args[0]
+        this.options = args[1] || {}
+        break
+      default:
+        this.options = args[0] || {}
+    }
   }
 
   // @override
