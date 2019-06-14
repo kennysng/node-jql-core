@@ -378,7 +378,7 @@ test('Test JoinClause', async callback => {
         table: 'Student',
         $as: 's',
         joinClauses: new JoinClause({
-          tableOrSubquery: ['StudentMark', 'sm'],
+          tableOrSubquery: new TableOrSubquery(['StudentMark', 'sm']),
           operator: 'LEFT',
           $on: new BinaryExpression({ left: new ColumnExpression(['s', 'id']), operator: '=', right: new ColumnExpression(['sm', 'studentId']) }),
         }),

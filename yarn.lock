@@ -285,10 +285,10 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.0.tgz#af6f4d145c61b11d1fc7644accbde6ccae354297"
-  integrity sha512-qiOPBvb3xrMbsSSSTZAeAWpoHGzRO8p4G45gE0ANTRbLvVgU9FM4STWivxHYOu25p84Ks2Kub3Ozd/1twV1NDA==
+"@kennysng/c-promise@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.1.tgz#876294c08648d0361e63393470613f0a4e2e1278"
+  integrity sha512-/uDWWusTA9iRjvGkCglXvva0qtzB3uKJ5tLQmq2Cgeo2mSY9SHgcfo58sFkHevgLPMjxxFRd91axw/x2AHCj1w==
   dependencies:
     axios "^0.19.0"
 
@@ -2791,10 +2791,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.5.6:
-  version "1.5.6"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.6.tgz#119b0436741f722f9562da555f85a4e31ecc5b84"
-  integrity sha512-xliPQD5VzYsfDdfd5RrumIfZiMVFtjxQNOz7mZQn6mJdrHwO//wGF+ocgtCFIidtv+tDp0xRCqgU7nwrRdepvw==
+node-jql@^1.5.7:
+  version "1.5.7"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.7.tgz#1c22a77ff5db54585f13e9c4a336e8982c513105"
+  integrity sha512-mLGNRDPEvXPHM25LUFOfytwFf6+IEGEGx0tcpis6lfW2h7DB8QxNn2+l8PIarz3+NsK4Zv8JUlqKKbNy3+rZEg==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
