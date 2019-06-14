@@ -291,6 +291,7 @@ export class InMemoryEngine extends DatabaseEngine {
     const promise = new Sandbox(this).run(compiled)
     const runningQuery: IRunningQuery = { id: uuid(), sql: compiled.toString(), promise }
     this.runningQueries.push(runningQuery)
+    this.lastQueryId = runningQuery.id
     const promises = compiled.tables.map(key => this.tableLocks.startReading(key))
     await Promise.all(promises)
     try {

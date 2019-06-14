@@ -14,6 +14,7 @@ export interface IRunningQuery {
  */
 export abstract class DatabaseEngine<ID = string> {
   public readonly runningQueries: IRunningQuery[] = []
+  public lastQueryId?: string
 
   // @override
   get [Symbol.toStringTag](): string {

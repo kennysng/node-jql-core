@@ -107,6 +107,14 @@ export class Connection {
   }
 
   /**
+   * Get the id of the last running query
+   */
+  public get lastQueryId(): any {
+    this.checkClosed()
+    return this.core.engine.lastQueryId
+  }
+
+  /**
    * Set default Database
    * @param name [string]
    */
