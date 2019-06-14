@@ -1,6 +1,7 @@
+import { AxiosInstance } from 'axios'
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { DatabaseEngine } from '../engine/core'
+import { DatabaseEngine, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
 import { InMemoryEngine } from '../engine/memory'
 import { Column } from '../schema'
@@ -13,6 +14,7 @@ import { IResult, IRow } from './interfaces'
 export const TEMP_DB_KEY = uuid()
 
 export interface IDatabaseOptions {
+  axiosInstance?: AxiosInstance
   logging?: boolean
 }
 
@@ -23,9 +25,23 @@ export interface IConnectionOptions extends IDatabaseOptions {
  * Main class of the Database
  */
 export class DatabaseCore {
+  public readonly engine: DatabaseEngine
   public readonly connections: Connection[] = []
 
-  constructor(public readonly engine: DatabaseEngine = new InMemoryEngine(), protected readonly options?: IDatabaseOptions) {
+  protected readonly options: IDatabaseOptions
+
+  constructor(options?: IDatabaseOptions)
+  constructor(engine: DatabaseEngine, options?: IDatabaseOptions)
+  constructor(...args: any[]) {
+    switch (args.length) {
+      case 2:
+        this.engine = args[0]
+        this.options = args[1] || {}
+        break
+      default:
+        this.options = args[0] || {}
+        this.engine = new InMemoryEngine(this.options)
+    }
   }
 
   // @override
@@ -64,7 +80,7 @@ export class Connection {
   public databaseKey?: string
   public closed: boolean = false
 
-  protected readonly logger: Logger = new Logger(`[Connection#${this.id}]`)
+  protected readonly logger = new Logger(`[Connection#${this.id}]`)
 
   constructor(protected readonly core: DatabaseCore, protected readonly options?: IConnectionOptions) {
     if (options && options.logging) this.logger.setEnabled(true)
@@ -80,6 +96,22 @@ export class Connection {
    */
   get isClosed(): boolean {
     return this.closed
+  }
+
+  /**
+   * List all running queries
+   */
+  public get runningQueries(): IRunningQuery[] {
+    this.checkClosed()
+    return this.core.engine.runningQueries
+  }
+
+  /**
+   * Get the id of the last running query
+   */
+  public get lastQueryId(): any {
+    this.checkClosed()
+    return this.core.engine.lastQueryId
   }
 
   /**
@@ -279,6 +311,11 @@ export class Connection {
     const result = await this.core.engine.insertInto(database, name, values)
     this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
     return result
+  }
+
+  public async cancel(id: any): Promise<void> {
+    this.checkClosed()
+    await this.core.engine.cancel(id)
   }
 
   /**

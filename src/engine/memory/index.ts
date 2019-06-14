@@ -1,10 +1,12 @@
 import { Query } from 'node-jql'
+import uuid = require('uuid/v4')
+import { IDatabaseOptions } from '../../core'
 import { IDataSource, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
-import { DatabaseEngine } from '../core'
+import { DatabaseEngine, IRunningQuery } from '../core'
 import { CompiledQuery } from '../core/query'
 import { Sandbox } from '../core/sandbox'
 
@@ -16,6 +18,10 @@ export class InMemoryEngine extends DatabaseEngine {
   private readonly schemaLock = new ReadWriteLock()
   private readonly databaseLocks = new ReadWriteLocks()
   private readonly tableLocks = new ReadWriteLocks()
+
+  constructor(public readonly options?: IDatabaseOptions) {
+    super()
+  }
 
   // @override
   get [Symbol.toStringTag](): string {
@@ -271,6 +277,7 @@ export class InMemoryEngine extends DatabaseEngine {
     const base = Date.now()
     if (query instanceof Query) {
       query = new CompiledQuery(query, {
+        databaseOptions: this.options,
         defaultDatabase: databaseNameOrKey,
         functions: new Functions(this.functions),
         schema: this.getSchema(),
@@ -281,15 +288,29 @@ export class InMemoryEngine extends DatabaseEngine {
     const compiled: CompiledQuery = query
 
     // run query
+    const promise = new Sandbox(this).run(compiled)
+    const runningQuery: IRunningQuery = { id: uuid(), sql: compiled.toString(), promise }
+    this.runningQueries.push(runningQuery)
+    this.lastQueryId = runningQuery.id
     const promises = compiled.tables.map(key => this.tableLocks.startReading(key))
     await Promise.all(promises)
     try {
-      const result = await new Sandbox(this).run(compiled)
+      const result = await promise
       return { ...result, sql, time: Date.now() - base }
     }
     finally {
+      if (runningQuery) {
+        const index = this.runningQueries.findIndex(({ id }) => id === (runningQuery as IRunningQuery).id)
+        if (index > -1) this.runningQueries.splice(index, 1)
+      }
       for (const key of compiled.tables) this.tableLocks.endReading(key)
     }
+  }
+
+  // @override
+  public cancel(sqlId: string): void {
+    const runningQuery = this.runningQueries.find(({ id }) => id === sqlId)
+    if (runningQuery) runningQuery.promise.cancel()
   }
 
   // @override

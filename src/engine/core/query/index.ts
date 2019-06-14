@@ -68,8 +68,8 @@ export class CompiledQuery extends CompiledSql {
     const $select = query.$select.reduce<ResultColumn[]>((result, resultColumn) => {
       if (resultColumn.expression instanceof ColumnExpression && resultColumn.expression.isWildcard) {
         const expression = resultColumn.expression
-        const tables = options.tables.map(({ databaseKey, tableKey, query, $as }) => {
-          if (query) return query.structure
+        const tables = options.tables.map(({ databaseKey, tableKey, structure, $as }) => {
+          if (structure) return structure
           let table = options.schema.getDatabase(databaseKey).getTable(tableKey as string)
           if ($as) table = table.clone($as)
           return table

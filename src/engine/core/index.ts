@@ -1,11 +1,21 @@
+import { CancelablePromise } from '@kennysng/c-promise'
 import { Query } from 'node-jql'
 import { IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Column, Database, Schema, Table } from '../../schema'
 
+export interface IRunningQuery {
+  id: string
+  sql: string
+  promise: CancelablePromise<any>
+}
+
 /**
  * Define how the Database stores and retrieves data
  */
-export abstract class DatabaseEngine {
+export abstract class DatabaseEngine<ID = string> {
+  public readonly runningQueries: IRunningQuery[] = []
+  public lastQueryId?: string
+
   // @override
   get [Symbol.toStringTag](): string {
     return 'DatabaseEngine'
@@ -102,6 +112,12 @@ export abstract class DatabaseEngine {
    * @param args [Array<any>]
    */
   public abstract query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
+
+  /**
+   * Cancel a running task
+   * @param id [ID]
+   */
+  public abstract cancel(id: ID): void|Promise<void>
 
   /**
    * Insert data into a Table
