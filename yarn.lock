@@ -285,12 +285,13 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.1.tgz#876294c08648d0361e63393470613f0a4e2e1278"
-  integrity sha512-/uDWWusTA9iRjvGkCglXvva0qtzB3uKJ5tLQmq2Cgeo2mSY9SHgcfo58sFkHevgLPMjxxFRd91axw/x2AHCj1w==
+"@kennysng/c-promise@^1.1.6":
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.6.tgz#66e07f242a125c6ba425bd5a7d26248e3f5a8afd"
+  integrity sha512-NdoDLW4llbqAfEGhpYKuHtWXkWXvRtNmXqJfXKxbWbiS7FbcPfJs/QdrkBr3KbVnOKF783HvSBipoqh5sE1rWQ==
   dependencies:
     axios "^0.19.0"
+    wolfy87-eventemitter "^5.2.6"
 
 "@types/babel__core@^7.1.0":
   version "7.1.2"
@@ -2777,10 +2778,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.5.11:
-  version "1.5.11"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.11.tgz#1eaedff4f8da0e5593facce035f4274672497420"
-  integrity sha512-iiePcPeXnRYFbVsCpGBEOFq2pHwHNFsmOrXTwb4Pe0c3bOXhBGeLJMUv3yny0z2dX/hJbhTDjoaqW82dPE5FRQ==
+node-jql@^1.5.13:
+  version "1.5.13"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.13.tgz#ec2e63fd858b664fe41cd14a3d67cd9f2ee4fc3e"
+  integrity sha512-BjQqQ9XZZqVb/wNan+JNH0Oj2ghjG0fA+Keb63Wi5y1XMw/FxdkBdHkTsKi6BbtSNYptjO9taR/3emM53tgI5w==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
@@ -4156,6 +4157,11 @@ wide-align@^1.1.0:
   integrity sha512-QGkOQc8XL6Bt5PwnsExKBPuMKBxnGxWWW3fU55Xt4feHozMUhdUMaBCk290qpm/wG5u/RSKzwdAC4i51YigihA==
   dependencies:
     string-width "^1.0.2 || 2"
+
+wolfy87-eventemitter@^5.2.6:
+  version "5.2.6"
+  resolved "https://registry.yarnpkg.com/wolfy87-eventemitter/-/wolfy87-eventemitter-5.2.6.tgz#cc5de965d34099e5c14ec189ee72553802d3ace2"
+  integrity sha512-n+bSucT1j9ZEoosxnfuH81bWqtZG4QEtZ9WEuiXz9YQAHEktGYKoSoMTKWTJEcYux8lWoqp1KqHPBpwvJKFFTw==
 
 wordwrap@~0.0.2:
   version "0.0.3"
