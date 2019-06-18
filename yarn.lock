@@ -285,12 +285,13 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.0.tgz#af6f4d145c61b11d1fc7644accbde6ccae354297"
-  integrity sha512-qiOPBvb3xrMbsSSSTZAeAWpoHGzRO8p4G45gE0ANTRbLvVgU9FM4STWivxHYOu25p84Ks2Kub3Ozd/1twV1NDA==
+"@kennysng/c-promise@^1.1.6":
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.1.6.tgz#66e07f242a125c6ba425bd5a7d26248e3f5a8afd"
+  integrity sha512-NdoDLW4llbqAfEGhpYKuHtWXkWXvRtNmXqJfXKxbWbiS7FbcPfJs/QdrkBr3KbVnOKF783HvSBipoqh5sE1rWQ==
   dependencies:
     axios "^0.19.0"
+    wolfy87-eventemitter "^5.2.6"
 
 "@types/babel__core@^7.1.0":
   version "7.1.2"
@@ -364,13 +365,6 @@
     "@types/express-serve-static-core" "*"
     "@types/serve-static" "*"
 
-"@types/is-regexp@^2.1.2":
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/@types/is-regexp/-/is-regexp-2.1.2.tgz#d127142b5a13b765b8a334f2b5d74a1d774aad0a"
-  integrity sha512-tc1kpSbVHSr9Yqb0BbYfTOr5xhmMXHoGRZHGh3U/XuWhfGMKuJI2F2Z4VQaysAUqtWPscufSz4Kl+eZgl7MDNg==
-  dependencies:
-    is-regexp "*"
-
 "@types/istanbul-lib-coverage@*", "@types/istanbul-lib-coverage@^2.0.0":
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.1.tgz#42995b446db9a48a11a07ec083499a860e9138ff"
@@ -396,10 +390,10 @@
   resolved "https://registry.yarnpkg.com/@types/jest-diff/-/jest-diff-20.0.1.tgz#35cc15b9c4f30a18ef21852e255fdb02f6d59b89"
   integrity sha512-yALhelO3i0hqZwhjtcr6dYyaLoCHbAMshwtj6cGxTvHZAKXHsYGdff6E8EPw3xLKY0ELUTQ69Q1rQiJENnccMA==
 
-"@types/jest@^24.0.13":
-  version "24.0.13"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-24.0.13.tgz#10f50b64cb05fb02411fbba49e9042a3a11da3f9"
-  integrity sha512-3m6RPnO35r7Dg+uMLj1+xfZaOgIHHHut61djNjzwExXN4/Pm9has9C6I1KMYSfz7mahDhWUOVg4HW/nZdv5Pww==
+"@types/jest@^24.0.15":
+  version "24.0.15"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-24.0.15.tgz#6c42d5af7fe3b44ffff7cc65de7bf741e8fa427f"
+  integrity sha512-MU1HIvWUme74stAoc3mgAi+aMlgKOudgEvQDIm1v4RkrDudBh1T+NFp5sftpBAdXdx1J0PbdpJ+M2EsSOi1djA==
   dependencies:
     "@types/jest-diff" "*"
 
@@ -417,13 +411,6 @@
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@types/minimist/-/minimist-1.2.0.tgz#69a23a3ad29caf0097f06eda59b361ee2f0639f6"
   integrity sha1-aaI6OtKcrwCX8G7aWbNh7i8GOfY=
-
-"@types/moment@^2.13.0":
-  version "2.13.0"
-  resolved "https://registry.yarnpkg.com/@types/moment/-/moment-2.13.0.tgz#604ebd189bc3bc34a1548689404e61a2a4aac896"
-  integrity sha1-YE69GJvDvDShVIaJQE5hoqSqyJY=
-  dependencies:
-    moment "*"
 
 "@types/node@*":
   version "12.0.4"
@@ -1915,7 +1902,7 @@ is-regex@^1.0.4:
   dependencies:
     has "^1.0.1"
 
-is-regexp@*, is-regexp@^2.1.0:
+is-regexp@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/is-regexp/-/is-regexp-2.1.0.tgz#cd734a56864e23b956bf4e7c66c396a4c0b22c2d"
   integrity sha512-OZ4IlER3zmRIoB9AqNhEggVxqIH4ofDns5nRrPS6yQxXE1TPCUpFznBfRQmQa8uC+pXqjMnukiJBxCisIxiLGA==
@@ -2720,7 +2707,7 @@ mkdirp@0.x, mkdirp@^0.5.0, mkdirp@^0.5.1:
   dependencies:
     minimist "0.0.8"
 
-moment@*, moment@^2.24.0:
+moment@^2.24.0:
   version "2.24.0"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.24.0.tgz#0d055d53f5052aa653c9f6eb68bb5d12bf5c2b5b"
   integrity sha512-bV7f+6l2QigeBBZSM/6yTNq4P2fNpSWj/0e7jQcy87A8e7o2nAfP/34/2ky5Vw4B9S446EtIhodAzkFCcR4dQg==
@@ -2791,10 +2778,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^1.5.6:
-  version "1.5.6"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.6.tgz#119b0436741f722f9562da555f85a4e31ecc5b84"
-  integrity sha512-xliPQD5VzYsfDdfd5RrumIfZiMVFtjxQNOz7mZQn6mJdrHwO//wGF+ocgtCFIidtv+tDp0xRCqgU7nwrRdepvw==
+node-jql@^1.5.13:
+  version "1.5.13"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-1.5.13.tgz#ec2e63fd858b664fe41cd14a3d67cd9f2ee4fc3e"
+  integrity sha512-BjQqQ9XZZqVb/wNan+JNH0Oj2ghjG0fA+Keb63Wi5y1XMw/FxdkBdHkTsKi6BbtSNYptjO9taR/3emM53tgI5w==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
@@ -3936,10 +3923,10 @@ ts-jest@^24.0.2:
     semver "^5.5"
     yargs-parser "10.x"
 
-ts-node@^8.2.0:
-  version "8.2.0"
-  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-8.2.0.tgz#4a89754b00560bb24cd54526e1685fa38c45f240"
-  integrity sha512-m8XQwUurkbYqXrKqr3WHCW310utRNvV5OnRVeISeea7LoCWVcdfeB/Ntl8JYWFh+WRoUAdBgESrzKochQt7sMw==
+ts-node@^8.3.0:
+  version "8.3.0"
+  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-8.3.0.tgz#e4059618411371924a1fb5f3b125915f324efb57"
+  integrity sha512-dyNS/RqyVTDcmNM4NIBAeDMpsAdaQ+ojdf0GOLqE6nwJOgzEkdRNzJywhDfwnuvB10oa6NLVG1rUJQCpRN7qoQ==
   dependencies:
     arg "^4.1.0"
     diff "^4.0.1"
@@ -4005,10 +3992,10 @@ type-is@~1.6.17, type-is@~1.6.18:
     media-typer "0.3.0"
     mime-types "~2.1.24"
 
-typescript@^3.5.1:
-  version "3.5.1"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.5.1.tgz#ba72a6a600b2158139c5dd8850f700e231464202"
-  integrity sha512-64HkdiRv1yYZsSe4xC1WVgamNigVYjlssIoaH2HcZF0+ijsk5YK2g0G34w9wJkze8+5ow4STd22AynfO6ZYYLw==
+typescript@^3.5.2:
+  version "3.5.2"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.5.2.tgz#a09e1dc69bc9551cadf17dba10ee42cf55e5d56c"
+  integrity sha512-7KxJovlYhTX5RaRbUdkAXN1KUZ8PwWlTzQdHV6xNqvuFOs7+WBo10TQUqT19Q/Jz2hk5v9TQDIhyLhhJY4p5AA==
 
 uglify-js@^3.1.4:
   version "3.6.0"
@@ -4170,6 +4157,11 @@ wide-align@^1.1.0:
   integrity sha512-QGkOQc8XL6Bt5PwnsExKBPuMKBxnGxWWW3fU55Xt4feHozMUhdUMaBCk290qpm/wG5u/RSKzwdAC4i51YigihA==
   dependencies:
     string-width "^1.0.2 || 2"
+
+wolfy87-eventemitter@^5.2.6:
+  version "5.2.6"
+  resolved "https://registry.yarnpkg.com/wolfy87-eventemitter/-/wolfy87-eventemitter-5.2.6.tgz#cc5de965d34099e5c14ec189ee72553802d3ace2"
+  integrity sha512-n+bSucT1j9ZEoosxnfuH81bWqtZG4QEtZ9WEuiXz9YQAHEktGYKoSoMTKWTJEcYux8lWoqp1KqHPBpwvJKFFTw==
 
 wordwrap@~0.0.2:
   version "0.0.3"

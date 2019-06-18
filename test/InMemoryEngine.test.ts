@@ -378,7 +378,7 @@ test('Test JoinClause', async callback => {
         table: 'Student',
         $as: 's',
         joinClauses: new JoinClause({
-          tableOrSubquery: ['StudentMark', 'sm'],
+          tableOrSubquery: new TableOrSubquery(['StudentMark', 'sm']),
           operator: 'LEFT',
           $on: new BinaryExpression({ left: new ColumnExpression(['s', 'id']), operator: '=', right: new ColumnExpression(['sm', 'studentId']) }),
         }),
@@ -400,7 +400,7 @@ test('Test Remote Table', async callback => {
       }),
       $from: new TableOrSubquery({
         table: {
-          url: `http://localhost:${(server.address() as AddressInfo).port}`,
+          url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
           columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
         },
         $as: 'Test',
@@ -421,7 +421,7 @@ test('Test cancel query', callback => {
     }),
     $from: new TableOrSubquery({
       table: {
-        url: `http://localhost:${(server.address() as AddressInfo).port}`,
+        url: `http://localhost:${(server.address() as AddressInfo).port}/test2`,
         columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
       },
       $as: 'Test',

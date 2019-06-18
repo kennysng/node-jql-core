@@ -86,7 +86,7 @@ export class Sandbox {
    * @param options [IQueryOptions] Some query options for e.g. optimization
    */
   public run(query: CompiledQuery, options: IQueryOptions = {}): CancelablePromise<IQueryResult> {
-    return new CancelablePromise(async (resolve, reject, checkCancel) => {
+    const promise = new CancelablePromise(async (resolve, reject, checkCancel) => {
       const base = Date.now()
       let result: IRow[]
 
@@ -238,14 +238,18 @@ export class Sandbox {
             time: Date.now() - base,
           })
         }
-        else if (e instanceof CancelError && query.$from) {
-          for (const { request } of query.$from) {
-            if (request) request.cancel()
-          }
-        }
         return reject(e)
       }
     })
+
+    promise.on('cancel', () => {
+      if (query.$from) {
+        for (const { request } of query.$from) {
+          if (request) request.cancel()
+        }
+      }
+    })
+    return promise
   }
 
   private async prepareTable(tableOrSubquery: CompiledTableOrSubquery, cursor?: ICursor): Promise<void> {
