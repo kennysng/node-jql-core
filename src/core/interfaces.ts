@@ -1,3 +1,5 @@
+import { Type } from 'node-jql'
+
 /**
  * Represent Table row
  */
@@ -38,4 +40,8 @@ export interface IMapping {
 export interface IQueryResult extends IResult {
   mappings: IMapping[],
   data: IRow[]
+}
+
+export interface IPredictResult extends IResult {
+  columns: Array<{ name: string, type: Type }>
 }

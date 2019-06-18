@@ -1,7 +1,7 @@
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { IDatabaseOptions } from '../../core'
-import { IDataSource, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
@@ -304,6 +304,44 @@ export class InMemoryEngine extends DatabaseEngine {
         if (index > -1) this.runningQueries.splice(index, 1)
       }
       for (const key of compiled.tables) this.tableLocks.endReading(key)
+    }
+  }
+
+  // @override
+  public predict(query: Query): Promise<IPredictResult>
+
+  // @override
+  public predict(databaseNameOrKey: string, query: Query): Promise<IPredictResult>
+
+  public async predict(...args: any[]): Promise<IPredictResult> {
+    let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
+    if (typeof args[0] === 'string') {
+      databaseNameOrKey = args[0]
+      query = args[1]
+      args_ = args.slice(2)
+    }
+    else {
+      query = args[0]
+      args_ = args.slice(1)
+    }
+
+    const base = Date.now()
+    if (query instanceof Query) {
+      query = new CompiledQuery(query, {
+        databaseOptions: this.options,
+        defaultDatabase: databaseNameOrKey,
+        functions: new Functions(this.functions),
+        schema: this.getSchema(),
+      })
+      for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
+    }
+    const sql = query.toString()
+    const compiled: CompiledQuery = query
+
+    return {
+      columns: compiled.structure.columns.map(({ name, type }) => ({ name, type })),
+      time: Date.now() - base,
+      sql,
     }
   }
 

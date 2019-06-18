@@ -392,6 +392,25 @@ test('Test JoinClause', async callback => {
   }
 })
 
+test('Predict result structure', async callback => {
+  try {
+    const query = new Query({
+      $from: 'Student',
+      $where: new BinaryExpression({
+        left: new ColumnExpression('gender'),
+        operator: '=',
+        right: 'M',
+      }),
+    })
+    const result = await connection.predict(query)
+    expect(result.columns.length).toBe(6)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
 test('Test Remote Table', async callback => {
   try {
     const query = new Query({

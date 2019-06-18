@@ -3,13 +3,14 @@ import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { DatabaseEngine, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
+import { CompiledQuery } from '../engine/core/query'
 import { InMemoryEngine } from '../engine/memory'
 import { Column } from '../schema'
 import { AlreadyClosedError } from '../utils/error/AlreadyClosedError'
 import { NoDatabaseSelectedError } from '../utils/error/NoDatabaseSelectedError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { Logger } from '../utils/logger'
-import { IResult, IRow } from './interfaces'
+import { IPredictResult, IResult, IRow } from './interfaces'
 
 export const TEMP_DB_KEY = uuid()
 
@@ -271,13 +272,21 @@ export class Connection {
 
   /**
    * Run a Query
-   * @param query [Query|CompiledQuery]
+   * @param query [Query]
    * @param args [Array<any>]
    */
   public async query<T>(query: Query, ...args: any[]): Promise<ResultSet<T>> {
     const result = await (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
     this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
     return new ResultSet<T>(result)
+  }
+
+  /**
+   * Predict the result structure of a Query
+   * @param query [Query]
+   */
+  public predict(query: Query): Promise<IPredictResult> {
+    return this.databaseKey ? this.core.engine.predict(this.databaseKey, query) : this.core.engine.predict(query)
   }
 
   /**
