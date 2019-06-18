@@ -32,7 +32,7 @@ export class CompiledTableOrSubquery {
         }
         else {
           const table = this.remote = new Table(sql.$as as string, this.tableKey)
-          for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
+          if (sql.table.columns) for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
           this.request = new CancelableAxiosPromise<any>(sql.table, options.databaseOptions && options.databaseOptions.axiosInstance)
         }
       }

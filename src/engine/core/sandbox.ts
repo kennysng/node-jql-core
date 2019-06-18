@@ -5,7 +5,7 @@ import timsort = require('timsort')
 import { DatabaseEngine } from '.'
 import { TEMP_DB_KEY } from '../../core'
 import { IDataSource, IQueryResult, IRow } from '../../core/interfaces'
-import { Schema } from '../../schema'
+import { Column, Schema } from '../../schema'
 import { JQLError } from '../../utils/error'
 import { CursorReachEndError } from '../../utils/error/CursorReachEndError'
 import { EmptyResultsetError } from '../../utils/error/EmptyResultsetError'
@@ -252,9 +252,18 @@ export class Sandbox {
     // Remote Table
     if (tableOrSubquery.remote && tableOrSubquery.request) {
       const table = tableOrSubquery.remote
-      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
 
       const response = await tableOrSubquery.request
+      const data = response.data as any[]
+
+      if (!table.columns.length) {
+        const columnNames = data.reduce<string[]>((result, row) => {
+          return _.uniqWith([...result, ...Object.keys(row)])
+        }, [])
+        for (const name of columnNames) table.addColumn(new Column(name, 'any'))
+      }
+
+      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
       this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
         result[key] = row[name]
         return result
