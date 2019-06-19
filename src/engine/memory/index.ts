@@ -11,8 +11,6 @@ import { CompiledQuery } from '../core/query'
 import { Sandbox } from '../core/sandbox'
 
 export class InMemoryEngine extends DatabaseEngine {
-  public readonly options?: IDatabaseOptions
-
   protected readonly schema = new Schema()
   protected readonly context: IDataSource = {}
   protected readonly functions = new Functions()
@@ -20,6 +18,10 @@ export class InMemoryEngine extends DatabaseEngine {
   private readonly schemaLock = new ReadWriteLock()
   private readonly databaseLocks = new ReadWriteLocks()
   private readonly tableLocks = new ReadWriteLocks()
+
+  constructor(public readonly options?: IDatabaseOptions) {
+    super()
+  }
 
   // @override
   get [Symbol.toStringTag](): string {
