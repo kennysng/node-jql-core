@@ -12,4 +12,4 @@ Note: It will work faster in NodeJS version 8 or higher due to the native async/
 
 This is a SQL database mainly designed for providing an interface for JSON processing with the SQL syntax.
 
-It works with the syntax library (node-jql)[https://github.com/kennysng/node-jql]
+It works with the syntax library [node-jql](https://github.com/kennysng/node-jql)
