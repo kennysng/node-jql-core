@@ -1,5 +1,6 @@
 import _ = require('lodash')
 import { ColumnExpression, FunctionExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
+import { TEMP_DB_KEY } from '../../../core'
 import { IMapping } from '../../../core/interfaces'
 import { Column, Table } from '../../../schema'
 import { NotFoundError } from '../../../utils/error/NotFoundError'
@@ -200,8 +201,15 @@ export class CompiledQuery extends CompiledSql {
     for (const { expression, $as, key } of this.$select) {
       if (expression instanceof CompiledColumnExpression) {
         const { databaseKey, tableKey, columnKey } = expression
-        const database = this.options.schema.getDatabase(databaseKey)
-        table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+        if (databaseKey === TEMP_DB_KEY) {
+          const table_ = this.options.tables.find(({ tableKey: key }) => tableKey === key)
+          if (!table_) throw new Error(`Table '${tableKey}' not found in Database 'TEMP_DB'`)
+          table.addColumn((table_.structure as Table).getColumn(columnKey))
+        }
+        else {
+          const database = this.options.schema.getDatabase(databaseKey)
+          table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+        }
       }
       else if (expression instanceof CompiledFunctionExpression) {
         table.addColumn(new Column($as || expression.toString(), expression.jqlFunction.type, key))

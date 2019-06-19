@@ -1,5 +1,6 @@
 import { CancelableAxiosPromise } from '@kennysng/c-promise'
 import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery, Type } from 'node-jql'
+import { IRemoteTable } from 'node-jql/dist/query'
 import uuid = require('uuid/v4')
 import { TEMP_DB_KEY } from '../../../core'
 import { Column, Database, Table } from '../../../schema'
@@ -17,9 +18,10 @@ export class CompiledTableOrSubquery {
 
   public readonly query?: CompiledQuery
   public readonly remote?: Table
-  public readonly request?: CancelableAxiosPromise<any>
 
-  constructor(protected readonly sql: TableOrSubquery, options: ICompilingQueryOptions) {
+  private request_?: CancelableAxiosPromise<any>
+
+  constructor(protected readonly sql: TableOrSubquery, protected readonly options: ICompilingQueryOptions) {
     try {
       if (sql.table instanceof Query || typeof sql.table !== 'string') {
         this.databaseKey = TEMP_DB_KEY
@@ -33,7 +35,6 @@ export class CompiledTableOrSubquery {
         else {
           const table = this.remote = new Table(sql.$as as string, this.tableKey)
           for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
-          this.request = new CancelableAxiosPromise<any>(sql.table, options.databaseOptions && options.databaseOptions.axiosInstance)
         }
       }
       else {
@@ -64,6 +65,11 @@ export class CompiledTableOrSubquery {
 
   get key(): string {
     return this.aliasKey || this.tableKey
+  }
+
+  get request(): CancelableAxiosPromise<any>|undefined {
+    if (!this.remote) return
+    return this.request_ = this.request_ || new CancelableAxiosPromise<any>(this.sql.table as IRemoteTable, this.options.databaseOptions && this.options.databaseOptions.axiosInstance)
   }
 
   get structure(): Table|undefined {
