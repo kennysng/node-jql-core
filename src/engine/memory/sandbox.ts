@@ -228,7 +228,12 @@ export class Sandbox {
         // save as temp table
         if (query.$createTempTable) {
           const tempTable = query.structure
-          this.context[TEMP_DB_KEY][tempTable.key] = result
+          this.context[TEMP_DB_KEY][tempTable.key] = result.map(row => query.mappings.reduce((result, { column, name, key }) => {
+            const column_ = tempTable.columns.find(c => c.name === column || c.name === name)
+            if (!column_) throw new Error(`Fail to map column for '${key}'`)
+            result[column_.key] = row[key]
+            return result
+          }, {} as IRow))
           this.schema.getDatabase(TEMP_DB_KEY).createTable(query.$createTempTable, tempTable.key, tempTable.columns)
         }
 
@@ -264,8 +269,6 @@ export class Sandbox {
     // Remote Table
     if (tableOrSubquery.remote && tableOrSubquery.request) {
       const table = tableOrSubquery.remote
-      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
-
       const response = await tableOrSubquery.request
       this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
         result[key] = row[name]
@@ -277,7 +280,6 @@ export class Sandbox {
     if (tableOrSubquery.query) {
       const query = tableOrSubquery.query
       const table = query.structure
-      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
       const { data } = await this.run(query, { cursor })
       this.context[TEMP_DB_KEY][table.key] = data
     }

@@ -5,6 +5,7 @@ import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
+import gc from '../../utils/gc'
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
 import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../core'
 import { CompiledQuery } from './query'
@@ -254,7 +255,7 @@ export class InMemoryEngine extends DatabaseEngine {
     }
 
     // force garbage collection
-    if (global.gc) global.gc()
+    gc()
 
     return { time: Date.now() - base }
   }
@@ -278,18 +279,6 @@ export class InMemoryEngine extends DatabaseEngine {
     if (!Array.isArray(queries)) return await (databaseNameOrKey ? this.query(databaseNameOrKey, [queries]) : this.query([queries]))
 
     const base = Date.now()
-    /* const queries = query.map(query_ => {
-      if (query_ instanceof Query) query_ = { query: query_ }
-      const { query, args = [] } = query_
-      const compiled = new CompiledQuery(query, {
-        databaseOptions: this.options,
-        defaultDatabase: databaseNameOrKey,
-        functions: new Functions(this.functions),
-        schema: this.getSchema(),
-      })
-      for (let i = 0, length = args.length; i < length; i += 1) compiled.setArg(i, args[i])
-      return compiled
-    }) */
 
     const runningQuery: Partial<IRunningQuery> = { id: this.lastQueryId = uuid() }
     this.runningQueries.push(runningQuery as IRunningQuery)
@@ -319,7 +308,7 @@ export class InMemoryEngine extends DatabaseEngine {
           for (const key of compiled.tables) this.tableLocks.endReading(key)
 
           // force garbage collection
-          if (global.gc) global.gc()
+          gc()
         }
       }
       return { ...result, sql: sqls.join('; '), time: Date.now() - base }
@@ -333,41 +322,41 @@ export class InMemoryEngine extends DatabaseEngine {
   }
 
   // @override
-  public predict(query: Query): Promise<IPredictResult>
+  public predict(query: Query|Query[]): Promise<IPredictResult>
 
   // @override
-  public predict(databaseNameOrKey: string, query: Query): Promise<IPredictResult>
+  public predict(databaseNameOrKey: string, query: Query|Query[]): Promise<IPredictResult>
 
   public async predict(...args: any[]): Promise<IPredictResult> {
-    let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
+    let databaseNameOrKey: string|undefined, queries: Query|Query[]
     if (typeof args[0] === 'string') {
       databaseNameOrKey = args[0]
-      query = args[1]
-      args_ = args.slice(2)
+      queries = args[1]
     }
     else {
-      query = args[0]
-      args_ = args.slice(1)
+      queries = args[0]
     }
 
+    if (!Array.isArray(queries)) return await (databaseNameOrKey ? this.predict(databaseNameOrKey, [queries]) : this.predict([queries]))
+
     const base = Date.now()
-    if (query instanceof Query) {
-      query = new CompiledQuery(query, {
+    const sandbox = new Sandbox(this)
+    try {
+      const compiled = queries.map(query => new CompiledQuery(query, {
         databaseOptions: this.options,
         defaultDatabase: databaseNameOrKey,
         functions: new Functions(this.functions),
         schema: this.getSchema(),
-        sandbox: new Sandbox(this),
-      })
-      for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
+        sandbox,
+      }))
+      return {
+        columns: compiled[compiled.length - 1].structure.columns.map(({ name, type }) => ({ name, type })),
+        time: Date.now() - base,
+        sql: compiled.map(query => query.toString()).join('; '),
+      }
     }
-    const sql = query.toString()
-    const compiled: CompiledQuery = query
-
-    return {
-      columns: compiled.structure.columns.map(({ name, type }) => ({ name, type })),
-      time: Date.now() - base,
-      sql,
+    finally {
+      gc()
     }
   }
 
@@ -414,7 +403,7 @@ export class InMemoryEngine extends DatabaseEngine {
     }
 
     // force garbage collection
-    if (global.gc) global.gc()
+    gc()
 
     return { time: Date.now() - base }
   }

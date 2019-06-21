@@ -411,21 +411,24 @@ test('Predict result structure', async callback => {
   }
 })
 
-test('Test Remote Table', async callback => {
+test('Test Remote Table and multiple Queries', async callback => {
   try {
-    const query = new Query({
-      $select: new ResultColumn({
-        expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
+    const queries = [
+      new Query({
+        $createTempTable: 'test1',
+        $from: new TableOrSubquery({
+          table: {
+            url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
+            columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
+          },
+          $as: 'Test',
+        }),
       }),
-      $from: new TableOrSubquery({
-        table: {
-          url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
-          columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
-        },
-        $as: 'Test',
+      new Query({
+        $from: 'test1',
       }),
-    })
-    await connection.query(query)
+    ]
+    console.log(await connection.query(queries))
     callback()
   }
   catch (e) {
@@ -458,34 +461,6 @@ test('Test cancel query', callback => {
       }
     })
   connection.cancel(connection.runningQueries[0].id)
-})
-
-test('Test multiple queries', async callback => {
-  try {
-    const queries = [
-      new Query({
-        $createTempTable: 'test1',
-        $from: new TableOrSubquery({
-          table: {
-            url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
-            columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
-          },
-          $as: 'Test',
-        }),
-      }),
-      new Query({
-        $select: new ResultColumn({
-          expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
-        }),
-        $from: 'test1',
-      }),
-    ]
-    await connection.query(queries)
-    callback()
-  }
-  catch (e) {
-    callback(e)
-  }
 })
 
 test('Close Connection', () => {

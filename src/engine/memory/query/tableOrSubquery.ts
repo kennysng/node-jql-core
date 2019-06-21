@@ -31,10 +31,17 @@ export class CompiledTableOrSubquery {
         if (sql.table instanceof Query) {
           this.query = new CompiledQuery(sql.table, options, sql.$as, this.aliasKey)
           options.unknowns.push(...this.query.unknowns)
+
+          // create temp table
+          const table = this.query.structure
+          options.sandbox.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
         }
         else {
           const table = this.remote = new Table(sql.$as as string, this.tableKey)
           for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
+
+          // create temp table
+          options.sandbox.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
         }
       }
       else {
