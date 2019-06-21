@@ -1,8 +1,8 @@
 import { ExistsExpression, Type } from 'node-jql'
 import { CompiledConditionalExpression } from '.'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
+import { ICursor } from '../../core/cursor'
 import { ICompilingQueryOptions } from '../compiledSql'
-import { ICursor } from '../cursor'
 import { CompiledQuery } from '../query'
 import { Sandbox } from '../sandbox'
 

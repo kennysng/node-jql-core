@@ -3,8 +3,8 @@ import { CompiledExpression } from '.'
 import { Table } from '../../../schema'
 import { JQLError } from '../../../utils/error'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
+import { ICursor } from '../../core/cursor'
 import { ICompilingQueryOptions } from '../compiledSql'
-import { ICursor } from '../cursor'
 import { CompiledTableOrSubquery } from '../query/tableOrSubquery'
 
 export class CompiledColumnExpression extends CompiledExpression {

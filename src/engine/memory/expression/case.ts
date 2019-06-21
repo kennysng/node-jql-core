@@ -1,8 +1,8 @@
 import { Case, CaseExpression, Type } from 'node-jql'
 import { CompiledConditionalExpression, CompiledExpression } from '.'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
+import { ICursor } from '../../core/cursor'
 import { ICompilingQueryOptions } from '../compiledSql'
-import { ICursor } from '../cursor'
 import { Sandbox } from '../sandbox'
 import { compile } from './compile'
 

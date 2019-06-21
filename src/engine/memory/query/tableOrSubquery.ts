@@ -1,5 +1,5 @@
 import { CancelableAxiosPromise } from '@kennysng/c-promise'
-import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery, Type } from 'node-jql'
+import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery } from 'node-jql'
 import { IRemoteTable } from 'node-jql/dist/query'
 import uuid = require('uuid/v4')
 import { CompiledQuery } from '.'

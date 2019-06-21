@@ -1,6 +1,6 @@
 import { Type } from 'node-jql'
+import { ICursor } from '../../core/cursor'
 import { CompiledSql } from '../compiledSql'
-import { ICursor } from '../cursor'
 import { Sandbox } from '../sandbox'
 
 /**
