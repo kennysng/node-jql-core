@@ -7,8 +7,8 @@ import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
 import { DatabaseEngine, IRunningQuery } from '../core'
-import { CompiledQuery } from '../core/query'
-import { Sandbox } from '../core/sandbox'
+import { CompiledQuery } from './query'
+import { Sandbox } from './sandbox'
 
 export class InMemoryEngine extends DatabaseEngine {
   protected readonly schema = new Schema()

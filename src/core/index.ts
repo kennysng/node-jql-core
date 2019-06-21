@@ -3,7 +3,6 @@ import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { DatabaseEngine, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
-import { CompiledQuery } from '../engine/core/query'
 import { InMemoryEngine } from '../engine/memory'
 import { Column } from '../schema'
 import { AlreadyClosedError } from '../utils/error/AlreadyClosedError'

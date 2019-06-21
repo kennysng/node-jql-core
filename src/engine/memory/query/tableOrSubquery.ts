@@ -2,6 +2,7 @@ import { CancelableAxiosPromise } from '@kennysng/c-promise'
 import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery, Type } from 'node-jql'
 import { IRemoteTable } from 'node-jql/dist/query'
 import uuid = require('uuid/v4')
+import { CompiledQuery } from '.'
 import { TEMP_DB_KEY } from '../../../core'
 import { Column, Database, Table } from '../../../schema'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
@@ -9,7 +10,6 @@ import { NoDatabaseSelectedError } from '../../../utils/error/NoDatabaseSelected
 import { ICompilingQueryOptions } from '../compiledSql'
 import { CompiledExpression } from '../expression'
 import { compile } from '../expression/compile'
-import { CompiledQuery } from '../query'
 
 export class CompiledTableOrSubquery {
   public readonly databaseKey: string

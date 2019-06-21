@@ -111,6 +111,13 @@ export class CompiledQuery extends CompiledSql {
   }
 
   /**
+   * CREATE TEMP TABLE
+   */
+  get $createTempTable(): string|undefined {
+    return this.query.$createTempTable
+  }
+
+  /**
    * DISTINCT
    */
   get $distinct(): boolean {
