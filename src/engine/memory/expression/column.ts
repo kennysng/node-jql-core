@@ -1,5 +1,6 @@
 import { ColumnExpression, Type } from 'node-jql'
 import { CompiledExpression } from '.'
+import { TEMP_DB_KEY } from '../../../core'
 import { Table } from '../../../schema'
 import { JQLError } from '../../../utils/error'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
@@ -37,7 +38,8 @@ export class CompiledColumnExpression extends CompiledExpression {
         this.tableKey = tableOrSubquery.key
 
         // get column info
-        const table: Table = tableOrSubquery.structure || options.schema.getDatabase(this.databaseKey).getTable(tableOrSubquery.tableKey)
+        const schema = this.databaseKey === TEMP_DB_KEY ? options.sandbox.schema : options.schema
+        const table: Table = tableOrSubquery.structure || schema.getDatabase(this.databaseKey).getTable(tableOrSubquery.tableKey)
         const column = table.getColumn(expression.name)
         if (!column) throw new SyntaxError(`Unknown Column '${expression.name}'`)
         if (!column.isBinded) throw new JQLError(`Column '${expression.name}' is not binded to any Table`)
@@ -53,7 +55,8 @@ export class CompiledColumnExpression extends CompiledExpression {
               structure.getColumn(expression.name)
             }
             else {
-              options.schema.getDatabase(databaseKey).getTable(tableKey as string).getColumn(expression.name)
+              const schema = databaseKey === TEMP_DB_KEY ? options.sandbox.schema : options.schema
+              schema.getDatabase(databaseKey).getTable(tableKey as string).getColumn(expression.name)
             }
             return true
           }
@@ -61,14 +64,15 @@ export class CompiledColumnExpression extends CompiledExpression {
             return false
           }
         })
-        if (!tables.length) throw new SyntaxError(`Unknown Column '${expression.table}'`)
+        if (!tables.length) throw new SyntaxError(`Unknown Column '${expression.name}'`)
         if (tables.length > 1) throw new SyntaxError(`Ambiguous Column '${expression.name}'`)
         const { databaseKey, tableKey, structure } = tables[0]
         this.databaseKey = databaseKey
         this.tableKey = tableKey as string
 
         // get column info
-        const column = (structure || options.schema.getDatabase(databaseKey).getTable(tableKey as string)).getColumn(expression.name)
+        const schema = this.databaseKey === TEMP_DB_KEY ? options.sandbox.schema : options.schema
+        const column = (structure || schema.getDatabase(databaseKey).getTable(tableKey as string)).getColumn(expression.name)
         this.columnKey = column.key
         this.type = column.type
       }

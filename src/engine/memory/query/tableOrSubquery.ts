@@ -39,18 +39,29 @@ export class CompiledTableOrSubquery {
       }
       else {
         let database: Database
-        if (sql.database) {
-          database = options.schema.getDatabase(sql.database)
-          this.databaseKey = database.key
+        try {
+          if (sql.database) {
+            database = options.schema.getDatabase(sql.database)
+            this.databaseKey = database.key
+          }
+          else if (options.defaultDatabase) {
+            this.databaseKey = options.defaultDatabase
+            database = options.schema.getDatabase(this.databaseKey)
+          }
+          else {
+            throw new NoDatabaseSelectedError()
+          }
+          this.tableKey = database.getTable(sql.table).key
         }
-        else if (options.defaultDatabase) {
-          this.databaseKey = options.defaultDatabase
-          database = options.schema.getDatabase(this.databaseKey)
+        catch (e) {
+          try {
+            database = options.sandbox.schema.getDatabase(this.databaseKey = TEMP_DB_KEY)
+            this.tableKey = database.getTable(sql.table).key
+          }
+          catch (e_) {
+            throw e
+          }
         }
-        else {
-          throw new NoDatabaseSelectedError()
-        }
-        this.tableKey = database.getTable(sql.table).key
         if (sql.$as) this.aliasKey = options.aliases[sql.$as] = uuid()
       }
     }

@@ -460,6 +460,34 @@ test('Test cancel query', callback => {
   connection.cancel(connection.runningQueries[0].id)
 })
 
+test('Test multiple queries', async callback => {
+  try {
+    const queries = [
+      new Query({
+        $createTempTable: 'test1',
+        $from: new TableOrSubquery({
+          table: {
+            url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
+            columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
+          },
+          $as: 'Test',
+        }),
+      }),
+      new Query({
+        $select: new ResultColumn({
+          expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
+        }),
+        $from: 'test1',
+      }),
+    ]
+    await connection.query(queries)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
 test('Close Connection', () => {
   connection.close()
   server.close()

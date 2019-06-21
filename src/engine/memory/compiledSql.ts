@@ -7,6 +7,7 @@ import { CompiledColumnExpression } from './expression/column'
 import { CompiledFunctionExpression } from './expression/function'
 import { Unknown } from './expression/unknown'
 import { CompiledTableOrSubquery } from './query/tableOrSubquery'
+import { Sandbox } from './sandbox'
 
 export interface IExpressionWithKey<T = CompiledExpression> {
   readonly expression: T
@@ -28,6 +29,9 @@ export interface ICompilingOptions {
 
   // Database schema at this moment
   schema: Schema
+
+  // related Sandbox
+  sandbox: Sandbox
 }
 
 /**

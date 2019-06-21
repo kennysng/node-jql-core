@@ -71,7 +71,8 @@ export class CompiledQuery extends CompiledSql {
         const expression = resultColumn.expression
         const tables = options.tables.map(({ databaseKey, tableKey, structure, $as }) => {
           if (structure) return structure
-          let table = options.schema.getDatabase(databaseKey).getTable(tableKey as string)
+          const schema = databaseKey === TEMP_DB_KEY ? options.sandbox.schema : options.schema
+          let table = schema.getDatabase(databaseKey).getTable(tableKey as string)
           if ($as) table = table.clone($as)
           return table
         })
@@ -209,9 +210,15 @@ export class CompiledQuery extends CompiledSql {
       if (expression instanceof CompiledColumnExpression) {
         const { databaseKey, tableKey, columnKey } = expression
         if (databaseKey === TEMP_DB_KEY) {
-          const table_ = this.options.tables.find(({ tableKey: key }) => tableKey === key)
-          if (!table_) throw new Error(`Table '${tableKey}' not found in Database 'TEMP_DB'`)
-          table.addColumn((table_.structure as Table).getColumn(columnKey))
+          try {
+            const database = this.options.sandbox.schema.getDatabase(databaseKey)
+            table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+          }
+          catch (e) {
+            const table_ = this.options.tables.find(({ tableKey: key }) => tableKey === key)
+            if (!table_) throw new Error(`Table '${tableKey}' not found in Database 'TEMP_DB'`)
+            table.addColumn((table_.structure as Table).getColumn(columnKey))
+          }
         }
         else {
           const database = this.options.schema.getDatabase(databaseKey)

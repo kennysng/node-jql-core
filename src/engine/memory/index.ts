@@ -1,6 +1,6 @@
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { IDatabaseOptions } from '../../core'
+import { IDatabaseOptions, TEMP_DB_KEY } from '../../core'
 import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
@@ -266,19 +266,19 @@ export class InMemoryEngine extends DatabaseEngine {
   public query(databaseNameOrKey: string, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   public async query(...args: any[]): Promise<IQueryResult > {
-    let databaseNameOrKey: string|undefined, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>
+    let databaseNameOrKey: string|undefined, queries: Query|IPreparedQuery|Array<Query|IPreparedQuery>
     if (typeof args[0] === 'string') {
       databaseNameOrKey = args[0]
-      query = args[1]
+      queries = args[1]
     }
     else {
-      query = args[0]
+      queries = args[0]
     }
 
-    if (!Array.isArray(query)) return await (databaseNameOrKey ? this.query(databaseNameOrKey, [query]) : this.query([query]))
+    if (!Array.isArray(queries)) return await (databaseNameOrKey ? this.query(databaseNameOrKey, [queries]) : this.query([queries]))
 
     const base = Date.now()
-    const queries = query.map(query_ => {
+    /* const queries = query.map(query_ => {
       if (query_ instanceof Query) query_ = { query: query_ }
       const { query, args = [] } = query_
       const compiled = new CompiledQuery(query, {
@@ -289,28 +289,40 @@ export class InMemoryEngine extends DatabaseEngine {
       })
       for (let i = 0, length = args.length; i < length; i += 1) compiled.setArg(i, args[i])
       return compiled
-    })
+    }) */
 
-    const sql = queries.map(query => query.toString()).join(';')
-    const runningQuery: Partial<IRunningQuery> = { id: this.lastQueryId = uuid(), sql }
+    const runningQuery: Partial<IRunningQuery> = { id: this.lastQueryId = uuid() }
     this.runningQueries.push(runningQuery as IRunningQuery)
-    let result: IQueryResult = { mappings: [], data: [], sql, time: Date.now() - base }
+    let result: IQueryResult = { mappings: [], data: [], time: Date.now() - base }
+    const sandbox = new Sandbox(this)
+    const sqls: string[] = []
     try {
-      for (const query of queries) {
-        const promise = runningQuery.promise = new Sandbox(this).run(query)
-        const lockPromises = query.tables.map(key => this.tableLocks.startReading(key))
+      for (let query_ of queries) {
+        if (query_ instanceof Query) query_ = { query: query_ }
+        const { query, args = [] } = query_
+        const compiled = new CompiledQuery(query, {
+          databaseOptions: this.options,
+          defaultDatabase: databaseNameOrKey,
+          functions: new Functions(this.functions),
+          schema: this.getSchema(),
+          sandbox,
+        })
+        for (let i = 0, length = args.length; i < length; i += 1) compiled.setArg(i, args[i])
+        sqls.push(runningQuery.sql = compiled.toString())
+        const promise = runningQuery.promise = sandbox.run(compiled)
+        const lockPromises = compiled.tables.map(key => this.tableLocks.startReading(key))
         try {
           await Promise.all(lockPromises)
           result = await promise
         }
         finally {
-          for (const key of query.tables) this.tableLocks.endReading(key)
+          for (const key of compiled.tables) this.tableLocks.endReading(key)
 
           // force garbage collection
           if (global.gc) global.gc()
         }
       }
-      return { ...result, sql, time: Date.now() - base }
+      return { ...result, sql: sqls.join('; '), time: Date.now() - base }
     }
     finally {
       if (runningQuery) {
@@ -345,6 +357,7 @@ export class InMemoryEngine extends DatabaseEngine {
         defaultDatabase: databaseNameOrKey,
         functions: new Functions(this.functions),
         schema: this.getSchema(),
+        sandbox: new Sandbox(this),
       })
       for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
     }

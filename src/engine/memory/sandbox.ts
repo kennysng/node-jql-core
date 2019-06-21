@@ -25,7 +25,8 @@ export interface IQueryOptions {
 }
 
 export class Sandbox {
-  protected readonly schema = new Schema()
+  public readonly schema = new Schema()
+
   protected readonly context: IDataSource = {}
 
   constructor(private readonly engine: DatabaseEngine) {
@@ -226,7 +227,9 @@ export class Sandbox {
 
         // save as temp table
         if (query.$createTempTable) {
-          this.context[TEMP_DB_KEY][query.structure.key] = result
+          const tempTable = query.structure
+          this.context[TEMP_DB_KEY][tempTable.key] = result
+          this.schema.getDatabase(TEMP_DB_KEY).createTable(query.$createTempTable, tempTable.key, tempTable.columns)
         }
 
         return resolve({
