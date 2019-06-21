@@ -224,6 +224,11 @@ export class Sandbox {
           return result
         }, {} as IRow))
 
+        // save as temp table
+        if (query.$createTempTable) {
+          this.context[TEMP_DB_KEY][query.structure.key] = result
+        }
+
         return resolve({
           mappings: query.mappings,
           data: result,

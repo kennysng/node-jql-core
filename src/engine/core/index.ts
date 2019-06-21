@@ -3,6 +3,11 @@ import { Query } from 'node-jql'
 import { IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Column, Database, Schema, Table } from '../../schema'
 
+export interface IPreparedQuery {
+  query: Query,
+  args?: any[]
+}
+
 export interface IRunningQuery {
   id: string
   sql: string
@@ -100,18 +105,16 @@ export abstract class DatabaseEngine<ID = string> {
 
   /**
    * Run a Query
-   * @param query [Query]
-   * @param args [Array<any>]
+   * @param query [Query|IPreparedQuery|Array<Query|IPreparedQuery>]
    */
-  public abstract query(query: Query, ...args: any[]): Promise<IQueryResult>
+  public abstract query(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   /**
    * Run a Query
    * @param databaseNameOrKey [string]
-   * @param query [Query]
-   * @param args [Array<any>]
+   * @param query [Query|Array<Query>]
    */
-  public abstract query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
+  public abstract query(databaseNameOrKey: string, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   /**
    * Predict the result structure of a Query

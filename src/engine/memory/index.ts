@@ -6,7 +6,7 @@ import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
-import { DatabaseEngine, IRunningQuery } from '../core'
+import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../core'
 import { CompiledQuery } from './query'
 import { Sandbox } from './sandbox'
 
@@ -253,49 +253,63 @@ export class InMemoryEngine extends DatabaseEngine {
       this.databaseLocks.endWriting(database.key)
     }
 
+    // force garbage collection
+    if (global.gc) global.gc()
+
     return { time: Date.now() - base }
   }
 
   // @override
-  public query(query: Query, ...args: any[]): Promise<IQueryResult>
+  public query(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   // @override
-  public query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
+  public query(databaseNameOrKey: string, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
-  public async query(...args: any[]): Promise<IQueryResult> {
-    let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
+  public async query(...args: any[]): Promise<IQueryResult > {
+    let databaseNameOrKey: string|undefined, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>
     if (typeof args[0] === 'string') {
       databaseNameOrKey = args[0]
       query = args[1]
-      args_ = args.slice(2)
     }
     else {
       query = args[0]
-      args_ = args.slice(1)
     }
 
+    if (!Array.isArray(query)) return await (databaseNameOrKey ? this.query(databaseNameOrKey, [query]) : this.query([query]))
+
     const base = Date.now()
-    if (query instanceof Query) {
-      query = new CompiledQuery(query, {
+    const queries = query.map(query_ => {
+      if (query_ instanceof Query) query_ = { query: query_ }
+      const { query, args = [] } = query_
+      const compiled = new CompiledQuery(query, {
         databaseOptions: this.options,
         defaultDatabase: databaseNameOrKey,
         functions: new Functions(this.functions),
         schema: this.getSchema(),
       })
-      for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
-    }
-    const sql = query.toString()
-    const compiled: CompiledQuery = query
+      for (let i = 0, length = args.length; i < length; i += 1) compiled.setArg(i, args[i])
+      return compiled
+    })
 
-    // run query
-    const promise = new Sandbox(this).run(compiled)
-    const runningQuery: IRunningQuery = { id: uuid(), sql: compiled.toString(), promise }
-    this.runningQueries.push(runningQuery)
-    this.lastQueryId = runningQuery.id
-    const promises = compiled.tables.map(key => this.tableLocks.startReading(key))
-    await Promise.all(promises)
+    const sql = queries.map(query => query.toString()).join(';')
+    const runningQuery: Partial<IRunningQuery> = { id: this.lastQueryId = uuid(), sql }
+    this.runningQueries.push(runningQuery as IRunningQuery)
+    let result: IQueryResult = { mappings: [], data: [], sql, time: Date.now() - base }
     try {
-      const result = await promise
+      for (const query of queries) {
+        const promise = runningQuery.promise = new Sandbox(this).run(query)
+        const lockPromises = query.tables.map(key => this.tableLocks.startReading(key))
+        try {
+          await Promise.all(lockPromises)
+          result = await promise
+        }
+        finally {
+          for (const key of query.tables) this.tableLocks.endReading(key)
+
+          // force garbage collection
+          if (global.gc) global.gc()
+        }
+      }
       return { ...result, sql, time: Date.now() - base }
     }
     finally {
@@ -303,7 +317,6 @@ export class InMemoryEngine extends DatabaseEngine {
         const index = this.runningQueries.findIndex(({ id }) => id === (runningQuery as IRunningQuery).id)
         if (index > -1) this.runningQueries.splice(index, 1)
       }
-      for (const key of compiled.tables) this.tableLocks.endReading(key)
     }
   }
 
@@ -386,6 +399,9 @@ export class InMemoryEngine extends DatabaseEngine {
     finally {
       this.databaseLocks.endReading(database.key)
     }
+
+    // force garbage collection
+    if (global.gc) global.gc()
 
     return { time: Date.now() - base }
   }

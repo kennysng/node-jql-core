@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios'
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { DatabaseEngine, IRunningQuery } from '../engine/core'
+import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
 import { InMemoryEngine } from '../engine/memory'
 import { Column } from '../schema'
@@ -271,11 +271,10 @@ export class Connection {
 
   /**
    * Run a Query
-   * @param query [Query]
-   * @param args [Array<any>]
+   * @param query [Query|IPreparedQuery|Array<Query|IPreparedQuery>]
    */
-  public async query<T>(query: Query, ...args: any[]): Promise<ResultSet<T>> {
-    const result = await (this.databaseKey ? this.core.engine.query(this.databaseKey, query, ...args) : this.core.engine.query(query, ...args))
+  public async query<T>(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<ResultSet<T>> {
+    const result = await (this.databaseKey ? this.core.engine.query(this.databaseKey, query) : this.core.engine.query(query))
     this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
     return new ResultSet<T>(result)
   }

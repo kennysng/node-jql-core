@@ -198,7 +198,7 @@ test('Test Query w/o FROM', async callback => {
         }),
       }),
     })
-    await connection.query(query, 1, 1)
+    await connection.query({ query, args: [1, 1] })
     callback()
   }
   catch (e) {
@@ -363,7 +363,7 @@ test('Test LikeExpression', async callback => {
       $from: 'Student',
       $where: new LikeExpression({ left: new ColumnExpression('name') }),
     })
-    await connection.query(query, 'Ng$')
+    await connection.query({ query, args: ['Ng$'] })
     callback()
   }
   catch (e) {
