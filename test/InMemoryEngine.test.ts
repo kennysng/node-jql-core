@@ -428,7 +428,6 @@ test('Test Remote Table and multiple Queries', async callback => {
         $from: 'test1',
       }),
     ]
-    console.log(await connection.query(queries))
     callback()
   }
   catch (e) {
