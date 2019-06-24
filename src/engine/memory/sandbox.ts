@@ -1,8 +1,7 @@
-import { CancelablePromise, CancelError } from '@kennysng/c-promise'
-import _ = require('lodash')
+import { CancelablePromise } from '@kennysng/c-promise'
+import _ from 'lodash'
 import { denormalize, normalize } from 'node-jql'
 import timsort = require('timsort')
-import { DatabaseEngine } from '.'
 import { TEMP_DB_KEY } from '../../core'
 import { IDataSource, IQueryResult, IRow } from '../../core/interfaces'
 import { Schema } from '../../schema'
@@ -10,9 +9,10 @@ import { JQLError } from '../../utils/error'
 import { CursorReachEndError } from '../../utils/error/CursorReachEndError'
 import { EmptyResultsetError } from '../../utils/error/EmptyResultsetError'
 import isUndefined from '../../utils/isUndefined'
+import { DatabaseEngine } from '../core'
+import { Cursors, DummyCursor, ICursor } from '../core/cursor'
+import { RowsCursor } from '../core/cursor/rows'
 import { IExpressionWithKey } from './compiledSql'
-import { Cursors, DummyCursor, ICursor } from './cursor'
-import { RowsCursor } from './cursor/rows'
 import { TableCursor } from './cursor/table'
 import { CompiledConditionalExpression } from './expression'
 import { CompiledFunctionExpression } from './expression/function'
@@ -25,7 +25,8 @@ export interface IQueryOptions {
 }
 
 export class Sandbox {
-  protected readonly schema = new Schema()
+  public readonly schema = new Schema()
+
   protected readonly context: IDataSource = {}
 
   constructor(private readonly engine: DatabaseEngine) {
@@ -224,6 +225,18 @@ export class Sandbox {
           return result
         }, {} as IRow))
 
+        // save as temp table
+        if (query.$createTempTable) {
+          const tempTable = query.structure
+          this.context[TEMP_DB_KEY][tempTable.key] = result.map(row => query.mappings.reduce((result, { column, name, key }) => {
+            const column_ = tempTable.columns.find(c => c.name === column || c.name === name)
+            if (!column_) throw new Error(`Fail to map column for '${key}'`)
+            result[column_.key] = row[key]
+            return result
+          }, {} as IRow))
+          this.schema.getDatabase(TEMP_DB_KEY).createTable(query.$createTempTable, tempTable.key, tempTable.columns)
+        }
+
         return resolve({
           mappings: query.mappings,
           data: result,
@@ -256,8 +269,6 @@ export class Sandbox {
     // Remote Table
     if (tableOrSubquery.remote && tableOrSubquery.request) {
       const table = tableOrSubquery.remote
-      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
-
       const response = await tableOrSubquery.request
       this.context[TEMP_DB_KEY][tableOrSubquery.remote.key] = response.data.map(row => table.columns.reduce<IRow>((result, { name, key }) => {
         result[key] = row[name]
@@ -269,7 +280,6 @@ export class Sandbox {
     if (tableOrSubquery.query) {
       const query = tableOrSubquery.query
       const table = query.structure
-      this.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
       const { data } = await this.run(query, { cursor })
       this.context[TEMP_DB_KEY][table.key] = data
     }

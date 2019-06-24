@@ -1,6 +1,8 @@
 import { CancelableAxiosPromise } from '@kennysng/c-promise'
-import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery, Type } from 'node-jql'
+import { JoinClause, JoinedTableOrSubquery, JoinOperator, Query, TableOrSubquery } from 'node-jql'
+import { IRemoteTable } from 'node-jql/dist/query'
 import uuid = require('uuid/v4')
+import { CompiledQuery } from '.'
 import { TEMP_DB_KEY } from '../../../core'
 import { Column, Database, Table } from '../../../schema'
 import { InstantiateError } from '../../../utils/error/InstantiateError'
@@ -8,7 +10,6 @@ import { NoDatabaseSelectedError } from '../../../utils/error/NoDatabaseSelected
 import { ICompilingQueryOptions } from '../compiledSql'
 import { CompiledExpression } from '../expression'
 import { compile } from '../expression/compile'
-import { CompiledQuery } from '../query'
 
 export class CompiledTableOrSubquery {
   public readonly databaseKey: string
@@ -17,9 +18,10 @@ export class CompiledTableOrSubquery {
 
   public readonly query?: CompiledQuery
   public readonly remote?: Table
-  public readonly request?: CancelableAxiosPromise<any>
 
-  constructor(protected readonly sql: TableOrSubquery, options: ICompilingQueryOptions) {
+  private request_?: CancelableAxiosPromise<any>
+
+  constructor(protected readonly sql: TableOrSubquery, protected readonly options: ICompilingQueryOptions) {
     try {
       if (sql.table instanceof Query || typeof sql.table !== 'string') {
         this.databaseKey = TEMP_DB_KEY
@@ -29,27 +31,44 @@ export class CompiledTableOrSubquery {
         if (sql.table instanceof Query) {
           this.query = new CompiledQuery(sql.table, options, sql.$as, this.aliasKey)
           options.unknowns.push(...this.query.unknowns)
+
+          // create temp table
+          const table = this.query.structure
+          options.sandbox.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
         }
         else {
           const table = this.remote = new Table(sql.$as as string, this.tableKey)
           for (const { name, type } of sql.table.columns) table.addColumn(new Column(name, type || 'any'))
-          this.request = new CancelableAxiosPromise<any>(sql.table, options.databaseOptions && options.databaseOptions.axiosInstance)
+
+          // create temp table
+          options.sandbox.schema.getDatabase(TEMP_DB_KEY).createTable(table.name, table.key, table.columns)
         }
       }
       else {
         let database: Database
-        if (sql.database) {
-          database = options.schema.getDatabase(sql.database)
-          this.databaseKey = database.key
+        try {
+          if (sql.database) {
+            database = options.schema.getDatabase(sql.database)
+            this.databaseKey = database.key
+          }
+          else if (options.defaultDatabase) {
+            this.databaseKey = options.defaultDatabase
+            database = options.schema.getDatabase(this.databaseKey)
+          }
+          else {
+            throw new NoDatabaseSelectedError()
+          }
+          this.tableKey = database.getTable(sql.table).key
         }
-        else if (options.defaultDatabase) {
-          this.databaseKey = options.defaultDatabase
-          database = options.schema.getDatabase(this.databaseKey)
+        catch (e) {
+          try {
+            database = options.sandbox.schema.getDatabase(this.databaseKey = TEMP_DB_KEY)
+            this.tableKey = database.getTable(sql.table).key
+          }
+          catch (e_) {
+            throw e
+          }
         }
-        else {
-          throw new NoDatabaseSelectedError()
-        }
-        this.tableKey = database.getTable(sql.table).key
         if (sql.$as) this.aliasKey = options.aliases[sql.$as] = uuid()
       }
     }
@@ -64,6 +83,11 @@ export class CompiledTableOrSubquery {
 
   get key(): string {
     return this.aliasKey || this.tableKey
+  }
+
+  get request(): CancelableAxiosPromise<any>|undefined {
+    if (!this.remote) return
+    return this.request_ = this.request_ || new CancelableAxiosPromise<any>(this.sql.table as IRemoteTable, this.options.databaseOptions && this.options.databaseOptions.axiosInstance)
   }
 
   get structure(): Table|undefined {

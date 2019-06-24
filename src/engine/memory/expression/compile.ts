@@ -1,6 +1,6 @@
 import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, ColumnExpression, ExistsExpression, Expression, FunctionExpression, InExpression, IsNullExpression, LikeExpression, MathExpression, OrExpressions, ParameterExpression, Unknown as Unknown_, Value as Value_ } from 'node-jql'
+import { CompiledExpression } from '.'
 import { ICompilingQueryOptions } from '../compiledSql'
-import { CompiledExpression } from '../expression'
 import { CompiledBetweenExpression } from './between'
 import { CompiledBinaryExpression } from './binary'
 import { CompiledCaseExpression } from './case'

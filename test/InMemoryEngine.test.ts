@@ -198,7 +198,7 @@ test('Test Query w/o FROM', async callback => {
         }),
       }),
     })
-    await connection.query(query, 1, 1)
+    await connection.query({ query, args: [1, 1] })
     callback()
   }
   catch (e) {
@@ -363,7 +363,7 @@ test('Test LikeExpression', async callback => {
       $from: 'Student',
       $where: new LikeExpression({ left: new ColumnExpression('name') }),
     })
-    await connection.query(query, 'Ng$')
+    await connection.query({ query, args: ['Ng$'] })
     callback()
   }
   catch (e) {
@@ -392,21 +392,42 @@ test('Test JoinClause', async callback => {
   }
 })
 
-test('Test Remote Table', async callback => {
+test('Predict result structure', async callback => {
   try {
     const query = new Query({
-      $select: new ResultColumn({
-        expression: new FunctionExpression({ name: 'COUNT', parameters: new ColumnExpression('name') }),
-      }),
-      $from: new TableOrSubquery({
-        table: {
-          url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
-          columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
-        },
-        $as: 'Test',
+      $from: 'Student',
+      $where: new BinaryExpression({
+        left: new ColumnExpression('gender'),
+        operator: '=',
+        right: 'M',
       }),
     })
-    await connection.query(query)
+    const result = await connection.predict(query)
+    expect(result.columns.length).toBe(6)
+    callback()
+  }
+  catch (e) {
+    callback(e)
+  }
+})
+
+test('Test Remote Table and multiple Queries', async callback => {
+  try {
+    const queries = [
+      new Query({
+        $createTempTable: 'test1',
+        $from: new TableOrSubquery({
+          table: {
+            url: `http://localhost:${(server.address() as AddressInfo).port}/test1`,
+            columns: [{ name: 'name', type: 'string' }, { name: 'value', type: 'string' }],
+          },
+          $as: 'Test',
+        }),
+      }),
+      new Query({
+        $from: 'test1',
+      }),
+    ]
     callback()
   }
   catch (e) {

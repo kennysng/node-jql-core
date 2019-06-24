@@ -1,5 +1,5 @@
 import { equals, normalize, Type, Value as Value_ } from 'node-jql'
-import { CompiledExpression } from '../expression'
+import { CompiledExpression } from '.'
 
 export class Value extends CompiledExpression {
   public readonly aggregateRequired = false

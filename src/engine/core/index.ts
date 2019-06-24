@@ -1,7 +1,12 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { Query } from 'node-jql'
-import { IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Column, Database, Schema, Table } from '../../schema'
+
+export interface IPreparedQuery {
+  query: Query,
+  args?: any[]
+}
 
 export interface IRunningQuery {
   id: string
@@ -100,18 +105,29 @@ export abstract class DatabaseEngine<ID = string> {
 
   /**
    * Run a Query
-   * @param query [Query]
-   * @param args [Array<any>]
+   * @param query [Query|IPreparedQuery|Array<Query|IPreparedQuery>]
    */
-  public abstract query(query: Query, ...args: any[]): Promise<IQueryResult>
+  public abstract query(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   /**
    * Run a Query
    * @param databaseNameOrKey [string]
-   * @param query [Query]
-   * @param args [Array<any>]
+   * @param query [Query|Array<Query>]
    */
-  public abstract query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
+  public abstract query(databaseNameOrKey: string, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
+
+  /**
+   * Predict the result structure of a Query
+   * @param query [Query]
+   */
+  public abstract predict(query: Query): Promise<IPredictResult>
+
+  /**
+   * Predict the result structure of a Query
+   * @param databaseNameOrKey [string]
+   * @param query [Query]
+   */
+  public abstract predict(databaseNameOrKey: string, query: Query): Promise<IPredictResult>
 
   /**
    * Cancel a running task

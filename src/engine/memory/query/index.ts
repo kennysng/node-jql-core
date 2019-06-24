@@ -1,5 +1,6 @@
 import _ = require('lodash')
 import { ColumnExpression, FunctionExpression, JoinedTableOrSubquery, Query, ResultColumn } from 'node-jql'
+import { TEMP_DB_KEY } from '../../../core'
 import { IMapping } from '../../../core/interfaces'
 import { Column, Table } from '../../../schema'
 import { NotFoundError } from '../../../utils/error/NotFoundError'
@@ -70,7 +71,8 @@ export class CompiledQuery extends CompiledSql {
         const expression = resultColumn.expression
         const tables = options.tables.map(({ databaseKey, tableKey, structure, $as }) => {
           if (structure) return structure
-          let table = options.schema.getDatabase(databaseKey).getTable(tableKey as string)
+          const schema = databaseKey === TEMP_DB_KEY ? options.sandbox.schema : options.schema
+          let table = schema.getDatabase(databaseKey).getTable(tableKey as string)
           if ($as) table = table.clone($as)
           return table
         })
@@ -107,6 +109,13 @@ export class CompiledQuery extends CompiledSql {
   // @override
   get [Symbol.toStringTag](): string {
     return 'CompiledQuery'
+  }
+
+  /**
+   * CREATE TEMP TABLE
+   */
+  get $createTempTable(): string|undefined {
+    return this.query.$createTempTable
   }
 
   /**
@@ -200,8 +209,21 @@ export class CompiledQuery extends CompiledSql {
     for (const { expression, $as, key } of this.$select) {
       if (expression instanceof CompiledColumnExpression) {
         const { databaseKey, tableKey, columnKey } = expression
-        const database = this.options.schema.getDatabase(databaseKey)
-        table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+        if (databaseKey === TEMP_DB_KEY) {
+          try {
+            const database = this.options.sandbox.schema.getDatabase(databaseKey)
+            table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+          }
+          catch (e) {
+            const table_ = this.options.tables.find(({ tableKey: key }) => tableKey === key)
+            if (!table_) throw new Error(`Table '${tableKey}' not found in Database 'TEMP_DB'`)
+            table.addColumn((table_.structure as Table).getColumn(columnKey))
+          }
+        }
+        else {
+          const database = this.options.schema.getDatabase(databaseKey)
+          table.addColumn(database.getTable(tableKey).getColumn(columnKey))
+        }
       }
       else if (expression instanceof CompiledFunctionExpression) {
         table.addColumn(new Column($as || expression.toString(), expression.jqlFunction.type, key))

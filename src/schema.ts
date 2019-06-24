@@ -386,27 +386,30 @@ export class Column implements IColumnOptions {
         const column = args[0] as Column
         name = column.name
         type = column.type
+        key = column.key
         options = column
         if (args[1]) this.tableKey = (args[1] as Table).key
       }
       else {
         name = args[0]
         type = args[1]
-      }
-      if (typeof args[2] === 'string') {
-        key = args[2] || uuid()
-        options = args[3] || {}
-      }
-      else {
-        key = uuid()
-        options = args[2] || {}
+
+        if (typeof args[2] === 'string') {
+          key = args[2] || uuid()
+          options = args[3] || {}
+        }
+        else {
+          key = uuid()
+          options = args[2] || {}
+        }
       }
 
       this.name = name
       this.type = type
       this.key = key
       if (isUndefined(options.default)) options.default = defaults[type]
-      Object.assign(this, options)
+
+      this.default = options.default
     }
     catch (e) {
       throw new InstantiateError('Fail to instantiate Column', e)

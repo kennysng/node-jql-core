@@ -1,14 +1,15 @@
 import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { IDatabaseOptions } from '../../core'
-import { IDataSource, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { IDatabaseOptions, TEMP_DB_KEY } from '../../core'
+import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
+import gc = require('../../utils/gc')
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
-import { DatabaseEngine, IRunningQuery } from '../core'
-import { CompiledQuery } from '../core/query'
-import { Sandbox } from '../core/sandbox'
+import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../core'
+import { CompiledQuery } from './query'
+import { Sandbox } from './sandbox'
 
 export class InMemoryEngine extends DatabaseEngine {
   protected readonly schema = new Schema()
@@ -253,57 +254,109 @@ export class InMemoryEngine extends DatabaseEngine {
       this.databaseLocks.endWriting(database.key)
     }
 
+    // force garbage collection
+    gc()
+
     return { time: Date.now() - base }
   }
 
   // @override
-  public query(query: Query, ...args: any[]): Promise<IQueryResult>
+  public query(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
   // @override
-  public query(databaseNameOrKey: string, query: Query, ...args: any[]): Promise<IQueryResult>
+  public query(databaseNameOrKey: string, query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<IQueryResult>
 
-  public async query(...args: any[]): Promise<IQueryResult> {
-    let databaseNameOrKey: string|undefined, query: Query|CompiledQuery, args_: any[]
+  public async query(...args: any[]): Promise<IQueryResult > {
+    let databaseNameOrKey: string|undefined, queries: Query|IPreparedQuery|Array<Query|IPreparedQuery>
     if (typeof args[0] === 'string') {
       databaseNameOrKey = args[0]
-      query = args[1]
-      args_ = args.slice(2)
+      queries = args[1]
     }
     else {
-      query = args[0]
-      args_ = args.slice(1)
+      queries = args[0]
     }
+
+    if (!Array.isArray(queries)) return await (databaseNameOrKey ? this.query(databaseNameOrKey, [queries]) : this.query([queries]))
 
     const base = Date.now()
-    if (query instanceof Query) {
-      query = new CompiledQuery(query, {
-        databaseOptions: this.options,
-        defaultDatabase: databaseNameOrKey,
-        functions: new Functions(this.functions),
-        schema: this.getSchema(),
-      })
-      for (let i = 0, length = args_.length; i < length; i += 1) query.setArg(i, args_[i])
-    }
-    const sql = query.toString()
-    const compiled: CompiledQuery = query
 
-    // run query
-    const promise = new Sandbox(this).run(compiled)
-    const runningQuery: IRunningQuery = { id: uuid(), sql: compiled.toString(), promise }
-    this.runningQueries.push(runningQuery)
-    this.lastQueryId = runningQuery.id
-    const promises = compiled.tables.map(key => this.tableLocks.startReading(key))
-    await Promise.all(promises)
+    const runningQuery: Partial<IRunningQuery> = { id: this.lastQueryId = uuid() }
+    this.runningQueries.push(runningQuery as IRunningQuery)
+    let result: IQueryResult = { mappings: [], data: [], time: Date.now() - base }
+    const sandbox = new Sandbox(this)
+    const sqls: string[] = []
     try {
-      const result = await promise
-      return { ...result, sql, time: Date.now() - base }
+      for (let query_ of queries) {
+        if (query_ instanceof Query) query_ = { query: query_ }
+        const { query, args = [] } = query_
+        const compiled = new CompiledQuery(query, {
+          databaseOptions: this.options,
+          defaultDatabase: databaseNameOrKey,
+          functions: new Functions(this.functions),
+          schema: this.getSchema(),
+          sandbox,
+        })
+        for (let i = 0, length = args.length; i < length; i += 1) compiled.setArg(i, args[i])
+        sqls.push(runningQuery.sql = compiled.toString())
+        const promise = runningQuery.promise = sandbox.run(compiled)
+        const lockPromises = compiled.tables.map(key => this.tableLocks.startReading(key))
+        try {
+          await Promise.all(lockPromises)
+          result = await promise
+        }
+        finally {
+          for (const key of compiled.tables) this.tableLocks.endReading(key)
+
+          // force garbage collection
+          gc()
+        }
+      }
+      return { ...result, sql: sqls.join('; '), time: Date.now() - base }
     }
     finally {
       if (runningQuery) {
         const index = this.runningQueries.findIndex(({ id }) => id === (runningQuery as IRunningQuery).id)
         if (index > -1) this.runningQueries.splice(index, 1)
       }
-      for (const key of compiled.tables) this.tableLocks.endReading(key)
+    }
+  }
+
+  // @override
+  public predict(query: Query|Query[]): Promise<IPredictResult>
+
+  // @override
+  public predict(databaseNameOrKey: string, query: Query|Query[]): Promise<IPredictResult>
+
+  public async predict(...args: any[]): Promise<IPredictResult> {
+    let databaseNameOrKey: string|undefined, queries: Query|Query[]
+    if (typeof args[0] === 'string') {
+      databaseNameOrKey = args[0]
+      queries = args[1]
+    }
+    else {
+      queries = args[0]
+    }
+
+    if (!Array.isArray(queries)) return await (databaseNameOrKey ? this.predict(databaseNameOrKey, [queries]) : this.predict([queries]))
+
+    const base = Date.now()
+    const sandbox = new Sandbox(this)
+    try {
+      const compiled = queries.map(query => new CompiledQuery(query, {
+        databaseOptions: this.options,
+        defaultDatabase: databaseNameOrKey,
+        functions: new Functions(this.functions),
+        schema: this.getSchema(),
+        sandbox,
+      }))
+      return {
+        columns: compiled[compiled.length - 1].structure.columns.map(({ name, type }) => ({ name, type })),
+        time: Date.now() - base,
+        sql: compiled.map(query => query.toString()).join('; '),
+      }
+    }
+    finally {
+      gc()
     }
   }
 
@@ -348,6 +401,9 @@ export class InMemoryEngine extends DatabaseEngine {
     finally {
       this.databaseLocks.endReading(database.key)
     }
+
+    // force garbage collection
+    gc()
 
     return { time: Date.now() - base }
   }

@@ -1,7 +1,7 @@
-import { Cursors, ICursor } from '.'
 import { IRow } from '../../../core/interfaces'
 import { CursorError } from '../../../utils/error/CursorError'
 import { CursorReachEndError } from '../../../utils/error/CursorReachEndError'
+import { Cursors, ICursor } from '../../core/cursor'
 import { CompiledConditionalExpression } from '../expression'
 import { CompiledJoinedTableOrSubquery, CompiledTableOrSubquery } from '../query/tableOrSubquery'
 import { Sandbox } from '../sandbox'
