@@ -5,7 +5,7 @@ import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
-import gc from '../../utils/gc'
+import gc = require('../../utils/gc')
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
 import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../core'
 import { CompiledQuery } from './query'
