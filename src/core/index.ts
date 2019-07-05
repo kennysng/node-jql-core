@@ -4,6 +4,7 @@ import uuid = require('uuid/v4')
 import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../engine/core'
 import { ResultSet } from '../engine/core/cursor/result'
 import { InMemoryEngine } from '../engine/memory'
+import { JQLFunction } from '../function'
 import { Column } from '../schema'
 import { AlreadyClosedError } from '../utils/error/AlreadyClosedError'
 import { NoDatabaseSelectedError } from '../utils/error/NoDatabaseSelectedError'
@@ -112,6 +113,15 @@ export class Connection {
   public get lastQueryId(): any {
     this.checkClosed()
     return this.core.engine.lastQueryId
+  }
+
+  /**
+   * Register user-defined function
+   * @param name [name]
+   * @param fn [JQLFunction]
+   */
+  public registerFunction(name: string, fn: JQLFunction): void {
+    this.core.engine.registerFunction(name, fn)
   }
 
   /**

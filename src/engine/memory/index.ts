@@ -2,10 +2,10 @@ import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { IDatabaseOptions, TEMP_DB_KEY } from '../../core'
 import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { JQLFunction } from '../../function'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
-import gc = require('../../utils/gc')
 import { ReadWriteLock, ReadWriteLocks } from '../../utils/lock'
 import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../core'
 import { CompiledQuery } from './query'
@@ -86,6 +86,11 @@ export class InMemoryEngine extends DatabaseEngine {
     finally {
       this.tableLocks.endReading(table.key)
     }
+  }
+
+  // @override
+  public registerFunction(name: string, fn: JQLFunction): void {
+    this.functions.register(name, () => fn)
   }
 
   // @override
@@ -254,9 +259,6 @@ export class InMemoryEngine extends DatabaseEngine {
       this.databaseLocks.endWriting(database.key)
     }
 
-    // force garbage collection
-    gc()
-
     return { time: Date.now() - base }
   }
 
@@ -306,9 +308,6 @@ export class InMemoryEngine extends DatabaseEngine {
         }
         finally {
           for (const key of compiled.tables) this.tableLocks.endReading(key)
-
-          // force garbage collection
-          gc()
         }
       }
       return { ...result, sql: sqls.join('; '), time: Date.now() - base }
@@ -341,22 +340,17 @@ export class InMemoryEngine extends DatabaseEngine {
 
     const base = Date.now()
     const sandbox = new Sandbox(this)
-    try {
-      const compiled = queries.map(query => new CompiledQuery(query, {
-        databaseOptions: this.options,
-        defaultDatabase: databaseNameOrKey,
-        functions: new Functions(this.functions),
-        schema: this.getSchema(),
-        sandbox,
-      }))
-      return {
-        columns: compiled[compiled.length - 1].structure.columns.map(({ name, type }) => ({ name, type })),
-        time: Date.now() - base,
-        sql: compiled.map(query => query.toString()).join('; '),
-      }
-    }
-    finally {
-      gc()
+    const compiled = queries.map(query => new CompiledQuery(query, {
+      databaseOptions: this.options,
+      defaultDatabase: databaseNameOrKey,
+      functions: new Functions(this.functions),
+      schema: this.getSchema(),
+      sandbox,
+    }))
+    return {
+      columns: compiled[compiled.length - 1].structure.columns.map(({ name, type }) => ({ name, type })),
+      time: Date.now() - base,
+      sql: compiled.map(query => query.toString()).join('; '),
     }
   }
 
@@ -401,9 +395,6 @@ export class InMemoryEngine extends DatabaseEngine {
     finally {
       this.databaseLocks.endReading(database.key)
     }
-
-    // force garbage collection
-    gc()
 
     return { time: Date.now() - base }
   }
