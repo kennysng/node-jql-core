@@ -1,6 +1,7 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { Query } from 'node-jql'
 import { IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { JQLFunction } from '../../function'
 import { Column, Database, Schema, Table } from '../../schema'
 
 export interface IPreparedQuery {
@@ -56,6 +57,13 @@ export abstract class DatabaseEngine<ID = string> {
    * @param nameOrKey [string]
    */
   public abstract getCount(databaseNameOrKey: string, nameOrKey: string): number|Promise<number>
+
+  /**
+   * Register user-defined function
+   * @param name [name]
+   * @param fn [JQLFunction]
+   */
+  public abstract registerFunction(name: string, fn: JQLFunction): void
 
   /**
    * Create a clean Database

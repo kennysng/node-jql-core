@@ -2,6 +2,7 @@ import { Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { IDatabaseOptions, TEMP_DB_KEY } from '../../core'
 import { IDataSource, IPredictResult, IQueryResult, IResult, IRow } from '../../core/interfaces'
+import { JQLFunction } from '../../function'
 import { Functions } from '../../function/functions'
 import { Column, Database, Schema, Table } from '../../schema'
 import { NoDatabaseSelectedError } from '../../utils/error/NoDatabaseSelectedError'
@@ -85,6 +86,11 @@ export class InMemoryEngine extends DatabaseEngine {
     finally {
       this.tableLocks.endReading(table.key)
     }
+  }
+
+  // @override
+  public registerFunction(name: string, fn: JQLFunction): void {
+    this.functions.register(name, () => fn)
   }
 
   // @override
