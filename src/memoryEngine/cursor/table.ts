@@ -1,17 +1,30 @@
 import _ from 'lodash'
+import { checkNull } from 'node-jql'
 import { Cursor } from '.'
 import { InMemoryError } from '../../utils/error/InMemoryError'
-import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
 import { CompiledConditionalExpression } from '../expr'
 import { CompiledFromTable } from '../query/FromTable'
 import { Sandbox } from '../sandbox'
+import { Table } from '../table'
+import { DummyCursor } from './dummy'
+
+class RowCursor extends DummyCursor {
+  constructor(private readonly row: any) {
+    super()
+  }
+
+  // @override
+  public async get<T>(key: string): Promise<T> {
+    return this.row[key]
+  }
+}
 
 /**
  * Traverse throught table content
  */
 export class TableCursor extends Cursor {
-  private counts: _.Dictionary<number> = {}
-  private indices: _.Dictionary<number> = {}
+  private rows: number[][] = []
+  private index: number
   private row?: any
 
   /**
@@ -24,32 +37,118 @@ export class TableCursor extends Cursor {
 
   // @override
   public async moveToFirst(): Promise<boolean> {
-    let count = this.counts[this.table.table.name] = this.sandbox.getCountOf(this.getDatabase(this.table), this.table.table.name)
-    this.indices[this.table.table.name] = 0
-    if (this.table.joinClauses.length) {
-      for (const { operator, table } of this.table.joinClauses) {
-        const count_ = this.counts[table.table.name] = this.sandbox.getCountOf(this.getDatabase(table), table.table.name)
-        this.indices[table.table.name] = 0
-        switch (operator) {
-          case 'FULL':
-            count = (count + 1) * (count_ + 1)
-            break
-          case 'CROSS':
-          case 'INNER':
-            count = count * count_
-            break
-          case 'LEFT':
-            count = count * (count_ + 1)
-            break
-          case 'RIGHT':
-            count = (count + 1) * count_
-            break
+    for (let i = 0, length = this.sandbox.getCountOf(this.table); i < length; i += 1) this.rows.push([i])
+    for (let i = 0, length = this.table.joinClauses.length; i < length; i += 1) {
+      const { operator, table, $on } = this.table.joinClauses[i]
+      const expression = $on as CompiledConditionalExpression
+      switch (operator) {
+        case 'LEFT': {
+          const rows = [] as number[][]
+          for (let j = 0, length2 = this.rows.length; j < length2; j += 1) {
+            let matched = false
+
+            // find matched row(s)
+            for (let k = 0, length3 = this.sandbox.getCountOf(table); k < length3; k += 1) {
+              const indices = [...this.rows[j], k]
+              if (await expression.evaluate(this.sandbox, new RowCursor(this.buildRow(indices)))) {
+                rows.push(indices)
+                matched = true
+              }
+            }
+
+            // no matched rows
+            if (!matched) {
+              const indices = [...this.rows[j], -1]
+              rows.push(indices)
+            }
+          }
+          this.rows = rows
+          break
+        }
+        case 'RIGHT': {
+          const rows = [] as number[][]
+          for (let j = 0, length2 = this.sandbox.getCountOf(table); j < length2; j += 1) {
+            let matched = false
+
+            // find matched row(s)
+            for (let k = 0, length3 = this.rows.length; k < length3; k += 1) {
+              this.pad(this.rows[k], i + 2)
+              const indices = [...this.rows[k], j]
+              if (await expression.evaluate(this.sandbox, new RowCursor(this.buildRow(indices)))) {
+                rows.push(indices)
+                matched = true
+              }
+            }
+
+            // no matched rows
+            if (!matched) {
+              const indices = [] as number[]
+              this.pad(indices, i + 2)
+              indices.push(j)
+              rows.push(indices)
+            }
+          }
+          this.rows = rows
+          break
+        }
+        case 'CROSS':
+          // join all
+          this.rows = this.rows.reduce<number[][]>((result, row) => {
+            for (let j = 0, length2 = this.sandbox.getCountOf(table); j < length2; j += 1) result.push([...row, j])
+            return result
+          }, [])
+          break
+        case 'FULL': {
+          const matched = { l: [] as boolean[], r: [] as boolean[] }
+
+          // find matched row(s)
+          const rows = [] as number[][]
+          for (let j = 0, length2 = this.rows.length; j < length2; j += 1) {
+            for (let k = 0, length3 = this.sandbox.getCountOf(table); k < length3; k += 1) {
+              const indices = [...this.rows[j], k]
+              if (await expression.evaluate(this.sandbox, new RowCursor(this.buildRow(indices)))) {
+                rows.push(indices)
+                matched.l[j] = matched.r[k] = true
+              }
+            }
+          }
+
+          // left - no matched rows
+          for (let j = 0, length2 = this.rows.length; j < length2; j += 1) {
+            if (!matched.l[j]) {
+              rows.push([...this.rows[j], -1])
+            }
+          }
+
+          // right - no matched rows
+          for (let j = 0, length2 = this.sandbox.getCountOf(table); j < length2; j += 1) {
+            if (!matched.r[j]) {
+              const indices = [] as number[]
+              this.pad(indices, i + 2)
+              indices.push(j)
+              rows.push(indices)
+            }
+          }
+
+          this.rows = rows
+          break
+        }
+        case 'INNER': {
+          const rows = [] as number[][]
+          for (let j = 0, length2 = this.rows.length; j < length2; j += 1) {
+            // find matched row(s)
+            for (let k = 0, length3 = this.sandbox.getCountOf(table); k < length3; k += 1) {
+              const indices = [...this.rows[j], k]
+              if (await expression.evaluate(this.sandbox, new RowCursor(this.buildRow(indices)))) rows.push(indices)
+            }
+          }
+          this.rows = rows
+          break
         }
       }
     }
-    if (count === 0) return false
-    this.buildRow()
-    return true
+    this.index = -1
+    return this.next()
   }
 
   // @override
@@ -60,41 +159,42 @@ export class TableCursor extends Cursor {
 
   // @override
   public async next(): Promise<boolean> {
+    // reset
+    this.row = undefined
+
     // increment index
-    for (let i = this.table.joinClauses.length; i >= 0; i -= 1) {
-      const table = i === 0 ? this.table.table : this.table.joinClauses[i - 1].table.table
-      let index = this.indices[table.name] + 1
-      if (index >= this.counts[table.name]) {
-        if (i === 0) return false
-        index = 0
-      }
-      if ((this.indices[table.name] = index) > 0) break
-    }
+    this.index = Math.min(this.rows.length, this.index + 1)
+    if (this.index >= this.rows.length) return false
 
     // build row
-    this.buildRow()
+    const row_ = this.rows[this.index]
+    const row = this.row = {} as any
+    this.updateRow(row, this.sandbox.getRowOf(this.table, row_[0]), this.table.table)
+    for (let i = 0, length = this.table.joinClauses.length; i < length; i += 1) {
+      const table = this.table.joinClauses[i].table
+      this.updateRow(row, this.sandbox.getRowOf(table, row_[i + 1]), table.table)
+    }
 
-    // check conditions
-    const expressions = this.table.joinClauses.reduce<CompiledConditionalExpression[]>((result, { $on }) => {
-      if ($on) result.push($on)
-      return result
-    }, [])
-    for (const expression of expressions) if (!await expression.evaluate(this.sandbox, this)) return await this.next()
     return true
   }
 
-  private getDatabase(table: CompiledFromTable): string {
-    const database = table.database || this.sandbox.defDatabase
-    if (!database) throw new NoDatabaseError()
-    return database
+  private pad(indices: number[], length: number): any {
+    for (let i = 0; i < length; i += 1) {
+      if (checkNull(indices[i])) indices[i] = -1
+    }
   }
 
-  private buildRow(): void {
-    this.row = {}
-    for (let i = this.table.joinClauses.length; i >= 0; i -= 1) {
+  private buildRow(indices: number[]): any {
+    const row = {} as any
+    for (let i = 0, length = indices.length; i < length; i += 1) {
       const table = i === 0 ? this.table : this.table.joinClauses[i - 1].table
-      const row_ = this.sandbox.getRowOf(this.getDatabase(table), table.table.name, this.indices[table.table.name])
-      for (const column of table.table.columns) this.row[column.id] = row_[column.name]
+      const index = indices[i]
+      this.updateRow(row, this.sandbox.getRowOf(table, index), table.table)
     }
+    return row
+  }
+
+  private updateRow(l: any, r: any, table: Table) {
+    for (const { id, name } of table.columns) l[id] = r[name]
   }
 }

@@ -45,25 +45,30 @@ export class Sandbox {
 
   /**
    * Get the row count of a table
-   * @param database [string]
-   * @param table [string]
+   * @param table [CompiledFromTable]
    */
-  public getCountOf(database: string, table: string): number {
+  public getCountOf(table: CompiledFromTable): number {
+    const database = table.database || this.defDatabase
+    if (!database) throw new NoDatabaseError()
+    const name = table.table.name
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
-    if (!this.context[database][table]) throw new NotFoundError(`Table ${table} not found in database ${database}`)
-    return this.context[database][table].length
+    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
+    return this.context[database][name].length
   }
 
   /**
    * Get the row of a table
-   * @param database [string]
-   * @param table [string]
+   * @param table [CompiledFromTable]
    * @param i [number]
    */
-  public getRowOf(database: string, table: string, i: number): any {
+  public getRowOf(table: CompiledFromTable, i: number): any {
+    const database = table.database || this.defDatabase
+    if (!database) throw new NoDatabaseError()
+    const name = table.table.name
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
-    if (!this.context[database][table]) throw new NotFoundError(`Table ${table} not found in database ${database}`)
-    return this.context[database][table][i]
+    if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
+    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
+    return this.context[database][name][i]
   }
 
   /**
@@ -118,7 +123,7 @@ export class Sandbox {
         }
 
         // traverse cursor
-        let intermediate = [] as any[]
+        let rows = [] as any[]
         if (await cursor.moveToFirst()) {
           do {
             check()
@@ -145,31 +150,31 @@ export class Sandbox {
                   check()
                 }
               }
-              intermediate.push(row)
+              rows.push(row)
 
               // check exists
-              if (options.exists && intermediate.length) {
+              if (options.exists && rows.length) {
                 const key = uuid()
                 return resolve({ rows: [{ [key]: true }], columns: [new Column(key, 'exists', 'boolean')], time: 0 })
               }
 
               // quick return
-              if (jql.hasShortcut && intermediate.length >= $offset + $limit) {
-                return resolve({ rows: intermediate, columns: jql.table.columns, time: 0 })
+              if (jql.hasShortcut && rows.length >= $offset + $limit) {
+                return resolve({ rows, columns: jql.table.columns, time: 0 })
               }
             }
           }
           while (await cursor.next())
           check()
         }
-        if (!intermediate.length) return resolve({ rows: intermediate, columns: [], time: 0 })
+        if (!rows.length) return resolve({ rows, columns: [], time: 0 })
 
         // TODO GROUP BY
 
         // ORDER BY
         if (jql.$order) {
           const $order = jql.$order
-          timsort.sort(intermediate, (l, r) => {
+          timsort.sort(rows, (l, r) => {
             for (const { id } of $order) {
               if (normalize(l[id]) < normalize(r[id])) return -1
               if (normalize(l[id]) > normalize(r[id])) return 1
@@ -179,17 +184,13 @@ export class Sandbox {
         }
 
         // DISTINCT
-        if (jql.$distinct) intermediate = _.sortedUniqBy(intermediate, row => jql.$select.map(({ id }) => normalize(row[id])).join(':'))
+        if (jql.$distinct) rows = _.sortedUniqBy(rows, row => jql.$select.map(({ id }) => normalize(row[id])).join(':'))
 
         // LIMIT & OFFSET
-        if (jql.$limit) intermediate = intermediate.slice($offset, $limit)
+        if (jql.$limit) rows = rows.slice($offset, $limit)
 
         return resolve({
-          rows: intermediate.map(row => {
-            const row_ = {} as any
-            for (const { id } of jql.$select) row_[id] = row[id]
-            return row_
-          }),
+          rows,
           columns: jql.table.columns,
           time: 0,
         })
