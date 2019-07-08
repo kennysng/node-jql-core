@@ -1,9 +1,10 @@
 import _ from 'lodash'
-import { ColumnExpression, Query, ResultColumn } from 'node-jql'
+import { ColumnExpression as NodeJQLColumnExpression, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '..'
 import { CompiledConditionalExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
+import { ColumnExpression } from '../expr/expressions/ColumnExpression'
 import { Column, Table } from '../table'
 import { CompiledFromTable } from './FromTable'
 import { CompiledGroupBy } from './GroupBy'
@@ -46,15 +47,15 @@ export class CompiledQuery extends Query {
 
     // analyze wildcard
     const $select = jql.$select.reduce<ResultColumn[]>((result, resultColumn) => {
-      if (resultColumn.expression instanceof ColumnExpression && resultColumn.expression.isWildcard) {
+      if (resultColumn.expression instanceof NodeJQLColumnExpression && resultColumn.expression.isWildcard) {
         if (resultColumn.expression.table) {
           const table = options_.tables[resultColumn.expression.table]
-          result.push(...table.columns.map(({ name }) => new ResultColumn(new ColumnExpression(table.name, name))))
+          result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(table.name, name))))
         }
         else {
           for (const name of options_.tablesOrder) {
             const table = options_.tables[name]
-            result.push(...table.columns.map(({ name }) => new ResultColumn(new ColumnExpression(table.name, name))))
+            result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(table.name, name))))
           }
         }
       }
@@ -83,7 +84,7 @@ export class CompiledQuery extends Query {
    */
   get table(): Table {
     return new Table(this.options.$as || uuid(), this.$select.map(({ id, expression, $as }) => {
-      const name = $as || expression.toString()
+      const name = $as || (expression instanceof ColumnExpression ? expression.name : expression.toString())
       return new Column(id, name, expression.type)
     }))
   }

@@ -45,8 +45,8 @@ test('Insert into table', async callback => {
 })
 
 test('Select all students', async callback => {
-  const { rows } = await session.query(new Query('Student'))
-  expect(rows.length).toBe(2)
+  const result = await session.query(new Query('Student'))
+  expect(result.rows.length).toBe(2)
   callback()
 })
 

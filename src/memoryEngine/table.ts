@@ -130,7 +130,7 @@ export class Table implements ICreateTableJQL {
     // set args
     this.$temporary = $temporary
     this.name = name
-    this.columns = columns.map(column => new Column(column.toJson()))
+    this.columns = columns.map(column => column instanceof Column ? column : new Column(column.toJson()))
     if (constraints) this.constraints = Array.isArray(constraints) ? constraints : [constraints]
     if (options.length) this.options = options
   }
