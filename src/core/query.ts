@@ -61,7 +61,7 @@ export class PreparedQuery extends Query {
       if (table instanceof Query) this.registerUnknown(table)
       for (const { table, $on } of joinClauses) {
         if (table.table instanceof Query) this.registerUnknown(table.table)
-        this.registerUnknown($on)
+        if ($on) this.registerUnknown($on)
       }
     }
     else if (jql instanceof GroupBy) {

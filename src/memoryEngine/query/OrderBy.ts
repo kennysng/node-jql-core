@@ -1,4 +1,5 @@
 import { OrderBy } from 'node-jql'
+import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '..'
 import { CompiledExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
@@ -7,6 +8,10 @@ import { compile, ICompileOptions } from '../expr/compile'
  * Analyze ORDER BY statement
  */
 export class CompiledOrderBy extends OrderBy {
+  /**
+   * Column ID
+   */
+  public readonly id = uuid()
   public readonly expression: CompiledExpression
   public readonly order: 'ASC'|'DESC'
 

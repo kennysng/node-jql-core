@@ -1,5 +1,5 @@
 import moment = require('moment')
-import { Column, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, InsertJQL, Type } from 'node-jql'
+import { Column, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, InsertJQL, Query, Type } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Session } from '../core/session'
@@ -41,6 +41,12 @@ test('Insert into table', async callback => {
     { id: 1, name: 'Kennys Ng', gender: 'M', birthday: moment('1992-04-21').toDate(), admittedAt: new Date() },
     { id: 2, name: 'Kirino Chiba', gender: 'F', birthday: moment('1992-06-08').toDate(), admittedAt: new Date() },
   ))
+  callback()
+})
+
+test('Select all students', async callback => {
+  const { rows } = await session.query(new Query('Student'))
+  expect(rows.length).toBe(2)
   callback()
 })
 

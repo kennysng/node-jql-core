@@ -1,11 +1,12 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
 import { CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, Query } from 'node-jql'
 import uuid = require('uuid/v4')
-import { ApplicationCore, TEMP_DB_NAME } from '.'
+import { ApplicationCore } from '.'
 import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
+import { TEMP_DB_NAME } from './constants'
 import { AnalyzedQuery, PreparedQuery } from './query'
 import { IQueryResult, IUpdateResult } from './result'
 import { StatusCode, Task } from './task'

@@ -47,7 +47,7 @@ export class ExistsExpression extends CompiledConditionalExpression implements I
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {
-    const { rows } = await sandbox.run(this.query, { cursor })
+    const { rows } = await sandbox.run(this.query, { exists: true, cursor })
     let result = rows.length > 0
     if (this.$not) result = !result
     return result

@@ -11,7 +11,7 @@ import { Column, Table } from '../table'
 export class CompiledJoinClause extends JoinClause {
   public readonly operator: JoinOperator
   public readonly table: CompiledFromTable
-  public readonly $on: CompiledConditionalExpression
+  public readonly $on?: CompiledConditionalExpression
 
   /**
    * @param engine [InMemoryDatabaseEngine]
@@ -21,7 +21,7 @@ export class CompiledJoinClause extends JoinClause {
   constructor(engine: InMemoryDatabaseEngine, jql: JoinClause, options: ICompileOptions) {
     super(jql)
     this.table = new CompiledFromTable(engine, jql.table, options)
-    this.$on = compile(engine, jql.$on, options)
+    if (jql.$on) this.$on = compile(engine, jql.$on, options)
   }
 }
 

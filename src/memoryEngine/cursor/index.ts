@@ -1,3 +1,6 @@
+/**
+ * Simulate Java's Cursor class
+ */
 export abstract class Cursor {
   /**
    * Move the cursor to the head

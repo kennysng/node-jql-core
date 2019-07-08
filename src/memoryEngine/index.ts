@@ -1,6 +1,7 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { AxiosInstance } from 'axios'
 import { checkNull, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize } from 'node-jql'
+import { TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
 import { AnalyzedQuery } from '../core/query'
 import { IQueryResult, IUpdateResult } from '../core/result'
@@ -39,9 +40,9 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   public readonly functions = functions
 
-  private readonly context: { [key: string]: { __tables: Table[], [key: string]: any[] } } = {}
+  protected readonly context: { [key: string]: { __tables: Table[], [key: string]: any[] } } = {}
 
-  constructor(private readonly options: IInMemoryOptions = {}) {
+  constructor(protected readonly options: IInMemoryOptions = {}) {
     super()
   }
 
@@ -56,17 +57,20 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   }
 
   // @override
-  public async retrieveRowsFor(database: string, table: string): Promise<any[]> {
+  public retrieveRowsFor(database: string, table: string): CancelablePromise<any[]> {
     this.checkInited()
-    this.checkTable(database, table)
-    return this.context[database][table]
+    return new CancelablePromise(resolve => {
+      this.checkTable(database, table)
+      return resolve(this.context[database][table])
+    })
   }
 
   // @override
-  public async getCountOf(database: string, table: string): Promise<number> {
-    this.checkInited()
-    this.checkTable(database, table)
-    return this.context[database][table].length
+  public getCountOf(database: string, table: string): CancelablePromise<number> {
+    return new CancelablePromise(this.retrieveRowsFor(database, table), async (promise, resolve) => {
+      const rows = await promise
+      return resolve(rows.length)
+    })
   }
 
   /**
@@ -90,7 +94,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       let count = 0
       if (checkNull(this.context[name])) {
         this.context[name] = { __tables: [] }
-        if (this.options.logger) this.options.logger.info(`Database ${name} created`)
+        if (this.options.logger) this.options.logger.info(`Database ${name === TEMP_DB_NAME ? 'TEMP_DB_NAME' : name} created`)
         count = 1
       }
 
@@ -163,6 +167,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const result = await promise
 
           // return
+          if (this.options.logger) this.options.logger.info(jql.toString())
           task.status(StatusCode.ENDING)
           return resolve(result)
         }
@@ -177,20 +182,36 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     )
   }
 
-  private checkInited(): void {
+  /**
+   * Check if engine initialized
+   */
+  protected checkInited(): void {
     if (!this.inited) throw new NotInitedError(InMemoryDatabaseEngine)
   }
 
-  private checkDatabase(database: string): void {
+  /**
+   * Check database exists
+   * @param database [string]
+   */
+  protected checkDatabase(database: string): void {
     if (checkNull(this.context[database])) throw new NotFoundError(`Database ${database} not found`)
   }
 
-  private checkTable(database: string, table: string): void {
+  /**
+   * Check table exists in database
+   * @param database [string]
+   * @param table [string]
+   */
+  protected checkTable(database: string, table: string): void {
     this.checkDatabase(database)
     if (!this.context[database].__tables.find(({ name }) => name === table)) throw new NotFoundError(`Table ${table} not found in database ${database}`)
   }
 
-  private createTable(jql: CreateTableJQL): TaskFn<IUpdateResult> {
+  /**
+   * Create table
+   * @param jql [CreateTableJQL]
+   */
+  protected createTable(jql: CreateTableJQL): TaskFn<IUpdateResult> {
     // parse args
     const { $temporary, database, name, $ifNotExists, columns, constraints, options } = jql
 
@@ -231,7 +252,11 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     })
   }
 
-  private dropTable(jql: DropTableJQL): TaskFn<IUpdateResult> {
+  /**
+   * Drop table
+   * @param jql [DropTableJQL]
+   */
+  protected dropTable(jql: DropTableJQL): TaskFn<IUpdateResult> {
     // parse args
     const { database, name, $ifExists } = jql
 
@@ -268,7 +293,11 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     })
   }
 
-  private insert(jql: InsertJQL): TaskFn<IUpdateResult> {
+  /**
+   * Insert into table
+   * @param jql [InsertJQL]
+   */
+  protected insert(jql: InsertJQL): TaskFn<IUpdateResult> {
     // parse args
     const { database, name, values } = jql
 

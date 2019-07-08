@@ -1,3 +1,4 @@
+import { CancelablePromise } from '@kennysng/c-promise'
 import { JQL } from 'node-jql'
 import { AnalyzedQuery } from './query'
 import { IQueryResult, IUpdateResult } from './result'
@@ -20,14 +21,14 @@ export abstract class DatabaseEngine {
    * @param database [string] database name
    * @param table [string] table name
    */
-  public abstract async retrieveRowsFor(database: string, table: string): Promise<any[]>
+  public abstract retrieveRowsFor(database: string, table: string): CancelablePromise<any[]>
 
   /**
    * Get the row count of a table
    * @param database [string] database name
    * @param table [string] table name
    */
-  public abstract async getCountOf(database: string, table: string): Promise<number>
+  public abstract getCountOf(database: string, table: string): CancelablePromise<number>
 
   /**
    * Create a database

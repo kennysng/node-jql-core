@@ -1,23 +1,18 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
 import { CreateDatabaseJQL, DropDatabaseJQL, JQLError } from 'node-jql'
-import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '../memoryEngine'
 import { ExistsError } from '../utils/error/ExistsError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { SessionError } from '../utils/error/SessionError'
+import { TEMP_DB_NAME } from './constants'
 import { Database } from './database'
 import { DatabaseEngine } from './engine'
 import { IUpdateResult } from './result'
 import { Session } from './session'
 import { StatusCode, Task } from './task'
 
-const DEFAULT_ENGINE = new InMemoryDatabaseEngine()
-
-/**
- * Name of the temporary database
- */
-export const TEMP_DB_NAME = uuid()
+let DEFAULT_IN_MEMORY_ENGINE: InMemoryDatabaseEngine
 
 /**
  * Application options
@@ -27,6 +22,11 @@ export interface IApplicationOptions {
    * Default engine used when creating database if not specified
    */
   defaultEngine?: DatabaseEngine
+
+  /**
+   * Default in-memory engine used
+   */
+  defaultInMemoryEngine?: InMemoryDatabaseEngine
 }
 
 /**
@@ -43,9 +43,10 @@ export class ApplicationCore {
    * @param options [IApplicationOptions]
    */
   constructor(public readonly options: IApplicationOptions = {}) {
-    const defaultEngine = options.defaultEngine || DEFAULT_ENGINE
+    DEFAULT_IN_MEMORY_ENGINE = options.defaultInMemoryEngine || new InMemoryDatabaseEngine()
+    const defaultEngine = options.defaultEngine || DEFAULT_IN_MEMORY_ENGINE
     this.register('DEFAULT_ENGINE', defaultEngine)
-    this.register('InMemoryEngine', defaultEngine instanceof InMemoryDatabaseEngine ? defaultEngine : DEFAULT_ENGINE)
+    this.register('InMemoryEngine', defaultEngine instanceof InMemoryDatabaseEngine ? defaultEngine : DEFAULT_IN_MEMORY_ENGINE)
   }
 
   /**
