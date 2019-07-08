@@ -30,7 +30,7 @@ export class CompiledQuery extends Query {
    * @param jql [AnalyzedQuery]
    * @param options [ICompileOptions] optional
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: Query, options: Partial<ICompileOptions> = {}) {
+  constructor(engine: InMemoryDatabaseEngine, private readonly jql: Query, options: Partial<ICompileOptions> = {}) {
     super(jql)
 
     // initialize options
@@ -87,5 +87,15 @@ export class CompiledQuery extends Query {
       const name = $as || (expression instanceof ColumnExpression ? expression.name : expression.toString())
       return new Column(id, name, expression.type)
     }))
+  }
+
+  // @override
+  get isQuick(): boolean {
+    return this.jql.isQuick
+  }
+
+  // @override
+  get isQuickCount(): boolean {
+    return this.jql.isQuickCount
   }
 }
