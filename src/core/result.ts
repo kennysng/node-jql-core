@@ -1,5 +1,7 @@
 import { IJQL } from 'node-jql'
+import { ArrayCursor, Cursor } from '../memoryEngine/cursor'
 import { Column } from '../memoryEngine/table'
+import { NotFoundError } from '../utils/error/NotFoundError'
 
 /**
  * Base result structure
@@ -35,5 +37,27 @@ export interface IQueryResult extends IResult {
   /**
    * Result structure
    */
-  columns: Column[]
+  columns?: Column[]
+}
+
+/**
+ * Handle query result
+ */
+export class Resultset extends ArrayCursor {
+  /**
+   * @param result [IQueryResult]
+   */
+  constructor(private readonly result: IQueryResult) {
+    super(result.rows)
+  }
+
+  // @override
+  public async get<T = any>(key: string): Promise<T> {
+    if (this.result.columns) {
+      const column = this.result.columns.find(({ name }) => key === name)
+      if (!column) throw new NotFoundError(`Key not found in cursor: ${key}`)
+      key = column.id
+    }
+    return super.get(key)
+  }
 }

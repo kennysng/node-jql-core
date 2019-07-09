@@ -1,9 +1,12 @@
 import moment = require('moment')
-import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, InExpression, InsertJQL, Query, ResultColumn, Type } from 'node-jql'
+import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FunctionExpression, InExpression, InsertJQL, Query, ResultColumn, Type } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
+import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
+import { JQLAggregateFunction } from './function'
+import { SumFunction } from './function/numeric/aggregate/sum'
 
 let core: ApplicationCore
 let session: Session
@@ -78,21 +81,32 @@ test('Select all students', async callback => {
   callback()
 })
 
+test('Select number of students', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('id'))),
+    $from: 'Student',
+  })))
+  expect(await result.moveToFirst()).toBe(true)
+  expect(await result.get('COUNT(id)')).toBe(2)
+  callback()
+})
+
 test('Select students in Kendo Club', async callback => {
-  const result = await session.query(new Query({
+  const result = new Resultset(await session.query(new Query({
     $from: 'Student',
     $where: new InExpression(new ColumnExpression('id'), false, new Query(
       [new ResultColumn('studentId')],
       'ClubMember',
       new BinaryExpression(new ColumnExpression('clubId'), '=', 1),
     )),
-  }))
-  expect(result.rows.length).toBe(1)
+  })))
+  expect(await result.moveToFirst()).toBe(true)
+  expect(await result.get('name')).toBe('Kirino Chiba')
   callback()
 })
 
 test('Select students with warning(s)', async callback => {
-  const result = await session.query(new Query({
+  const result = new Resultset(await session.query(new Query({
     $from: 'Student',
     $where: new ExistsExpression(new Query(
       [new ResultColumn('*')],
@@ -103,8 +117,9 @@ test('Select students with warning(s)', async callback => {
         new ColumnExpression('Warning', 'studentId'),
       ),
     )),
-  }))
-  expect(result.rows.length).toBe(1)
+  })))
+  expect(await result.moveToFirst()).toBe(true)
+  expect(await result.get('name')).toBe('Kennys Ng')
   callback()
 })
 

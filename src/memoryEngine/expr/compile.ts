@@ -3,6 +3,8 @@ import { ConditionalExpression, Expression } from 'node-jql'
 import { CompiledConditionalExpression, CompiledExpression } from '.'
 import { InMemoryDatabaseEngine } from '..'
 import { Table } from '../table'
+import { ColumnExpression } from './expressions/ColumnExpression'
+import { FunctionExpression } from './expressions/FunctionExpression'
 
 /**
  * Options required for compilation
@@ -32,6 +34,16 @@ export interface ICompileOptions {
    * Table order
    */
   tablesOrder: string[]
+
+  /**
+   * Columns required
+   */
+  columns: ColumnExpression[]
+
+  /**
+   * List of aggregate functions used
+   */
+  aggregateFunctions: FunctionExpression[]
 }
 
 /**

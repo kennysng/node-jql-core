@@ -8,7 +8,7 @@ import { Sandbox } from '../sandbox'
 import { Table } from '../table'
 import { DummyCursor } from './dummy'
 
-class RowCursor extends DummyCursor {
+export class RowCursor extends DummyCursor {
   constructor(private readonly row: any) {
     super()
   }

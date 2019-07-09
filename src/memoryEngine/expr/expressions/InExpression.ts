@@ -6,6 +6,7 @@ import { Cursor } from '../../cursor'
 import { FixedCursor } from '../../cursor/fixed'
 import { CompiledQuery } from '../../query'
 import { Sandbox } from '../../sandbox'
+import { Column } from '../../table'
 import { compile, ICompileOptions } from '../compile'
 import { BinaryExpression } from './BinaryExpression'
 
@@ -39,8 +40,9 @@ export class InExpression extends BinaryExpression implements IInExpression {
     let right: any[]
     if (this.right instanceof CompiledQuery) {
       const result = await sandbox.run(this.right, { cursor: new FixedCursor(cursor) })
-      if (result.columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
-      right = result.rows.map(row => row[result.columns[0].id])
+      const columns = result.columns as Column[]
+      if (columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
+      right = result.rows.map(row => row[columns[0].id])
     }
     else {
       right = await this.right.evaluate(sandbox, cursor)

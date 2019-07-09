@@ -40,6 +40,9 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
     if (!column) throw new SyntaxError(`Column ${jql.name} is not found ${jql.table ? `in table ${jql.table}` : '' }`)
     this.key = column.id
     this.type = column.type
+
+    // register column
+    if (!options.columns.find(({ key }) => key === this.key)) options.columns.push(this)
   }
 
   // @override

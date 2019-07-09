@@ -1,5 +1,7 @@
+import { expression } from '@babel/template'
 import { CancelablePromise } from '@kennysng/c-promise'
 import _ from 'lodash'
+import { checkNull } from 'node-jql'
 import { normalize } from 'path'
 import timsort = require('timsort')
 import uuid = require('uuid/v4')
@@ -8,10 +10,10 @@ import { TEMP_DB_NAME } from '../core/constants'
 import { IQueryResult } from '../core/result'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
-import { Cursor } from './cursor'
+import { ArrayCursor, Cursor } from './cursor'
 import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
-import { TableCursor } from './cursor/table'
+import { RowCursor, TableCursor } from './cursor/table'
 import { UnionCursor } from './cursor/union'
 import { CompiledQuery } from './query'
 import { CompiledFromTable } from './query/FromTable'
@@ -98,7 +100,7 @@ export class Sandbox {
         const columns = jql.table.columns
 
         if (jql.isQuickCount) {
-          rows = [{ [columns[0].name]: rows.length }]
+          rows = [{ [columns[0].id]: rows.length }]
         }
         else {
           rows = rows.map(row => {
@@ -123,32 +125,44 @@ export class Sandbox {
         let rows = [] as any[]
         if (await cursor.moveToFirst()) {
           do {
-            if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
             check()
+            if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
 
             if (!jql.$where || await jql.$where.evaluate(this, cursor)) {
               check()
 
               const row = {} as any
-              for (const { id, expression } of jql.$select) {
-                row[id] = await expression.evaluate(this, cursor)
-                check()
+              rows.push(row)
+
+              // registered columns
+              for (const expression of jql.options.columns) {
+                if (checkNull(row[expression.key])) {
+                  row[expression.key] = await expression.evaluate(this, cursor)
+                  check()
+                }
               }
+
+              // GROUP BY columns
               if (jql.$group) {
                 for (let i = 0, length = jql.$group.expressions.length; i < length; i += 1) {
                   const id = jql.$group.id[i]
                   const expression = jql.$group.expressions[i]
-                  row[id] = await expression.evaluate(this, cursor)
-                  check()
+                  if (checkNull(row[id])) {
+                    row[id] = await expression.evaluate(this, cursor)
+                    check()
+                  }
                 }
               }
+
+              // ORDER BY columns
               if (jql.$order) {
                 for (const { id, expression } of jql.$order) {
-                  row[id] = await expression.evaluate(this, cursor)
-                  check()
+                  if (checkNull(row[id])) {
+                    row[id] = await expression.evaluate(this, cursor)
+                    check()
+                  }
                 }
               }
-              rows.push(row)
 
               // check exists
               if (options.exists && rows.length) {
@@ -167,7 +181,31 @@ export class Sandbox {
         }
         if (!rows.length) return resolve({ rows, columns: [], time: 0 })
 
-        // TODO GROUP BY
+        // GROUP BY
+        if (jql.needAggregate) {
+          let intermediate: _.Dictionary<any[]> = { __DEFAULT__: rows }
+          if (jql.$group) {
+            const $group = jql.$group
+            intermediate = _.groupBy(rows, row => $group.id.map(id => normalize(row[id])).join(':'))
+          }
+          const promises = Object.keys(intermediate).map(async key => {
+            let row = {} as any
+            for (const expression of jql.options.aggregateFunctions) {
+              const cursor = new ArrayCursor(intermediate[key])
+              await cursor.moveToFirst()
+              check()
+              row[expression.id] = await expression.evaluate(this, cursor)
+              check()
+            }
+            row = Object.assign({}, intermediate[key][0], row)
+            if (!jql.$group || !jql.$group.$having || await jql.$group.$having.evaluate(this, new RowCursor(row))) {
+              check()
+              return row
+            }
+          })
+          rows = (await Promise.all(promises)).filter(row => !checkNull(row))
+          check()
+        }
 
         // ORDER BY
         if (jql.$order) {
@@ -179,6 +217,26 @@ export class Sandbox {
             }
             return 0
           })
+        }
+
+        // SELECT
+        cursor = new ArrayCursor(rows)
+        rows = []
+        if (await cursor.moveToFirst()) {
+          do {
+            check()
+            const row = {} as any
+            rows.push(row)
+
+            // selected columns
+            for (const { id, expression } of jql.$select) {
+              if (checkNull(row[id])) {
+                row[id] = await expression.evaluate(this, cursor)
+                check()
+              }
+            }
+          }
+          while (await cursor.next())
         }
 
         // DISTINCT
@@ -226,7 +284,7 @@ export class Sandbox {
       this.context[TEMP_DB_NAME].__tables.push(table)
       this.context[TEMP_DB_NAME][table.name] = result.rows.map(row => {
         const row_ = {} as any
-        for (const { id, name } of result.columns) row_[name] = row[id]
+        for (const { id, name } of result.columns as Column[]) row_[name] = row[id]
         return row_
       })
     }

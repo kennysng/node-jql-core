@@ -3,6 +3,7 @@ import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '..'
 import { CompiledConditionalExpression, CompiledExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
+import { ColumnExpression } from '../expr/expressions/ColumnExpression'
 
 /**
  * Analyze GROUP BY statement
@@ -22,5 +23,10 @@ export class CompiledGroupBy extends GroupBy {
     this.id = jql.expressions.map(() => uuid())
     this.expressions = jql.expressions.map(jql => compile(engine, jql, options))
     if (jql.$having) this.$having = compile(engine, jql.$having, options)
+
+    for (let i = 0, length = this.expressions.length; i < length; i += 1) {
+      const expression = this.expressions[i]
+      if (expression instanceof ColumnExpression) this.id[i] = expression.key
+    }
   }
 }

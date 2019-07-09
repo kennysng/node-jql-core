@@ -1,5 +1,6 @@
-import { FunctionExpression as NodeJQLFunctionExpression, IFunctionExpression, Type } from 'node-jql'
+import { checkNull, FunctionExpression as NodeJQLFunctionExpression, IFunctionExpression, Type } from 'node-jql'
 import squel = require('squel')
+import uuid = require('uuid/v4')
 import { CompiledExpression } from '..'
 import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
@@ -14,6 +15,7 @@ import { ParameterExpression } from './ParameterExpression'
 export class FunctionExpression extends CompiledExpression implements IFunctionExpression {
   public readonly classname = FunctionExpression.name
 
+  public readonly id = uuid()
   public readonly parameters: ParameterExpression[]
   public readonly function: JQLFunction
 
@@ -30,6 +32,9 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
 
     // interpret parameters
     this.function.interpret(this.parameters)
+
+    // register aggregate function
+    if (this.function instanceof JQLAggregateFunction) options.aggregateFunctions.push(this)
   }
 
   // @override
@@ -61,8 +66,13 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     let args: any[] = []
     if (this.function instanceof JQLAggregateFunction) {
-      do { args.push(await this.parameters[0].evaluate(sandbox, cursor)) }
-      while (await cursor.next())
+      const value = await cursor.get(this.id)
+      if (!checkNull(value)) return value
+
+      if (await cursor.moveToFirst()) {
+        do { args.push(await this.parameters[0].evaluate(sandbox, cursor)) }
+        while (await cursor.next())
+      }
     }
     else {
       args = await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))

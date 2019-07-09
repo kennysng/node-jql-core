@@ -148,6 +148,8 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     return task => new CancelablePromise(
       new Sandbox(this, jql.defDatabase).run(compiled),
       async (promise, resolve, reject, check) => {
+        const start = Date.now()
+
         // check canceled
         check()
 
@@ -167,7 +169,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const result = await promise
 
           // return
-          if (this.options.logger) this.options.logger.info(jql.toString())
+          if (this.options.logger) this.options.logger.info(jql.toString(), `${Date.now() - start}ms`)
           task.status(StatusCode.ENDING)
           return resolve(result)
         }
@@ -305,6 +307,8 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     if (!database) throw new InMemoryError('No database is selected')
 
     return task => new CancelablePromise(async (resolve, reject, check) => {
+      const start = Date.now()
+
       task.status(StatusCode.RUNNING)
 
       try {
@@ -341,7 +345,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           context.push(...nValues)
 
           // return
-          if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`)
+          if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `${Date.now() - start}ms`)
           return resolve({ count: nValues.length, time: 0 })
         }
         finally {

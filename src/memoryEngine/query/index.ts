@@ -1,10 +1,23 @@
 import _ from 'lodash'
-import { ColumnExpression as NodeJQLColumnExpression, Query, ResultColumn } from 'node-jql'
+import { ColumnExpression as NodeJQLColumnExpression, JQL, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '..'
 import { CompiledConditionalExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
+import { AndExpressions } from '../expr/expressions/AndExpressions'
+import { BetweenExpression } from '../expr/expressions/BetweenExpression'
+import { BinaryExpression } from '../expr/expressions/BinaryExpression'
+import { CaseExpression } from '../expr/expressions/CaseExpression'
 import { ColumnExpression } from '../expr/expressions/ColumnExpression'
+import { ExistsExpression } from '../expr/expressions/ExistsExpression'
+import { FunctionExpression } from '../expr/expressions/FunctionExpression'
+import { InExpression } from '../expr/expressions/InExpression'
+import { IsNullExpression } from '../expr/expressions/IsNullExpression'
+import { LikeExpression } from '../expr/expressions/LikeExpression'
+import { MathExpression } from '../expr/expressions/MathExpression'
+import { OrExpressions } from '../expr/expressions/OrExpressions'
+import { ParameterExpression } from '../expr/expressions/ParameterExpression'
+import { JQLAggregateFunction } from '../function'
 import { Column, Table } from '../table'
 import { CompiledFromTable } from './FromTable'
 import { CompiledGroupBy } from './GroupBy'
@@ -37,6 +50,8 @@ export class CompiledQuery extends Query {
     const options_ = this.options = {
       tables: {},
       tablesOrder: [],
+      columns: [],
+      aggregateFunctions: [],
       ...options,
     }
 
@@ -67,16 +82,16 @@ export class CompiledQuery extends Query {
     this.$select = $select.map(jql => new CompiledResultColumn(engine, jql, options_))
 
     // analyze WHERE conditions
-    if (jql.$where) this.$where = compile(engine, jql.$where, options_)
+    if (jql.$where) this.$where = compile(engine, jql.$where, { ...options_, columns: [] })
 
     // analyze GROUP BY statement
-    if (jql.$group) this.$group = new CompiledGroupBy(engine, jql.$group, options_)
+    if (jql.$group) this.$group = new CompiledGroupBy(engine, jql.$group, { ...options_, columns: [] })
 
     // analyze ORDER BY statement
-    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(engine, jql, options_))
+    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(engine, jql, { ...options_, columns: [] }))
 
     // analyze OFFSET statement
-    if (jql.$limit) this.$limit = new CompiledLimitOffset(engine, jql.$limit, options_)
+    if (jql.$limit) this.$limit = new CompiledLimitOffset(engine, jql.$limit, { ...options_, columns: [] })
   }
 
   /**
@@ -87,6 +102,14 @@ export class CompiledQuery extends Query {
       const name = $as || (expression instanceof ColumnExpression ? expression.name : expression.toString())
       return new Column(id, name, expression.type)
     }))
+  }
+
+  /**
+   * Check aggregation required
+   */
+  get needAggregate(): boolean {
+    for (const { expression } of this.$select) if (this.checkAggregate(expression)) return true
+    return false
   }
 
   // @override
@@ -102,5 +125,47 @@ export class CompiledQuery extends Query {
   // @override
   public toString(): string {
     return this.jql.toString()
+  }
+
+  private checkAggregate(jql: JQL): boolean {
+    if (jql instanceof CompiledQuery) {
+      return jql.needAggregate
+    }
+    else if (jql instanceof AndExpressions || jql instanceof OrExpressions) {
+      const { expressions } = jql
+      for (const expression of expressions) if (this.checkAggregate(expression)) return true
+    }
+    else if (jql instanceof BetweenExpression) {
+      const { left, start, end } = jql
+      return this.checkAggregate(left) || this.checkAggregate(start) || this.checkAggregate(end)
+    }
+    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+      const { left, right } = jql
+      return this.checkAggregate(left) || this.checkAggregate(right)
+    }
+    else if (jql instanceof CaseExpression) {
+      const { cases, $else } = jql
+      for (const { $when, $then } of cases) if (this.checkAggregate($when) || this.checkAggregate($then)) return true
+      if ($else) return this.checkAggregate($else)
+    }
+    else if (jql instanceof ExistsExpression) {
+      return this.checkAggregate(jql.query)
+    }
+    else if (jql instanceof FunctionExpression) {
+      return jql.function instanceof JQLAggregateFunction
+    }
+    else if (jql instanceof InExpression) {
+      const { right } = jql
+      return this.checkAggregate(right)
+    }
+    else if (jql instanceof IsNullExpression) {
+      const { left } = jql
+      return this.checkAggregate(left)
+    }
+    else if (jql instanceof ParameterExpression) {
+      const { expression } = jql
+      return this.checkAggregate(expression)
+    }
+    return false
   }
 }
