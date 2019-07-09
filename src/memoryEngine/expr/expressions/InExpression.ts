@@ -3,6 +3,7 @@ import { CompiledExpression } from '..'
 import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
+import { FixedCursor } from '../../cursor/fixed'
 import { CompiledQuery } from '../../query'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -14,7 +15,7 @@ import { BinaryExpression } from './BinaryExpression'
 export class InExpression extends BinaryExpression implements IInExpression {
   public readonly classname = InExpression.name
 
-  public readonly operator = 'IN'
+  public readonly operator: 'IN'
   public readonly right: CompiledExpression|CompiledQuery
 
   /**
@@ -37,7 +38,7 @@ export class InExpression extends BinaryExpression implements IInExpression {
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {
     let right: any[]
     if (this.right instanceof CompiledQuery) {
-      const result = await sandbox.run(this.right, { cursor })
+      const result = await sandbox.run(this.right, { cursor: new FixedCursor(cursor) })
       if (result.columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
       right = result.rows.map(row => row[result.columns[0].id])
     }

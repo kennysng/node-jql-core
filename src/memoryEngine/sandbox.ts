@@ -12,6 +12,7 @@ import { Cursor } from './cursor'
 import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
 import { TableCursor } from './cursor/table'
+import { UnionCursor } from './cursor/union'
 import { CompiledQuery } from './query'
 import { CompiledFromTable } from './query/FromTable'
 import { Column, Table } from './table'
@@ -116,20 +117,13 @@ export class Sandbox {
         check()
 
         // build cursor
-        let cursor: Cursor = new DummyCursor()
-        if (jql.$from) {
-          const cursors: Cursor[] = jql.$from.map(table => new TableCursor(this, table))
-          if (options.cursor) cursors.unshift(options.cursor)
-          cursor = new Cursors(...cursors)
-        }
-        else if (options.cursor) {
-          cursor = options.cursor
-        }
+        let cursor: Cursor = jql.$from ? new Cursors(...jql.$from.map(table => new TableCursor(this, table))) : new DummyCursor()
 
         // traverse cursor
         let rows = [] as any[]
         if (await cursor.moveToFirst()) {
           do {
+            if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
             check()
 
             if (!jql.$where || await jql.$where.evaluate(this, cursor)) {

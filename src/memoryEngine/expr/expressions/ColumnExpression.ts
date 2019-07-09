@@ -37,7 +37,7 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
         column = column_
       }
     }
-    if (!column) throw new SyntaxError(`Column ${jql.name} is not found in table ${jql.table}`)
+    if (!column) throw new SyntaxError(`Column ${jql.name} is not found ${jql.table ? `in table ${jql.table}` : '' }`)
     this.key = column.id
     this.type = column.type
   }

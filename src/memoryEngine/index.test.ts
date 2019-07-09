@@ -1,5 +1,5 @@
 import moment = require('moment')
-import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, InsertJQL, Query, ResultColumn, Type } from 'node-jql'
+import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, InExpression, InsertJQL, Query, ResultColumn, Type } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Session } from '../core/session'
@@ -38,6 +38,19 @@ test('Create table', async callback => {
     new Column<Type>('studentId', 'number', false),
     new Column<Type>('createdAt', 'Date', false),
   ]))
+  await session.update(new CreateTableJQL('Club', [
+    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new Column<Type>('name', 'string', false),
+    new Column<Type>('createdAt', 'Date', false),
+    new Column<Type>('deletedAt', 'Date', true),
+  ]))
+  await session.update(new CreateTableJQL('ClubMember', [
+    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new Column<Type>('clubId', 'number', false),
+    new Column<Type>('studentId', 'number', false),
+    new Column<Type>('joinAt', 'Date', false),
+    new Column<Type>('leaveAt', 'Date', true),
+  ]))
   callback()
 })
 
@@ -50,12 +63,31 @@ test('Insert into table', async callback => {
     { id: 1, studentId: 1, createdAt: moment('2010-07-08').toDate() },
     { id: 2, studentId: 1, createdAt: moment('2011-05-31').toDate() },
   ))
+  await session.update(new InsertJQL('Club',
+    { id: 1, name: 'Kendo Club', createdAt: moment('2000-04-04').toDate() },
+  ))
+  await session.update(new InsertJQL('ClubMember',
+    { id: 1, clubId: 1, studentId: 2, joinAt: new Date() },
+  ))
   callback()
 })
 
 test('Select all students', async callback => {
   const result = await session.query(new Query('Student'))
   expect(result.rows.length).toBe(2)
+  callback()
+})
+
+test('Select students in Kendo Club', async callback => {
+  const result = await session.query(new Query({
+    $from: 'Student',
+    $where: new InExpression(new ColumnExpression('id'), false, new Query(
+      [new ResultColumn('studentId')],
+      'ClubMember',
+      new BinaryExpression(new ColumnExpression('clubId'), '=', 1),
+    )),
+  }))
+  expect(result.rows.length).toBe(1)
   callback()
 })
 
