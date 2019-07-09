@@ -11,7 +11,7 @@ export abstract class Cursor {
    * Get the targeted value
    * @param key [string]
    */
-  public abstract async get<T>(key: string): Promise<T>
+  public abstract async get<T = any>(key: string): Promise<T>
 
   /**
    * Move the cursor forward

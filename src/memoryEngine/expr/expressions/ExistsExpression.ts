@@ -3,6 +3,7 @@ import squel = require('squel')
 import { CompiledConditionalExpression } from '..'
 import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { FixedCursor } from '../../cursor/fixed'
 import { CompiledQuery } from '../../query'
 import { Sandbox } from '../../sandbox'
 import { ICompileOptions } from '../compile'
@@ -47,7 +48,7 @@ export class ExistsExpression extends CompiledConditionalExpression implements I
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {
-    const { rows } = await sandbox.run(this.query, { exists: true, cursor })
+    const { rows } = await sandbox.run(this.query, { exists: true, cursor: new FixedCursor(cursor) })
     let result = rows.length > 0
     if (this.$not) result = !result
     return result

@@ -118,8 +118,12 @@ export class Sandbox {
         // build cursor
         let cursor: Cursor = new DummyCursor()
         if (jql.$from) {
-          const cursors = jql.$from.map(table => new TableCursor(this, table))
+          const cursors: Cursor[] = jql.$from.map(table => new TableCursor(this, table))
+          if (options.cursor) cursors.unshift(options.cursor)
           cursor = new Cursors(...cursors)
+        }
+        else if (options.cursor) {
+          cursor = options.cursor
         }
 
         // traverse cursor

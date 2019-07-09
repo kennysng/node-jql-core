@@ -37,6 +37,7 @@ export class TableCursor extends Cursor {
 
   // @override
   public async moveToFirst(): Promise<boolean> {
+    this.rows = []
     for (let i = 0, length = this.sandbox.getCountOf(this.table); i < length; i += 1) this.rows.push([i])
     for (let i = 0, length = this.table.joinClauses.length; i < length; i += 1) {
       const { operator, table, $on } = this.table.joinClauses[i]
@@ -152,7 +153,7 @@ export class TableCursor extends Cursor {
   }
 
   // @override
-  public async get<T>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T> {
     if (!this.row) throw new InMemoryError('Cursor is not ready. Please call moveToFirst() first')
     return this.row[key]
   }

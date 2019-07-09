@@ -1,10 +1,16 @@
 import { Cursor } from '.'
-import { NotFoundError } from '../../utils/error/NotFoundError'
 
 /**
- * An empty cursor with a dummy row
+ * Lock a cursor i.e. cannot next()
  */
-export class DummyCursor extends Cursor {
+export class FixedCursor extends Cursor {
+  /**
+   * @param cursor [Cursor]
+   */
+  constructor(private readonly cursor: Cursor) {
+    super()
+  }
+
   // @override
   public async moveToFirst(): Promise<boolean> {
     return true
@@ -12,7 +18,7 @@ export class DummyCursor extends Cursor {
 
   // @override
   public async get<T = any>(key: string): Promise<T> {
-    throw new NotFoundError(`Key not found in cursor: ${key}`)
+    return this.cursor.get(key)
   }
 
   // @override

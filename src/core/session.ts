@@ -135,7 +135,7 @@ export class Session {
   public close(force?: boolean): void {
     this.checkClosed()
     if (force) for (const { id } of this.tasks) this.kill(id)
-    if (this.tasks.length) throw new SessionError('Session is not idle')
+    else if (this.tasks.length) throw new SessionError('Session is not idle')
     this.closed = true
 
     // drop temporary tables created in this session

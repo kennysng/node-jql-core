@@ -98,4 +98,9 @@ export class CompiledQuery extends Query {
   get isQuickCount(): boolean {
     return this.jql.isQuickCount
   }
+
+  // @override
+  public toString(): string {
+    return this.jql.toString()
+  }
 }

@@ -27,10 +27,15 @@ export class Cursors extends Cursor {
   }
 
   // @override
-  public async get<T>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T> {
     for (let i = 0, length = this.cursors.length; i < length; i += 1) {
-      const value = await this.cursors[i].get<T>(key)
-      if (!checkNull(value)) return value
+      try {
+        const value = await this.cursors[i].get<T>(key)
+        if (!checkNull(value)) return value
+      }
+      catch (e) {
+        // do nothing
+      }
     }
     throw new NotFoundError(`Key not found in cursor: ${key}`)
   }
@@ -38,8 +43,7 @@ export class Cursors extends Cursor {
   // @override
   public async next(): Promise<boolean> {
     for (let i = this.cursors.length - 1; i >= 0; i -= 1) {
-      const result = await this.cursors[i].next()
-      if (result) return true
+      if (await this.cursors[i].next()) return true
       if (i > 0) await this.cursors[i].moveToFirst()
     }
     return false

@@ -61,10 +61,8 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     let args: any[] = []
     if (this.function instanceof JQLAggregateFunction) {
-      if (await cursor.moveToFirst()) {
-        do { args.push(await this.parameters[0].evaluate(sandbox, cursor)) }
-        while (await cursor.next())
-      }
+      do { args.push(await this.parameters[0].evaluate(sandbox, cursor)) }
+      while (await cursor.next())
     }
     else {
       args = await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))
