@@ -11,7 +11,7 @@ export class DummyCursor extends Cursor {
   }
 
   // @override
-  public async get<T = any>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T|undefined> {
     throw new NotFoundError(`Key not found in cursor: ${key}`)
   }
 

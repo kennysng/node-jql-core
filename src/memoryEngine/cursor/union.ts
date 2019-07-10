@@ -27,7 +27,7 @@ export class UnionCursor extends Cursor {
   }
 
   // @override
-  public async get<T = any>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T|undefined> {
     for (let i = 0, length = this.cursors.length; i < length; i += 1) {
       try {
         const value = await this.cursors[i].get<T>(key)
@@ -37,7 +37,6 @@ export class UnionCursor extends Cursor {
         // do nothing
       }
     }
-    throw new NotFoundError(`Key not found in cursor: ${key}`)
   }
 
   // @override

@@ -1,8 +1,6 @@
-import { expression } from '@babel/template'
 import { CancelablePromise } from '@kennysng/c-promise'
 import _ from 'lodash'
-import { checkNull } from 'node-jql'
-import { normalize } from 'path'
+import { checkNull, normalize } from 'node-jql'
 import timsort = require('timsort')
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '.'
@@ -44,6 +42,7 @@ export class Sandbox {
    * @param engine [InMemoryDatabaseEngine]
    */
   constructor(private readonly engine: InMemoryDatabaseEngine, public readonly defDatabase?: string) {
+    this.context[TEMP_DB_NAME] = { __tables: [] }
   }
 
   /**
@@ -51,7 +50,7 @@ export class Sandbox {
    * @param table [CompiledFromTable]
    */
   public getCountOf(table: CompiledFromTable): number {
-    const database = table.database || this.defDatabase
+    const database = table.database || (this.context[TEMP_DB_NAME].__tables.find(({ name }) => name === table.$as) && TEMP_DB_NAME) || this.defDatabase
     if (!database) throw new NoDatabaseError()
     const name = table.table.name
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
@@ -65,13 +64,13 @@ export class Sandbox {
    * @param i [number]
    */
   public getRowOf(table: CompiledFromTable, i: number): any {
-    const database = table.database || this.defDatabase
+    const database = table.database || (this.context[TEMP_DB_NAME].__tables.find(({ name }) => name === table.$as) && TEMP_DB_NAME) || this.defDatabase
     if (!database) throw new NoDatabaseError()
     const name = table.table.name
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
     if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
-    return this.context[database][name][i]
+    return this.context[database][name][i] || {}
   }
 
   /**
@@ -135,7 +134,7 @@ export class Sandbox {
               rows.push(row)
 
               // registered columns
-              for (const expression of jql.options.columns) {
+              for (const expression of jql.columns) {
                 if (checkNull(row[expression.key])) {
                   row[expression.key] = await expression.evaluate(this, cursor)
                   check()
@@ -190,7 +189,7 @@ export class Sandbox {
           }
           const promises = Object.keys(intermediate).map(async key => {
             let row = {} as any
-            for (const expression of jql.options.aggregateFunctions) {
+            for (const expression of jql.aggregateFunctions) {
               const cursor = new ArrayCursor(intermediate[key])
               await cursor.moveToFirst()
               check()

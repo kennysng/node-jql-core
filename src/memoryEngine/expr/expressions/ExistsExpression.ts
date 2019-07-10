@@ -23,7 +23,13 @@ export class ExistsExpression extends CompiledConditionalExpression implements I
    */
   constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLExistsExpression, options: ICompileOptions) {
     super()
-    this.query = new CompiledQuery(engine, jql.query, options)
+    this.query = new CompiledQuery(engine, jql.query, {
+      ...options,
+      tables: { ...options.tables },
+      tablesOrder: [...options.tablesOrder],
+      columns: [],
+      aggregateFunctions: [],
+    })
   }
 
   // @override

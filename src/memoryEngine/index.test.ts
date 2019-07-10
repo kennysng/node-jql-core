@@ -1,12 +1,10 @@
 import moment = require('moment')
-import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FunctionExpression, InExpression, InsertJQL, Query, ResultColumn, Type } from 'node-jql'
+import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, InsertJQL, JoinClause, Query, ResultColumn, Type, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
-import { JQLAggregateFunction } from './function'
-import { SumFunction } from './function/numeric/aggregate/sum'
 
 let core: ApplicationCore
 let session: Session
@@ -109,7 +107,7 @@ test('Select students with warning(s)', async callback => {
   const result = new Resultset(await session.query(new Query({
     $from: 'Student',
     $where: new ExistsExpression(new Query(
-      [new ResultColumn('*')],
+      [new ResultColumn(new Value(1))],
       'Warning',
       new BinaryExpression(
         new ColumnExpression('Student', 'id'),
@@ -120,6 +118,55 @@ test('Select students with warning(s)', async callback => {
   })))
   expect(await result.moveToFirst()).toBe(true)
   expect(await result.get('name')).toBe('Kennys Ng')
+  callback()
+})
+
+test('Select students with warning(s) with INNER JOIN', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $from: new FromTable('Student', 's',
+      new JoinClause('INNER', new FromTable(new Query({
+        $select: [
+          new ResultColumn('studentId'),
+          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'warnings'),
+        ],
+        $from: 'Warning',
+        $group: new GroupBy('studentId'),
+      }), 'w'),
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('w', 'studentId')),
+      ),
+    ),
+  })))
+  expect(await result.moveToFirst()).toBe(true)
+  expect(await result.get('name')).toBe('Kennys Ng')
+  callback()
+})
+
+test('Select students with warning count', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: [
+      new ResultColumn(new ColumnExpression('s', '*')),
+      new ResultColumn(new FunctionExpression('IFNULL', new ColumnExpression('w', 'warnings'), 0), 'warnings'),
+    ],
+    $from: new FromTable('Student', 's',
+      new JoinClause('LEFT', new FromTable(new Query({
+        $select: [
+          new ResultColumn('studentId'),
+          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'warnings'),
+        ],
+        $from: 'Warning',
+        $group: new GroupBy('studentId'),
+      }), 'w'),
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('w', 'studentId')),
+      ),
+    ),
+  })))
+  expect(await result.moveToFirst()).toBe(true)
+  do {
+    if (await result.get('name') === 'Kennys Ng') {
+      expect(await result.get('warnings')).toBe(2)
+    }
+  }
+  while (await result.next())
   callback()
 })
 

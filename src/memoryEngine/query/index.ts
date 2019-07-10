@@ -47,7 +47,7 @@ export class CompiledQuery extends Query {
     super(jql)
 
     // initialize options
-    const options_ = this.options = {
+    let options_ = this.options = {
       tables: {},
       tablesOrder: [],
       columns: [],
@@ -64,13 +64,14 @@ export class CompiledQuery extends Query {
     const $select = jql.$select.reduce<ResultColumn[]>((result, resultColumn) => {
       if (resultColumn.expression instanceof NodeJQLColumnExpression && resultColumn.expression.isWildcard) {
         if (resultColumn.expression.table) {
-          const table = options_.tables[resultColumn.expression.table]
-          result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(table.name, name))))
+          const tableName = resultColumn.expression.table
+          const table = options_.tables[tableName]
+          result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(tableName, name))))
         }
         else {
           for (const name of options_.tablesOrder) {
             const table = options_.tables[name]
-            result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(table.name, name))))
+            result.push(...table.columns.map(column => new ResultColumn(new NodeJQLColumnExpression(name, column.name))))
           }
         }
       }
@@ -81,11 +82,17 @@ export class CompiledQuery extends Query {
     }, [])
     this.$select = $select.map(jql => new CompiledResultColumn(engine, jql, options_))
 
+    // lock columns
+    options_ = { ...options_, columns: [] }
+
+    // analyze GROUP BY statement first
+    if (jql.$group) this.$group = new CompiledGroupBy(engine, jql.$group, { ...options_, columns: [] })
+
+    // lock aggregate functions
+    options_ = { ...options_, aggregateFunctions: [] }
+
     // analyze WHERE conditions
     if (jql.$where) this.$where = compile(engine, jql.$where, { ...options_, columns: [] })
-
-    // analyze GROUP BY statement
-    if (jql.$group) this.$group = new CompiledGroupBy(engine, jql.$group, { ...options_, columns: [] })
 
     // analyze ORDER BY statement
     if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(engine, jql, { ...options_, columns: [] }))
@@ -105,11 +112,25 @@ export class CompiledQuery extends Query {
   }
 
   /**
+   * Columns required
+   */
+  get columns(): ColumnExpression[] {
+    return this.options.columns
+  }
+
+  /**
    * Check aggregation required
    */
   get needAggregate(): boolean {
     for (const { expression } of this.$select) if (this.checkAggregate(expression)) return true
     return false
+  }
+
+  /**
+   * List of aggregate functions used
+   */
+  get aggregateFunctions(): FunctionExpression[] {
+    return this.options.aggregateFunctions
   }
 
   // @override

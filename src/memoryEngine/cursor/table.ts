@@ -153,7 +153,7 @@ export class TableCursor extends Cursor {
   }
 
   // @override
-  public async get<T = any>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T|undefined> {
     if (!this.row) throw new InMemoryError('Cursor is not ready. Please call moveToFirst() first')
     return this.row[key]
   }

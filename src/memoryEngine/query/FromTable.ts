@@ -52,7 +52,13 @@ export class CompiledFromTable extends FromTable {
       options.tablesOrder.push(jql.$as || jql.table)
     }
     else if (jql.table instanceof Query) {
-      this.query = new CompiledQuery(engine, jql.table, options)
+      this.query = new CompiledQuery(engine, jql.table, { ...options,
+        $as: jql.$as,
+        tables: { ...options.tables },
+        tablesOrder: [...options.tablesOrder],
+        columns: [],
+        aggregateFunctions: [],
+      })
       this.table = this.query.table
       options.tables[jql.$as as string] = this.table
       options.tablesOrder.push(jql.$as as string)

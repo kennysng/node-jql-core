@@ -27,7 +27,7 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
     let column: Column|undefined
     if (jql.table) {
       const table = options.tables[jql.table]
-      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found`)
+      if (!table) throw new InMemoryError(`[FATAL] Table ${jql.table} expected to be found`)
       column = table.columns.find(column => column.name === jql.name)
     }
     else {

@@ -11,7 +11,7 @@ export abstract class Cursor {
    * Get the targeted value
    * @param key [string]
    */
-  public abstract async get<T = any>(key: string): Promise<T>
+  public abstract async get<T = any>(key: string): Promise<T|undefined>
 
   /**
    * Move the cursor forward
@@ -46,7 +46,7 @@ export class ArrayCursor<T = any> extends Cursor {
   }
 
   // @override
-  public async get<T = any>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T|undefined> {
     return this.array[this.index][key]
   }
 

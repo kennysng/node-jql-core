@@ -30,7 +30,13 @@ export class InExpression extends BinaryExpression implements IInExpression {
       this.right = compile(engine, jql.right, options)
     }
     else {
-      this.right = new CompiledQuery(engine, jql.right, options)
+      this.right = new CompiledQuery(engine, jql.right, {
+        ...options,
+        tables: { ...options.tables },
+        tablesOrder: [...options.tablesOrder],
+        columns: [],
+        aggregateFunctions: [],
+      })
       if (this.right.table.columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
     }
   }

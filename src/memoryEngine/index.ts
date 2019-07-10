@@ -169,7 +169,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const result = await promise
 
           // return
-          if (this.options.logger) this.options.logger.info(jql.toString(), `${Date.now() - start}ms`)
+          if (this.options.logger) this.options.logger.info(jql.toString(), `- ${Date.now() - start}ms`)
           task.status(StatusCode.ENDING)
           return resolve(result)
         }
@@ -345,7 +345,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           context.push(...nValues)
 
           // return
-          if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `${Date.now() - start}ms`)
+          if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `- ${Date.now() - start}ms`)
           return resolve({ count: nValues.length, time: 0 })
         }
         finally {
