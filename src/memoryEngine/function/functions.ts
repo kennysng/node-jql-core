@@ -1,4 +1,50 @@
 import { JQLFunction } from '.'
+import { IfNullFunction } from './advanced/if_null'
+import { CalcDateFunction } from './date/calcdate'
+import { CalcTimeFunction } from './date/calctime'
+import { CurrentFunction } from './date/current'
+import { DateFunction } from './date/date'
+import { DateFormatFunction } from './date/date_format'
+import { DayFunction } from './date/day'
+import { DayNameFunction } from './date/dayname'
+import { DiffFunction } from './date/diff'
+import { AbsFunction } from './numeric/abs'
+import { CountFunction } from './numeric/aggregate/count'
+import { MinMaxFunction as MinMaxAggregateFunction } from './numeric/aggregate/minmax'
+import { SumFunction } from './numeric/aggregate/sum'
+import { Atan2Function } from './numeric/atan2'
+import { ATrigoFunction } from './numeric/atrigo'
+import { ExpFunction } from './numeric/exp'
+import { LnFunction } from './numeric/ln'
+import { LnWithBaseFunction } from './numeric/ln_with_base'
+import { MinMaxFunction } from './numeric/minmax'
+import { ModFunction } from './numeric/mod'
+import { PiFunction } from './numeric/pi'
+import { PowFunction } from './numeric/pow'
+import { RandFunction } from './numeric/rand'
+import { RoundFunction } from './numeric/round'
+import { SignFunction } from './numeric/sign'
+import { SqrtFunction } from './numeric/sqrt'
+import { TrigoFunction } from './numeric/trigo'
+import { TrigoConvertFunction } from './numeric/trigo_convert'
+import { AsciiFunction } from './string/ascii'
+import { ConcatFunction } from './string/concat'
+import { FieldFunction } from './string/field'
+import { FindInSetFunction } from './string/find_in_set'
+import { FormatFunction } from './string/format'
+import { InsertFunction } from './string/insert'
+import { LengthFunction } from './string/length'
+import { LetterCaseFunction } from './string/lettercase'
+import { LocateFunction } from './string/locate'
+import { PadFunction } from './string/pad'
+import { RepeatFunction } from './string/repeat'
+import { ReplaceFunction } from './string/replace'
+import { ReverseFunction } from './string/reverse'
+import { SpaceFunction } from './string/space'
+import { StrcmpFunction } from './string/strcmp'
+import { SubstrFunction } from './string/substr'
+import { SubstrIndexFunction } from './string/substr_index'
+import { TrimFunction } from './string/trim'
 
 type CreateJQLFunction = () => JQLFunction
 
@@ -6,5 +52,99 @@ type CreateJQLFunction = () => JQLFunction
  * Supported functions
  */
 export const functions: _.Dictionary<CreateJQLFunction> = {
-  // TODO
+  // numeric functions
+  abs: () => new AbsFunction('ABS'),
+  acos: () => new ATrigoFunction('ACOS', 'cos'),
+  asin: () => new ATrigoFunction('ASIN', 'sin'),
+  atan: () => new ATrigoFunction('ATAN', 'tan'),
+  atan2: () => new Atan2Function('ATAN2'),
+  avg: () => new SumFunction('AVG', true),
+  ceil: () => new RoundFunction('CEIL', 'ceil'),
+  ceiling: () => new RoundFunction('CEILING', 'ceil'),
+  cos: () => new TrigoFunction('COS', 'cos'),
+  cot: () => new TrigoFunction('COT', 'cot'),
+  count: () => new CountFunction('COUNT'),
+  degrees: () => new TrigoConvertFunction('DEGREES', 'radians-degrees'),
+  exp: () => new ExpFunction('EXP'),
+  floor: () => new RoundFunction('FLOOR', 'floor'),
+  greatest: () => new MinMaxFunction('GREATEST', 'max'),
+  least: () => new MinMaxFunction('LEAST', 'min'),
+  ln: () => new LnFunction('LN'),
+  log: () => new LnFunction('LOG', true),
+  log10: () => new LnWithBaseFunction('LOG10', 10),
+  log2: () => new LnWithBaseFunction('LOG2', 2),
+  max: () => new MinMaxAggregateFunction('MAX', 'max'),
+  min: () => new MinMaxAggregateFunction('MIN', 'min'),
+  mod: () => new ModFunction('MOD'),
+  pi: () => new PiFunction('PI'),
+  pow: () => new PowFunction('POW'),
+  power: () => new PowFunction('POWER'),
+  radians: () => new TrigoConvertFunction('RADIANS', 'degrees-radians'),
+  rand: () => new RandFunction('RAND'),
+  round: () => new RoundFunction('ROUND', 'normal'),
+  sign: () => new SignFunction('sign'),
+  sin: () => new TrigoFunction('SIN', 'sin'),
+  sqrt: () => new SqrtFunction('SQRT'),
+  sum: () => new SumFunction('SUM'),
+  tan: () => new TrigoFunction('TAN', 'tan'),
+  truncate: () => new RoundFunction('ROUND', 'truncate'),
+
+  // string functions
+  ascii: () => new AsciiFunction('ASCII'),
+  char_length: () => new LengthFunction('CHAR_LENGTH'),
+  character_length: () => new LengthFunction('CHARACTER_LENGTH'),
+  concat: () => new ConcatFunction('CONCAT'),
+  concat_ws: () => new ConcatFunction('CONCAT_WS', true),
+  field: () => new FieldFunction('FIELD'),
+  find_in_set: () => new FindInSetFunction('FIND_IN_SET'),
+  format: () => new FormatFunction('FORMAT'),
+  insert: () => new InsertFunction('INSERT'),
+  instr: () => new LocateFunction('INSTR', false),
+  lcase: () => new LetterCaseFunction('LCASE', 'lower'),
+  left: () => new SubstrFunction('LEFT', 'left'),
+  length: () => new LengthFunction('LENGTH'),
+  locate: () => new LocateFunction('LOCATE'),
+  lower: () => new LetterCaseFunction('LOWER', 'lower'),
+  lpad: () => new PadFunction('LPAD', 'left'),
+  ltrim: () => new TrimFunction('LTRIM', 'left'),
+  mid: () => new SubstrFunction('MID'),
+  position: () => new LocateFunction('POSITION'),
+  repeat: () => new RepeatFunction('REPEAT'),
+  replace: () => new ReplaceFunction('REPLACE'),
+  reverse: () => new ReverseFunction('REVERSE'),
+  right: () => new SubstrFunction('RIGHT', 'right'),
+  rpad: () => new PadFunction('RPAD', 'right'),
+  rtrim: () => new TrimFunction('RTRIM', 'right'),
+  space: () => new SpaceFunction('SPACE'),
+  strcmp: () => new StrcmpFunction('STRCMP'),
+  substr: () => new SubstrFunction('SUBSTR'),
+  substring: () => new SubstrFunction('SUBSTRING'),
+  substring_index: () => new SubstrIndexFunction('SUBSTRING_INDEX'),
+  trim: () => new TrimFunction('TRIM', 'both'),
+  ucase: () => new LetterCaseFunction('UCASE', 'upper'),
+  upper: () => new LetterCaseFunction('UPPER', 'upper'),
+
+  // date functions
+  adddate: () => new CalcDateFunction('ADDDATE', 'add'),
+  addtime: () => new CalcTimeFunction('ADDTIME', 'add'),
+  curdate: () => new CurrentFunction('CURDATE', true),
+  current_date: () => new CurrentFunction('CURRENT_DATE', true),
+  current_time: () => new CurrentFunction('CURRENT_TIME'),
+  current_timestamp: () => new CurrentFunction('CURRENT_TIMESTAMP'),
+  curtime: () => new CurrentFunction('CURTIME'),
+  date: () => new DateFunction('DATE'),
+  datediff: () => new DiffFunction('DATEDIFF', 'day'),
+  date_add: () => new CalcDateFunction('DATE_ADD', 'add'),
+  date_format: () => new DateFormatFunction('DATE_FORMAT'),
+  date_sub: () => new CalcDateFunction('DATE_SUB', 'sub'),
+  day: () => new DayFunction('DAY', 'month'),
+  dayname: () => new DayNameFunction('DAYNAME'),
+  dayofmonth: () => new DayFunction('DAYOFMONTH', 'month'),
+  dayofweek: () => new DayFunction('DAYOFWEEK', 'week'),
+  dayofyear: () => new DayFunction('DAYOFYEAR', 'year'),
+  subdate: () => new CalcDateFunction('SUBDATE', 'sub'),
+  subtime: () => new CalcTimeFunction('SUBTIME', 'sub'),
+
+  // advanced functions
+  ifnull: () => new IfNullFunction('IFNULL'),
 }
