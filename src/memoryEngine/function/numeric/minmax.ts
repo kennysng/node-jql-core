@@ -1,6 +1,5 @@
-import { ParameterExpression } from 'node-jql'
+import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
-import isUndefined from '../../../../src.old/utils/isUndefined'
 
 export class MinMaxFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -15,7 +14,7 @@ export class MinMaxFunction extends JQLFunction<number> {
   }
 
   public run(...args: any[]): number {
-    args = args.filter(arg => !isUndefined(arg))
+    args = args.filter(arg => !checkNull(arg))
     if (this.target === 'max') {
       return args.reduce((result, arg) => arg > result ? arg : result, Number.MIN_SAFE_INTEGER)
     }

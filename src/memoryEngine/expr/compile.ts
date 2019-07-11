@@ -31,6 +31,11 @@ export interface ICompileOptions {
   tables: _.Dictionary<Table>
 
   /**
+   * Table list corresponding to the current query
+   */
+  ownTables: string[]
+
+  /**
    * Table order
    */
   tablesOrder: string[]

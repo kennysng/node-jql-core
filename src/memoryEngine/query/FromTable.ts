@@ -49,6 +49,7 @@ export class CompiledFromTable extends FromTable {
       if (!database) throw new NoDatabaseError()
       this.table = engine.getTable(database, jql.table)
       options.tables[jql.$as || jql.table] = this.table
+      options.ownTables.push(jql.$as || jql.table)
       options.tablesOrder.push(jql.$as || jql.table)
     }
     else if (jql.table instanceof Query) {
@@ -61,6 +62,7 @@ export class CompiledFromTable extends FromTable {
       })
       this.table = this.query.table
       options.tables[jql.$as as string] = this.table
+      options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)
     }
     else {
@@ -68,6 +70,7 @@ export class CompiledFromTable extends FromTable {
       this.remote = () => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance)
       this.table = new Table(jql.$as as string, jql.table.columns.map(({ name, type }) => new Column<Type>(name, type || 'any')))
       options.tables[jql.$as as string] = this.table
+      options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)
     }
 

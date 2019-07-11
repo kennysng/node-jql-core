@@ -80,13 +80,16 @@ export class Sandbox {
    */
   public run(jql: CompiledQuery, options: Partial<IQueryOptions> = {}): CancelablePromise<IQueryResult> {
     const requests: CancelablePromise[] = []
-    const promise = new CancelablePromise<IQueryResult>(async (resolve, reject, check, canceled) => {
-      check()
+    const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject, check) => {
+      await check()
 
       // prepare temp tables
       if (jql.$from) {
-        await Promise.all(jql.$from.map(table => this.prepareTable(table, requests).then(check)))
-        check()
+        await Promise.all(jql.$from.map(async table => {
+          await this.prepareTable(table, requests)
+          await check()
+        }))
+        await check()
       }
 
       // quick query
@@ -115,7 +118,7 @@ export class Sandbox {
         // evaluate LIMIT & OFFSET values
         const $limit = jql.$limit ? await jql.$limit.$limit.evaluate(this, new DummyCursor()) : Number.MAX_SAFE_INTEGER
         const $offset = jql.$limit && jql.$limit.$offset ? await jql.$limit.$offset.evaluate(this, new DummyCursor()) : 0
-        check()
+        await check()
 
         // build cursor
         let cursor: Cursor = jql.$from ? new Cursors(...jql.$from.map(table => new TableCursor(this, table))) : new DummyCursor()
@@ -124,11 +127,11 @@ export class Sandbox {
         let rows = [] as any[]
         if (await cursor.moveToFirst()) {
           do {
-            check()
+            await check()
             if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
 
             if (!jql.$where || await jql.$where.evaluate(this, cursor)) {
-              check()
+              await check()
 
               const row = {} as any
               rows.push(row)
@@ -137,7 +140,7 @@ export class Sandbox {
               for (const expression of jql.columns) {
                 if (checkNull(row[expression.key])) {
                   row[expression.key] = await expression.evaluate(this, cursor)
-                  check()
+                  await check()
                 }
               }
 
@@ -148,7 +151,7 @@ export class Sandbox {
                   const expression = jql.$group.expressions[i]
                   if (checkNull(row[id])) {
                     row[id] = await expression.evaluate(this, cursor)
-                    check()
+                    await check()
                   }
                 }
               }
@@ -158,7 +161,7 @@ export class Sandbox {
                 for (const { id, expression } of jql.$order) {
                   if (checkNull(row[id])) {
                     row[id] = await expression.evaluate(this, cursor)
-                    check()
+                    await check()
                   }
                 }
               }
@@ -176,7 +179,7 @@ export class Sandbox {
             }
           }
           while (await cursor.next())
-          check()
+          await check()
         }
         if (!rows.length) return resolve({ rows, columns: [], time: 0 })
 
@@ -192,18 +195,18 @@ export class Sandbox {
             for (const expression of jql.aggregateFunctions) {
               const cursor = new ArrayCursor(intermediate[key])
               await cursor.moveToFirst()
-              check()
+              await check()
               row[expression.id] = await expression.evaluate(this, cursor)
-              check()
+              await check()
             }
             row = Object.assign({}, intermediate[key][0], row)
             if (!jql.$group || !jql.$group.$having || await jql.$group.$having.evaluate(this, new RowCursor(row))) {
-              check()
+              await check()
               return row
             }
           })
           rows = (await Promise.all(promises)).filter(row => !checkNull(row))
-          check()
+          await check()
         }
 
         // ORDER BY
@@ -223,7 +226,7 @@ export class Sandbox {
         rows = []
         if (await cursor.moveToFirst()) {
           do {
-            check()
+            await check()
             const row = {} as any
             rows.push(row)
 
@@ -231,7 +234,7 @@ export class Sandbox {
             for (const { id, expression } of jql.$select) {
               if (checkNull(row[id])) {
                 row[id] = await expression.evaluate(this, cursor)
-                check()
+                await check()
               }
             }
           }

@@ -1,7 +1,9 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
-import { CreateDatabaseJQL, DropDatabaseJQL, JQLError } from 'node-jql'
+import { CreateDatabaseJQL, CreateFunctionJQL, DropDatabaseJQL, DropFunctionJQL, JQLError } from 'node-jql'
 import { InMemoryDatabaseEngine } from '../memoryEngine'
+import { GenericJQLFunction } from '../memoryEngine/function'
 import { ExistsError } from '../utils/error/ExistsError'
+import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { SessionError } from '../utils/error/SessionError'
@@ -142,10 +144,18 @@ export class ApplicationCore {
 
       // database created
       if (database) {
-        return new CancelablePromise(resolve => {
-          // return
-          task.status(StatusCode.COMPLETED)
-          return resolve({ count: 0, jql, time: 0 })
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
         })
       }
 
@@ -156,7 +166,7 @@ export class ApplicationCore {
         async (fn, resolve, reject, check, canceled) => {
           try {
             // check canceled
-            check()
+            await check()
 
             // create database
             const result = await fn()
@@ -167,10 +177,108 @@ export class ApplicationCore {
             return resolve(result)
           }
           catch (e) {
-            return e instanceof CancelError ? canceled() : reject(e)
+            if (e instanceof CancelError) canceled()
+            return reject(e)
           }
         },
       )
+    })
+  }
+
+  /**
+   * Define NodeJQL function
+   * @param jql [CreateFunctionJQL]
+   */
+  public createFunction(jql: CreateFunctionJQL): Task<IUpdateResult> {
+    // parse args
+    const name = jql.name
+    const fn = jql.fn
+    const parameters = jql.parameters
+    const type = jql.type
+
+    // create task
+    return new Task(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
+      const fn_ = database.engine.functions[name]
+
+      // function created
+      if (fn_) throw new ExistsError(`Function ${name} already exists`)
+
+      // function not created
+      return new CancelablePromise(async (resolve, reject, check, canceled) => {
+        try {
+          await check()
+
+          database.engine.functions[name.toLocaleLowerCase()] = () => new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
+
+          // return
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 1, jql, time: 0 })
+        }
+        catch (e) {
+          if (e instanceof CancelError) canceled()
+          return reject(e)
+        }
+      })
+    })
+  }
+
+  /**
+   * Drop NodeJQL function
+   * @param jql [DropFunctionJQL]
+   */
+  public dropFunction(jql: DropFunctionJQL): Task<IUpdateResult> {
+    // parse args
+    const name = jql.name.toLocaleLowerCase()
+    const $ifExists = jql.$ifExists
+
+    // create task
+    return new Task(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
+      const fn_ = database.engine.functions[name]
+      if (!fn_ && !$ifExists) throw new NotFoundError(`Function ${name.toLocaleUpperCase()} not found`)
+
+      // not user-defined
+      const instance = fn_()
+      if (!(instance instanceof GenericJQLFunction)) throw new InMemoryError(`Fail to drop built-in function ${name.toLocaleUpperCase()}`)
+
+      // function not exists
+      if (!fn_) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
+
+      // function exists
+      return new CancelablePromise(async (resolve, reject, check, canceled) => {
+        try {
+          await check()
+
+          delete database.engine.functions[name]
+
+          // return
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 1, jql, time: 0 })
+        }
+        catch (e) {
+          if (e instanceof CancelError) canceled()
+          return reject(e)
+        }
+      })
     })
   }
 
@@ -206,10 +314,18 @@ export class ApplicationCore {
 
       // database not exists
       if (index === -1) {
-        return new CancelablePromise(resolve => {
-          // return
-          task.status(StatusCode.COMPLETED)
-          return resolve({ count: 0, jql, time: 0 })
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
         })
       }
 
@@ -219,7 +335,7 @@ export class ApplicationCore {
         async (fn, resolve, reject, check, canceled) => {
           try {
             // check canceled
-            check()
+            await check()
 
             // delete database
             const result = await fn()
@@ -230,7 +346,8 @@ export class ApplicationCore {
             return resolve(result)
           }
           catch (e) {
-            return e instanceof CancelError ? canceled() : reject(e)
+            if (e instanceof CancelError) canceled()
+            return reject(e)
           }
         },
       )

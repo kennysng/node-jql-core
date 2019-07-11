@@ -285,10 +285,10 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.2.1.tgz#a0b18afebec38772927cdca942dbabbed5bf9f75"
-  integrity sha512-qwn2t4CjzhicZ+uTt0zZJ2grhEQbAoje+1eVzlHgmt05c9ANS/Fm3J0FX1Kl2i/iGEVq837RYn+uWN654vVKjQ==
+"@kennysng/c-promise@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.4.0.tgz#13446b527514582856c0b596afe5504ac594f487"
+  integrity sha512-swwHCW14WCKlpgou0QC25njp9gFU7JtMdUFApq6JOo5Clf1DTIxAv1EIkSU53Rgftq8XVjMrLMsLQ4HxMRnJXQ==
   dependencies:
     axios "^0.19.0"
     wolfy87-eventemitter "^5.2.6"
@@ -417,10 +417,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-12.0.4.tgz#46832183115c904410c275e34cf9403992999c32"
   integrity sha512-j8YL2C0fXq7IONwl/Ud5Kt0PeXw22zGERt+HSSnwbKOJVsAGkEz3sFCYwaF9IOuoG1HOtE0vKCj6sXF7Q0+Vaw==
 
-"@types/node@^12.6.1":
-  version "12.6.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.6.1.tgz#d5544f6de0aae03eefbb63d5120f6c8be0691946"
-  integrity sha512-rp7La3m845mSESCgsJePNL/JQyhkOJA6G4vcwvVgkDAwHhGdq5GCumxmPjEk1MZf+8p5ZQAUE7tqgQRQTXN7uQ==
+"@types/node@^12.6.2":
+  version "12.6.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.6.2.tgz#a5ccec6abb6060d5f20d256fb03ed743e9774999"
+  integrity sha512-gojym4tX0FWeV2gsW4Xmzo5wxGjXGm550oVUII7f7G5o4BV6c7DBdiG1RRQd+y1bvqRyYtPfMK85UM95vsapqQ==
 
 "@types/numeral@^0.0.25":
   version "0.0.25"
@@ -2532,6 +2532,11 @@ lodash@^4.17.11:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
   integrity sha512-cQKh8igo5QUhZ7lg38DYWAxMvjSAKG0A8wGSVimP07SIUEK2UO+arSRKbRZWtelMtN5V0Hkwh5ryOto/SshYIg==
 
+lodash@^4.17.14:
+  version "4.17.14"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
+  integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
+
 loose-envify@^1.0.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.4.0.tgz#71ee51fa7be4caec1a63839f7e682d8132d30caf"
@@ -2778,10 +2783,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^2.0.0-rc.22:
-  version "2.0.0-rc.22"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.22.tgz#a6892f0c1b20f8a5449bc6b5c55784438d235d12"
-  integrity sha512-v/Gb1SczjTnii8tYSJrMqdiAHCICXbOvjoOQYr5aMuB6pJ1ysmw+mATe9K8O5PhyKskY48a2eVXrGYDDVPlHCg==
+node-jql@^2.0.0-rc.27:
+  version "2.0.0-rc.27"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.27.tgz#a823966b806db1ccc371d4a980e982fb34ae4732"
+  integrity sha512-fM8wVoHMHhyBiokk2qKUJ61pGja3VFQBTfHH/WahPtK9m2+IcT73cZeUkNcETbxqVAh7aPdq2J8AG4jrbQInXw==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"

@@ -157,7 +157,7 @@ export class AnalyzedQuery extends Query {
     if (this.$limit) this.registerDatabase(this.$limit)
 
     // unique databases
-    this.databases = [...new Set(this.databases)]
+    this.databases = Array.from(new Set(this.databases))
   }
 
   /**

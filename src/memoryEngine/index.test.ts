@@ -1,13 +1,16 @@
-import moment = require('moment')
-import { BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, InsertJQL, JoinClause, Query, ResultColumn, Type, Value } from 'node-jql'
+import { CancelError } from '@kennysng/c-promise'
+import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
+import { getStudents, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
 
 let core: ApplicationCore
 let session: Session
+
+const students = getStudents()
 
 test('Initialize application core', async callback => {
   core = new ApplicationCore({ defaultEngine: new InMemoryDatabaseEngine({ logger: new Logger('InMemoryDatabaseEngine') }) })
@@ -25,67 +28,27 @@ test('Create database', async callback => {
   callback()
 })
 
-test('Create table', async callback => {
-  await session.update(new CreateTableJQL('Student', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('name', 'string', false),
-    new Column<Type>('gender', 'string', false),
-    new Column<Type>('birthday', 'Date', false),
-    new Column<Type>('admittedAt', 'Date', false),
-    new Column<Type>('graduatedAt', 'Date', true),
-  ]))
-  await session.update(new CreateTableJQL('Warning', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('studentId', 'number', false),
-    new Column<Type>('createdAt', 'Date', false),
-  ]))
-  await session.update(new CreateTableJQL('Club', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('name', 'string', false),
-    new Column<Type>('createdAt', 'Date', false),
-    new Column<Type>('deletedAt', 'Date', true),
-  ]))
-  await session.update(new CreateTableJQL('ClubMember', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('clubId', 'number', false),
-    new Column<Type>('studentId', 'number', false),
-    new Column<Type>('joinAt', 'Date', false),
-    new Column<Type>('leaveAt', 'Date', true),
-  ]))
-  callback()
-})
-
-test('Insert into table', async callback => {
-  await session.update(new InsertJQL('Student',
-    { id: 1, name: 'Kennys Ng', gender: 'M', birthday: moment('1992-04-21').toDate(), admittedAt: new Date() },
-    { id: 2, name: 'Kirino Chiba', gender: 'F', birthday: moment('1992-06-08').toDate(), admittedAt: new Date() },
-  ))
-  await session.update(new InsertJQL('Warning',
-    { id: 1, studentId: 1, createdAt: moment('2010-07-08').toDate() },
-    { id: 2, studentId: 1, createdAt: moment('2011-05-31').toDate() },
-  ))
-  await session.update(new InsertJQL('Club',
-    { id: 1, name: 'Kendo Club', createdAt: moment('2000-04-04').toDate() },
-  ))
-  await session.update(new InsertJQL('ClubMember',
-    { id: 1, clubId: 1, studentId: 2, joinAt: new Date() },
-  ))
+test('Prepare tables', async callback => {
+  await prepareStudent(session, ...students)
+  await prepareWarning(session)
+  await prepareClub(session)
+  await prepareClubMember(session)
   callback()
 })
 
 test('Select all students', async callback => {
   const result = await session.query(new Query('Student'))
-  expect(result.rows.length).toBe(2)
+  expect(result.rows.length).toBe(students.length)
   callback()
 })
 
 test('Select number of students', async callback => {
   const result = new Resultset(await session.query(new Query({
-    $select: new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('id'))),
+    $select: new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('*'))),
     $from: 'Student',
   })))
   expect(await result.moveToFirst()).toBe(true)
-  expect(await result.get('COUNT(id)')).toBe(2)
+  expect(await result.get('COUNT(*)')).toBe(students.length)
   callback()
 })
 
@@ -104,7 +67,7 @@ test('Select students in Kendo Club', async callback => {
 })
 
 test('Select students with warning(s)', async callback => {
-  const result = new Resultset(await session.query(new Query({
+  const promise = session.query(new Query({
     $from: 'Student',
     $where: new ExistsExpression(new Query(
       [new ResultColumn(new Value(1))],
@@ -115,7 +78,9 @@ test('Select students with warning(s)', async callback => {
         new ColumnExpression('Warning', 'studentId'),
       ),
     )),
-  })))
+  }))
+
+  const result = new Resultset(await promise)
   expect(await result.moveToFirst()).toBe(true)
   expect(await result.get('name')).toBe('Kennys Ng')
   callback()
@@ -127,7 +92,7 @@ test('Select students with warning(s) with INNER JOIN', async callback => {
       new JoinClause('INNER', new FromTable(new Query({
         $select: [
           new ResultColumn('studentId'),
-          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'warnings'),
+          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('*')), 'warnings'),
         ],
         $from: 'Warning',
         $group: new GroupBy('studentId'),

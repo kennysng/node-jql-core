@@ -52,12 +52,25 @@ export class Resultset extends ArrayCursor {
   }
 
   // @override
-  public async get<T = any>(key: string): Promise<T> {
+  public async get<T = any>(key: string): Promise<T|undefined> {
     if (this.result.columns) {
       const column = this.result.columns.find(({ name }) => key === name)
       if (!column) throw new NotFoundError(`Key not found in cursor: ${key}`)
       key = column.id
     }
     return super.get(key)
+  }
+
+  /**
+   * Do auto-mapping
+   */
+  public toArray(): string[] {
+    if (!this.result.columns) return this.array
+    const columns = this.result.columns
+    return this.array.map(row => {
+      const row_ = {} as any
+      for (const { id, name } of columns) row_[name] = row[id]
+      return row_
+    })
   }
 }

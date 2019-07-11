@@ -1,6 +1,5 @@
-import { ParameterExpression } from 'node-jql'
+import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
-import isUndefined from '../../../../src.old/utils/isUndefined'
 
 export class LnFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -20,7 +19,7 @@ export class LnFunction extends JQLFunction<number> {
   }
 
   public run(arg1: any, arg2?: any): number {
-    if (this.baseSupported && !isUndefined(arg2)) {
+    if (this.baseSupported && !checkNull(arg2)) {
       return Math.log(+arg2) / Math.log(+arg1)
     }
     else {

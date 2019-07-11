@@ -1,5 +1,5 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
-import { CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, Query } from 'node-jql'
+import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ApplicationCore } from '.'
 import { ClosedError } from '../utils/error/ClosedError'
@@ -8,7 +8,7 @@ import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
 import { TEMP_DB_NAME } from './constants'
 import { AnalyzedQuery, PreparedQuery } from './query'
-import { IQueryResult, IUpdateResult } from './result'
+import { IQueryResult, IUpdateResult, Resultset } from './result'
 import { StatusCode, Task } from './task'
 
 /**
@@ -37,6 +37,13 @@ export class Session {
    */
   get isClosed(): boolean {
     return this.closed
+  }
+
+  /**
+   * Get the id of the last running task
+   */
+  get lastTaskId(): string {
+    return this.tasks[this.tasks.length - 1].id
   }
 
   /**
@@ -83,6 +90,12 @@ export class Session {
           result = await this.executeTableJQL(jql_)
           break
         }
+        case CreateFunctionJQL.name:
+          result = await this.createFunction(jql as CreateFunctionJQL)
+          break
+        case DropFunctionJQL.name:
+          result = await this.dropFunction(jql as DropFunctionJQL)
+          break
         default:
           throw new JQLError(`Invalid JQL ${jql.classname}`)
       }
@@ -168,6 +181,18 @@ export class Session {
     return await task.promise
   }
 
+  private async createFunction(jql: CreateFunctionJQL): Promise<IUpdateResult> {
+    const task = this.core.createFunction(jql)
+    this.register(task)
+    return await task.promise
+  }
+
+  private async dropFunction(jql: DropFunctionJQL): Promise<IUpdateResult> {
+    const task = this.core.dropFunction(jql)
+    this.register(task)
+    return await task.promise
+  }
+
   private async executeTableJQL(jql: CreateTableJQL|DropTableJQL|InsertJQL): Promise<IUpdateResult> {
     const task = new Task<IUpdateResult>(jql, task => {
       // preparing
@@ -177,15 +202,16 @@ export class Session {
       const database = this.core.getDatabase(name)
       if (!database) throw new NotFoundError(`Database ${name} not found`)
 
-      return new CancelablePromise(
+      let taskId: string|undefined
+      const promise = new CancelablePromise(
         () => database.executeUpdate(jql)(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
             // check canceled
-            check()
+            await check()
 
             // run JQL
-            const result = await fn()
+            let result = await fn()
 
             // record temporary table
             if ('$temporary' in jql && jql.$temporary) {
@@ -198,15 +224,35 @@ export class Session {
               }
             }
 
+            // CREATE TABLE AS
+            if (jql instanceof CreateTableJQL && jql.$as) {
+              const queryPromise = this.query(jql.$as)
+              taskId = this.lastTaskId
+              const values = new Resultset(await queryPromise).toArray()
+              taskId = undefined
+
+              const insertPromise = this.update(new InsertJQL(jql.name, ...values))
+              taskId = this.lastTaskId
+              result = await insertPromise
+              taskId = undefined
+
+              // fix result
+              result.count += 1
+              result.jql = jql
+            }
+
             // return
             task.status(StatusCode.COMPLETED)
             return resolve(result)
           }
           catch (e) {
-            return e instanceof CancelError ? canceled() : reject(e)
+            if (e instanceof CancelError) canceled()
+            return reject(e)
           }
         },
       )
+      promise.on('cancel', () => { if (taskId) this.kill(taskId) })
+      return promise
     })
     this.register(task)
     return await task.promise
@@ -226,7 +272,7 @@ export class Session {
         async (fn, resolve, reject, check, canceled) => {
           try {
             // check canceled
-            check()
+            await check()
 
             // run JQL
             const result = await fn()
@@ -236,7 +282,8 @@ export class Session {
             return resolve(result)
           }
           catch (e) {
-            return e instanceof CancelError ? canceled() : reject(e)
+            if (e instanceof CancelError) canceled()
+            return reject(e)
           }
         },
       )

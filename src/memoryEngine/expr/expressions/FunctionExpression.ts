@@ -1,4 +1,4 @@
-import { checkNull, FunctionExpression as NodeJQLFunctionExpression, IFunctionExpression, Type } from 'node-jql'
+import { checkNull, ColumnExpression, FunctionExpression as NodeJQLFunctionExpression, IFunctionExpression, ParameterExpression as NodeJQLParameterExpression, Type } from 'node-jql'
 import squel = require('squel')
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '..'
@@ -26,15 +26,39 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
    */
   constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLFunctionExpression, options: ICompileOptions) {
     super()
-    this.parameters = jql.parameters.map(jql => new ParameterExpression(engine, jql, options))
+    // set function
     this.function = engine.functions[jql.name.toLocaleLowerCase()]()
-    if (this.function instanceof JQLAggregateFunction && this.parameters.length !== 1) throw new SyntaxError(`Aggregate function ${jql.name} should have exactly 1 argument`)
+    if (this.isAggregate && jql.parameters.length !== 1) throw new SyntaxError(`Aggregate function ${jql.name} should have exactly 1 argument`)
+    this.function.interpret(jql.parameters)
 
-    // interpret parameters
-    this.function.interpret(this.parameters)
+    // compile parameters
+    let parameters = jql.parameters
+    if (this.isAggregate && jql.parameters[0].expression instanceof ColumnExpression && jql.parameters[0].expression.isWildcard) {
+      parameters = []
+      const { expression } = jql.parameters[0]
+      if (expression.table) {
+        const tableName = expression.table
+        const table = options.tables[tableName]
+        parameters.push(...table.columns.map(({ name }) => new NodeJQLParameterExpression(null, new ColumnExpression(tableName, name))))
+      }
+      else {
+        for (const name of options.ownTables) {
+          const table = options.tables[name]
+          parameters.push(...table.columns.map(column => new NodeJQLParameterExpression(null, new ColumnExpression(name, column.name))))
+        }
+      }
+    }
+    this.parameters = parameters.map(jql => new ParameterExpression(engine, jql, options))
 
     // register aggregate function
     if (this.function instanceof JQLAggregateFunction) options.aggregateFunctions.push(this)
+  }
+
+  /**
+   * Whether it is an aggregate function
+   */
+  get isAggregate(): boolean {
+    return this.function instanceof JQLAggregateFunction
   }
 
   // @override
@@ -70,7 +94,7 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
       if (!checkNull(value)) return value
 
       if (await cursor.moveToFirst()) {
-        do { args.push(await this.parameters[0].evaluate(sandbox, cursor)) }
+        do { args.push(await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))) }
         while (await cursor.next())
       }
     }

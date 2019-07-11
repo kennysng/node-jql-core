@@ -50,9 +50,10 @@ export class CompiledQuery extends Query {
     let options_ = this.options = {
       tables: {},
       tablesOrder: [],
+      ...options,
+      ownTables: [],
       columns: [],
       aggregateFunctions: [],
-      ...options,
     }
 
     // analyze tables
@@ -69,7 +70,7 @@ export class CompiledQuery extends Query {
           result.push(...table.columns.map(({ name }) => new ResultColumn(new NodeJQLColumnExpression(tableName, name))))
         }
         else {
-          for (const name of options_.tablesOrder) {
+          for (const name of options_.ownTables) {
             const table = options_.tables[name]
             result.push(...table.columns.map(column => new ResultColumn(new NodeJQLColumnExpression(name, column.name))))
           }

@@ -147,11 +147,11 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     const compiled = new CompiledQuery(this, jql, { axiosInstance: this.options.axiosInstance, defDatabase: jql.defDatabase })
     return task => new CancelablePromise(
       new Sandbox(this, jql.defDatabase).run(compiled),
-      async (promise, resolve, reject, check) => {
+      async (promise, resolve, _reject, check) => {
         const start = Date.now()
 
         // check canceled
-        check()
+        await check()
 
         // wait for table lock
         task.status(StatusCode.WAITING)
@@ -162,7 +162,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
         try {
           // check canceled
-          check()
+          await check()
 
           // run query
           task.status(StatusCode.RUNNING)
@@ -221,7 +221,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     if (!database) throw new InMemoryError('No database is selected')
     if (name === '__tables') throw new InMemoryError('Reserved keyword __tables')
 
-    return task => new CancelablePromise((resolve, reject, check) => {
+    return task => new CancelablePromise(async (resolve, _reject, check) => {
       task.status(StatusCode.RUNNING)
       let count = 0
       try {
@@ -230,22 +230,19 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         if (!$ifNotExists) throw new ExistsError(`Table ${name} already exists in database ${database}`)
       }
       catch (e) {
-        if (e instanceof NotFoundError) {
-          // check canceled
-          check()
+        if (!(e instanceof NotFoundError)) throw e
 
-          // create table
-          const table = new Table($temporary, name, columns, constraints, ...(options || []))
-          this.context[database].__tables.push(table)
-          this.context[database][name] = []
+        // check canceled
+        await check()
 
-          // return
-          if (this.options.logger) this.options.logger.info(`Table ${name} created in database ${database}`)
-          count = 1
-        }
-        else {
-          return reject(e)
-        }
+        // create table
+        const table = new Table($temporary, name, columns, constraints, ...(options || []))
+        this.context[database].__tables.push(table)
+        this.context[database][name] = []
+
+        // return
+        if (this.options.logger) this.options.logger.info(`Table ${name} created in database ${database}`)
+        count = 1
       }
 
       // end task
@@ -265,7 +262,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     // check args
     if (!database) throw new InMemoryError('No database is selected')
 
-    return task => new CancelablePromise((resolve, reject, check) => {
+    return task => new CancelablePromise(async (resolve, _reject, check) => {
       task.status(StatusCode.RUNNING)
       let count = 0
       try {
@@ -273,7 +270,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         this.checkTable(database, name)
 
         // check canceled
-        check()
+        await check()
 
         // delete table
         const index = this.context[database].__tables.findIndex(table => table.name === name)
@@ -286,7 +283,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         count = 1
       }
       catch (e) {
-        if (!(e instanceof NotFoundError) || !$ifExists) return reject(e)
+        if (!(e instanceof NotFoundError) || !$ifExists) throw e
       }
 
       // end task
@@ -306,55 +303,50 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     // check args
     if (!database) throw new InMemoryError('No database is selected')
 
-    return task => new CancelablePromise(async (resolve, reject, check) => {
+    return task => new CancelablePromise(async (resolve, _reject, check) => {
       const start = Date.now()
 
       task.status(StatusCode.RUNNING)
 
+      // check table
+      this.checkTable(database, name)
+      const table = this.context[database].__tables.find(table => table.name === name)
+      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+
+      // check canceled
+      await check()
+
+      // acquire table lock
+      task.status(StatusCode.WAITING)
+      await table.lock.write()
+
       try {
-        // check table
-        this.checkTable(database, name)
-        const table = this.context[database].__tables.find(table => table.name === name)
-        if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+        task.status(StatusCode.RUNNING)
 
-        // check canceled
-        check()
+        const nValues = [] as any[]
+        for (const row of values) {
+          const nRow = {} as any
+          for (const column of table.columns) {
+            // validate value
+            const value = column.checkValue(row[column.name])
 
-        // acquire table lock
-        task.status(StatusCode.WAITING)
-        await table.lock.write()
-
-        try {
-          task.status(StatusCode.RUNNING)
-
-          const nValues = [] as any[]
-          for (const row of values) {
-            const nRow = {} as any
-            for (const column of table.columns) {
-              // validate value
-              const value = column.checkValue(row[column.name])
-
-              // normalize value
-              nRow[column.name] = normalize(value, column.type)
-            }
-            nValues.push(nRow)
+            // normalize value
+            nRow[column.name] = normalize(value, column.type)
           }
-
-          // insert values
-          const context = this.context[database][name] = this.context[database][name] || []
-          context.push(...nValues)
-
-          // return
-          if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `- ${Date.now() - start}ms`)
-          return resolve({ count: nValues.length, time: 0 })
+          nValues.push(nRow)
         }
-        finally {
-          // release table lock
-          table.lock.writeEnd()
-        }
+
+        // insert values
+        const context = this.context[database][name] = this.context[database][name] || []
+        context.push(...nValues)
+
+        // return
+        if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `- ${Date.now() - start}ms`)
+        return resolve({ count: nValues.length, time: 0 })
       }
-      catch (e) {
-        return reject(e)
+      finally {
+        // release table lock
+        table.lock.writeEnd()
       }
     })
   }

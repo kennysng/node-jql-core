@@ -10,14 +10,14 @@ import { StatusCode, TaskFn } from './task'
 /**
  * Database instance
  */
-export class Database extends EventEmitter {
+export class Database<T extends DatabaseEngine = DatabaseEngine> extends EventEmitter {
   private readonly lock = new ReadWriteLock(0, 1)
 
   /**
    * @param name [string]
-   * @param engine [DatabaseEngine] optional
+   * @param engine [T] optional
    */
-  constructor(public readonly name: string, private readonly engine: DatabaseEngine) {
+  constructor(public readonly name: string, public readonly engine: T) {
     super()
   }
 
@@ -26,14 +26,14 @@ export class Database extends EventEmitter {
    * @param jql [CreateDatabaseJQL]
    */
   public create(): TaskFn<IUpdateResult> {
-    return task => new CancelablePromise(this.engine.createDatabase(this.name)(task), async (promise, resolve) => {
+    return task => new CancelablePromise(() => this.engine.createDatabase(this.name)(task), async (fn, resolve) => {
       // acquire write lock
       task.status(StatusCode.WAITING)
       await this.lock.write()
 
       try {
         // create database
-        const result = await promise
+        const result = await fn()
 
         // return
         this.emit('created')
@@ -50,14 +50,14 @@ export class Database extends EventEmitter {
    * Drop the database
    */
   public drop(): TaskFn<IUpdateResult> {
-    return task => new CancelablePromise(this.engine.dropDatabase(this.name)(task), async (promise, resolve) => {
+    return task => new CancelablePromise(() => this.engine.dropDatabase(this.name)(task), async (fn, resolve) => {
       // acquire write lock
       task.status(StatusCode.WAITING)
       await this.lock.write()
 
       try {
         // drop database
-        const result = await promise
+        const result = await fn()
 
         // return
         this.emit('deleted')
@@ -75,9 +75,9 @@ export class Database extends EventEmitter {
    * @param jql [JQL]
    */
   public executeUpdate(jql: JQL): TaskFn<IUpdateResult> {
-    return task => new CancelablePromise(this.engine.executeUpdate(jql)(task), async (promise, resolve) => {
+    return task => new CancelablePromise(() => this.engine.executeUpdate(jql)(task), async (fn, resolve) => {
       // run query
-      const result = await promise
+      const result = await fn()
 
       // return
       this.emit('updated', jql)
@@ -90,9 +90,9 @@ export class Database extends EventEmitter {
    * @param jql [Query]
    */
   public executeQuery(jql: AnalyzedQuery): TaskFn<IQueryResult> {
-    return task => new CancelablePromise(this.engine.executeQuery(jql)(task), async (promise, resolve) => {
+    return task => new CancelablePromise(() => this.engine.executeQuery(jql)(task), async (fn, resolve) => {
       // run query
-      const result = await promise
+      const result = await fn()
 
       // return
       this.emit('queried', jql)
