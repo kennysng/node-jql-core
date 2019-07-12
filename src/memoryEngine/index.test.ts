@@ -5,12 +5,15 @@ import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
-import { getStudents, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
+import { getStudents, getWarnings, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
+
+jest.setTimeout(20000)
 
 let core: ApplicationCore
 let session: Session
 
-const students = getStudents()
+const students = getStudents(198)
+const warnings = getWarnings(998)
 
 test('Initialize application core', async callback => {
   core = new ApplicationCore({ defaultEngine: new InMemoryDatabaseEngine({ logger: new Logger('InMemoryDatabaseEngine') }) })
@@ -30,7 +33,7 @@ test('Create database', async callback => {
 
 test('Prepare tables', async callback => {
   await prepareStudent(session, ...students)
-  await prepareWarning(session)
+  await prepareWarning(session, ...warnings)
   await prepareClub(session)
   await prepareClubMember(session)
   callback()
@@ -66,7 +69,7 @@ test('Select students in Kendo Club', async callback => {
   callback()
 })
 
-test('Select students with warning(s)', async callback => {
+test('Select students with warning(s) with timeout', async callback => {
   const promise = session.query(new Query({
     $from: 'Student',
     $where: new ExistsExpression(new Query(
@@ -80,9 +83,19 @@ test('Select students with warning(s)', async callback => {
     )),
   }))
 
-  const result = new Resultset(await promise)
-  expect(await result.moveToFirst()).toBe(true)
-  expect(await result.get('name')).toBe('Kennys Ng')
+  // set timeout
+  const taskId = session.lastTaskId
+  const timeoutId = setTimeout(() => session.kill(taskId), 10000)
+
+  try {
+    const result = new Resultset(await promise)
+    clearTimeout(timeoutId)
+    expect(await result.moveToFirst()).toBe(true)
+    expect(await result.get('name')).toBe('Kennys Ng')
+  }
+  catch (e) {
+    expect(e).toBeInstanceOf(CancelError)
+  }
   callback()
 })
 

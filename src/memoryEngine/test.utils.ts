@@ -16,17 +16,34 @@ export function numberList(count: number): number[] {
 
 /**
  * Create a list of students
+ * @param length [number]
  */
-export function getStudents(): any[] {
+export function getStudents(length: number): any[] {
   return [
     { id: 1, name: 'Kennys Ng', gender: 'M', birthday: moment('1992-04-21').toDate(), admittedAt: new Date() },
     { id: 2, name: 'Kirino Chiba', gender: 'F', birthday: moment('1992-06-08').toDate(), admittedAt: new Date() },
-    ...numberList(998).map(id => ({
+    ...numberList(length - 2).map(id => ({
       id: id + 2,
       name: randomName(),
       gender: randomFrom(['M', 'F']),
       birthday: randomDate(moment('1990-01-01').toDate(), moment('1993-12-31').toDate()),
       admittedAt: new Date(),
+    })),
+  ]
+}
+
+/**
+ * Create a list of warnings
+ * @param length [number]
+ */
+export function getWarnings(length: number): any[] {
+  return [
+    { id: 1, studentId: 1, createdAt: moment('2010-07-08').toDate() },
+    { id: 2, studentId: 1, createdAt: moment('2011-05-31').toDate() },
+    ...numberList(length - 2).map(id => ({
+      id: id + 2,
+      studentId: randomInteger(3, 1000),
+      createdAt: new Date(),
     })),
   ]
 }
@@ -51,21 +68,13 @@ export async function prepareStudent(session: Session, ...students: any[]): Prom
  * Prepare warning table
  * @param session [Session]
  */
-export async function prepareWarning(session: Session): Promise<void> {
+export async function prepareWarning(session: Session, ...warnings: any[]): Promise<void> {
   await session.update(new CreateTableJQL('Warning', [
     new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
     new Column<Type>('studentId', 'number', false),
     new Column<Type>('createdAt', 'Date', false),
   ]))
-  await session.update(new InsertJQL('Warning',
-    { id: 1, studentId: 1, createdAt: moment('2010-07-08').toDate() },
-    { id: 2, studentId: 1, createdAt: moment('2011-05-31').toDate() },
-    ...numberList(298).map(id => ({
-      id: id + 2,
-      studentId: randomInteger(3, 1000),
-      createdAt: new Date(),
-    })),
-  ))
+  await session.update(new InsertJQL('Warning', ...warnings))
 }
 
 /**
