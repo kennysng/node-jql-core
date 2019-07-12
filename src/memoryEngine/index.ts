@@ -4,7 +4,7 @@ import { checkNull, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, n
 import { TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
 import { AnalyzedQuery } from '../core/query'
-import { IQueryResult, IUpdateResult } from '../core/result'
+import { IPredictResult, IQueryResult, IUpdateResult } from '../core/result'
 import { StatusCode, TaskFn } from '../core/task'
 import { ExistsError } from '../utils/error/ExistsError'
 import { InMemoryError } from '../utils/error/InMemoryError'
@@ -152,6 +152,19 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       }
     }
     throw new InMemoryError(`Invalid JQL: ${JSON.stringify(jql)}`)
+  }
+
+  // @override
+  public predictQuery(jql: AnalyzedQuery): TaskFn<IPredictResult> {
+    this.checkInited()
+    return _task => new CancelablePromise(async (resolve, _reject, check) => {
+      // check canceled
+      await check()
+
+      // return
+      const compiled = new CompiledQuery(this, jql, { axiosInstance: this.options.axiosInstance, defDatabase: jql.defDatabase })
+      return resolve({ columns: compiled.table.columns, time: 0 })
+    })
   }
 
   // @override

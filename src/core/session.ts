@@ -2,13 +2,14 @@ import { CancelablePromise, CancelError } from '@kennysng/c-promise'
 import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ApplicationCore } from '.'
+import { Table } from '../memoryEngine/table'
 import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
 import { TEMP_DB_NAME } from './constants'
 import { AnalyzedQuery, PreparedQuery } from './query'
-import { IQueryResult, IUpdateResult, Resultset } from './result'
+import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from './result'
 import { StatusCode, Task } from './task'
 
 /**
@@ -106,6 +107,29 @@ export class Session {
       }
     }
     throw new JQLError(`Invalid JQL: ${JSON.stringify(jql)}`)
+  }
+
+  /**
+   * Predict the result structure of a SELECT JQL
+   * @param jql [IQuery]
+   */
+  public async predict(jql: IQuery): Promise<IPredictResult> {
+    const startTime = Date.now()
+    jql = jql instanceof PreparedQuery ? jql.commit() : new Query(jql)
+    const analyzed = new AnalyzedQuery(jql, this.database)
+    let result: IPredictResult
+    if (analyzed.multiDatabasesInvolved) {
+      result = await this.predictWithMultiDatabases(analyzed)
+    }
+    else {
+      if (analyzed.noDatbaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
+      result = await this.predictWithSingleDatabase(analyzed)
+    }
+    return {
+      ...result,
+      jql,
+      time: Date.now() - startTime,
+    }
   }
 
   /**
@@ -255,6 +279,43 @@ export class Session {
     return await task.promise
   }
 
+  private async predictWithSingleDatabase(jql: AnalyzedQuery): Promise<IPredictResult> {
+    const task = new Task<IPredictResult>(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const name: string = jql.databases[0]
+      if (!name) throw new NoDatabaseError()
+      const database = this.core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${name} not found`)
+
+      return new CancelablePromise(
+        () => database.predictQuery(jql)(task),
+        async (fn, resolve, reject, _check, canceled) => {
+          try {
+            // run JQL
+            const result = await fn()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve(result)
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        },
+      )
+    })
+    this.register(task)
+    return await task.promise
+  }
+
+  private async predictWithMultiDatabases(jql: AnalyzedQuery): Promise<IPredictResult> {
+    // TODO prepare tables
+    // TODO run in temp db
+    return { columns: [], time: 0 }
+  }
+
   private async queryWithSingleDatabase(jql: AnalyzedQuery): Promise<IQueryResult> {
     const task = new Task<IQueryResult>(jql, task => {
       // preparing
@@ -266,7 +327,7 @@ export class Session {
 
       return new CancelablePromise(
         () => database.executeQuery(jql)(task),
-        async (fn, resolve, reject, check, canceled) => {
+        async (fn, resolve, reject, _check, canceled) => {
           try {
             // run JQL
             const result = await fn()

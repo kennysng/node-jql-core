@@ -119,6 +119,29 @@ test('Select students with warning(s) with INNER JOIN', async callback => {
   callback()
 })
 
+test('Predict Select students with warning count', async callback => {
+  const result = await session.predict(new Query({
+    $select: [
+      new ResultColumn(new ColumnExpression('s', '*')),
+      new ResultColumn(new FunctionExpression('IFNULL', new ColumnExpression('w', 'warnings'), 0), 'warnings'),
+    ],
+    $from: new FromTable('Student', 's',
+      new JoinClause('LEFT', new FromTable(new Query({
+        $select: [
+          new ResultColumn('studentId'),
+          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'warnings'),
+        ],
+        $from: 'Warning',
+        $group: new GroupBy('studentId'),
+      }), 'w'),
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('w', 'studentId')),
+      ),
+    ),
+  }))
+  expect(result.columns.length).toBe(7)
+  callback()
+})
+
 test('Select students with warning count', async callback => {
   const result = new Resultset(await session.query(new Query({
     $select: [

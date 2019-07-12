@@ -1,5 +1,5 @@
 import { IJQL } from 'node-jql'
-import { ArrayCursor, Cursor } from '../memoryEngine/cursor'
+import { ArrayCursor } from '../memoryEngine/cursor'
 import { Column } from '../memoryEngine/table'
 import { NotFoundError } from '../utils/error/NotFoundError'
 
@@ -23,6 +23,13 @@ export interface IResult {
  */
 export interface IUpdateResult extends IResult {
   count: number
+}
+
+/**
+ * Result structure of a prediction
+ */
+export interface IPredictResult extends IResult {
+  columns: Column[]
 }
 
 /**

@@ -4,7 +4,7 @@ import EventEmitter from 'wolfy87-eventemitter'
 import { ReadWriteLock } from '../utils/lock'
 import { DatabaseEngine } from './engine'
 import { AnalyzedQuery } from './query'
-import { IQueryResult, IUpdateResult } from './result'
+import { IPredictResult, IQueryResult, IUpdateResult } from './result'
 import { StatusCode, TaskFn } from './task'
 
 /**
@@ -86,8 +86,22 @@ export class Database<T extends DatabaseEngine = DatabaseEngine> extends EventEm
   }
 
   /**
+   * Predict the result structure of a select-related query
+   * @param jql [AnalyzedQuery]
+   */
+  public predictQuery(jql: AnalyzedQuery): TaskFn<IPredictResult> {
+    return task => new CancelablePromise(() => this.engine.predictQuery(jql)(task), async (fn, resolve) => {
+      // predict query
+      const result = await fn()
+
+      // return
+      return resolve(result)
+    })
+  }
+
+  /**
    * Execute a select-related query
-   * @param jql [Query]
+   * @param jql [AnalyzedQuery]
    */
   public executeQuery(jql: AnalyzedQuery): TaskFn<IQueryResult> {
     return task => new CancelablePromise(() => this.engine.executeQuery(jql)(task), async (fn, resolve) => {
