@@ -1,5 +1,5 @@
 import { CancelError } from '@kennysng/c-promise'
-import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, Query, ResultColumn, Value } from 'node-jql'
+import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
@@ -120,7 +120,7 @@ test('Select students with warning(s) with INNER JOIN', async callback => {
 })
 
 test('Predict Select students with warning count', async callback => {
-  const result = await session.predict(new Query({
+  const result = await session.predict(new PredictJQL(new Query({
     $select: [
       new ResultColumn(new ColumnExpression('s', '*')),
       new ResultColumn(new FunctionExpression('IFNULL', new ColumnExpression('w', 'warnings'), 0), 'warnings'),
@@ -137,7 +137,7 @@ test('Predict Select students with warning count', async callback => {
         new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('w', 'studentId')),
       ),
     ),
-  }))
+  })))
   expect(result.columns.length).toBe(7)
   callback()
 })

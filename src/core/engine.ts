@@ -1,5 +1,5 @@
 import { CancelablePromise } from '@kennysng/c-promise'
-import { JQL } from 'node-jql'
+import { JQL, PredictJQL } from 'node-jql'
 import { Table } from '../memoryEngine/table'
 import { AnalyzedQuery } from './query'
 import { IPredictResult, IQueryResult, IUpdateResult } from './result'
@@ -51,9 +51,10 @@ export abstract class DatabaseEngine {
 
   /**
    * Predict the result structure of a SELECT JQL
-   * @param jql [AnalyzedQuery]
+   * @param jql [PredictJQL]
+   * @param database [string]
    */
-  public abstract predictQuery(jql: AnalyzedQuery): TaskFn<IPredictResult>
+  public abstract predictQuery(jql: PredictJQL, database?: string): TaskFn<IPredictResult>
 
   /**
    * Execute a SELECT JQL

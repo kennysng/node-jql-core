@@ -1,14 +1,14 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
-import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, Query } from 'node-jql'
+import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, PredictJQL, Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ApplicationCore } from '.'
-import { Table } from '../memoryEngine/table'
+import { InMemoryDatabaseEngine } from '../memoryEngine'
 import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
 import { TEMP_DB_NAME } from './constants'
-import { AnalyzedQuery, PreparedQuery } from './query'
+import { AnalyzedPredictJQL, AnalyzedQuery, PreparedQuery } from './query'
 import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from './result'
 import { StatusCode, Task } from './task'
 
@@ -111,20 +111,28 @@ export class Session {
 
   /**
    * Predict the result structure of a SELECT JQL
-   * @param jql [IQuery]
+   * @param jql [PredictJQL]
    */
-  public async predict(jql: IQuery): Promise<IPredictResult> {
+  public async predict(jql: PredictJQL): Promise<IPredictResult> {
     const startTime = Date.now()
-    jql = jql instanceof PreparedQuery ? jql.commit() : new Query(jql)
-    const analyzed = new AnalyzedQuery(jql, this.database)
+    const analyzed = new AnalyzedPredictJQL(jql, this.database)
+
+    // check database engine
+    for (const name of analyzed.databases) {
+      const database = this.core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!(database.engine instanceof InMemoryDatabaseEngine)) throw new SyntaxError(`Database ${name} does not support PREDICT`)
+    }
+
     let result: IPredictResult
     if (analyzed.multiDatabasesInvolved) {
       result = await this.predictWithMultiDatabases(analyzed)
     }
     else {
-      if (analyzed.noDatbaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
+      if (analyzed.noDatabaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
       result = await this.predictWithSingleDatabase(analyzed)
     }
+
     return {
       ...result,
       jql,
@@ -145,7 +153,7 @@ export class Session {
       result = await this.queryWithMultiDatabases(analyzed)
     }
     else {
-      if (analyzed.noDatbaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
+      if (analyzed.noDatabaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
       result = await this.queryWithSingleDatabase(analyzed)
     }
     return {
@@ -231,6 +239,28 @@ export class Session {
         () => database.executeUpdate(jql)(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
+            // INSERT INTO SELECT
+            if (jql instanceof InsertJQL && jql.query) {
+              const queryPromise = this.query(jql.query)
+              taskId = this.lastTaskId
+              const { rows, columns } = await queryPromise
+              taskId = undefined
+
+              if (!columns || columns.length !== (jql.columns as string[]).length) {
+                throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+              }
+
+              const columns_ = jql.columns as string[]
+              const result = jql.values = [] as any[]
+              for (let i = 0, length = rows.length; i < length; i += 1) {
+                const row = rows[i]
+                result.push(columns.reduce((row_, { id }, i) => {
+                  row_[columns_[i]] = row[id]
+                  return row_
+                }, {} as any))
+              }
+            }
+
             // run JQL
             let result = await fn()
 
@@ -279,7 +309,7 @@ export class Session {
     return await task.promise
   }
 
-  private async predictWithSingleDatabase(jql: AnalyzedQuery): Promise<IPredictResult> {
+  private async predictWithSingleDatabase(jql: AnalyzedPredictJQL): Promise<IPredictResult> {
     const task = new Task<IPredictResult>(jql, task => {
       // preparing
       task.status(StatusCode.PREPARING)
@@ -310,7 +340,7 @@ export class Session {
     return await task.promise
   }
 
-  private async predictWithMultiDatabases(jql: AnalyzedQuery): Promise<IPredictResult> {
+  private async predictWithMultiDatabases(jql: AnalyzedPredictJQL): Promise<IPredictResult> {
     // TODO prepare tables
     // TODO run in temp db
     return { columns: [], time: 0 }

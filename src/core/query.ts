@@ -1,4 +1,4 @@
-import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, Query, Unknown } from 'node-jql'
+import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, CreateTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, PredictJQL, Query, Unknown } from 'node-jql'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 
 /**
@@ -163,7 +163,7 @@ export class AnalyzedQuery extends Query {
   /**
    * Whether no database involved in this query
    */
-  get noDatbaseInvolved(): boolean {
+  get noDatabaseInvolved(): boolean {
     return !this.databases.length
   }
 
@@ -241,5 +241,44 @@ export class AnalyzedQuery extends Query {
       const { expression } = jql
       this.registerDatabase(expression)
     }
+  }
+}
+/**
+ * Analyze PREDICT JQL for processing and optimization
+ */
+export class AnalyzedPredictJQL extends PredictJQL {
+  public readonly databases: string[] = []
+
+  /**
+   * @param jql [PredictJQL]
+   */
+  constructor(jql: PredictJQL, defDatabase?: string) {
+    super(...jql.jql)
+
+    for (const jql of this.jql) {
+      if (jql instanceof CreateTableJQL) {
+        const database = jql.database || defDatabase
+        if (!database) throw new NoDatabaseError()
+        this.databases.push(database)
+      }
+      else if (jql instanceof Query) {
+        const analyzed = new AnalyzedQuery(jql, defDatabase)
+        this.databases.push(...analyzed.databases)
+      }
+    }
+  }
+
+  /**
+   * Whether no database involved in this JQL
+   */
+  get noDatabaseInvolved(): boolean {
+    return !this.databases.length
+  }
+
+  /**
+   * Whether multiple databases involved in this JQL
+   */
+  get multiDatabasesInvolved(): boolean {
+    return this.databases.length > 1
   }
 }

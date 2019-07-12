@@ -164,15 +164,48 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   }
 
   // @override
-  public predictQuery(jql: AnalyzedQuery): TaskFn<IPredictResult> {
+  public predictQuery(predictJQL: PredictJQL, database?: string): TaskFn<IPredictResult> {
     this.checkInited()
     return _task => new CancelablePromise(async (resolve, _reject, check) => {
       // check canceled
       await check()
 
-      // return
-      const compiled = new CompiledQuery(this, jql, { axiosInstance: this.options.axiosInstance, defDatabase: jql.defDatabase })
-      return resolve({ columns: compiled.table.columns, time: 0 })
+      // single query
+      if (predictJQL.jql.length === 1) {
+        const query = new AnalyzedQuery(predictJQL.jql[0] as Query, database)
+        if (query.noDatabaseInvolved) query.databases.push(TEMP_DB_NAME)
+        const compiled = new CompiledQuery(query, {
+          axiosInstance: this.options.axiosInstance,
+          defDatabase: query.defDatabase,
+          getTable: this.getTable.bind(this),
+          functions: this.functions,
+        })
+        return resolve({ columns: compiled.table.columns, time: 0 })
+      }
+
+      // multiple query
+      const sandbox = this.prepareSandbox(database)
+      const options = { axiosInstance: this.options.axiosInstance } as Partial<ICompileOptions>
+      for (let i = 0, length = predictJQL.jql.length; i < length; i += 1) {
+        const jql = predictJQL.jql[i]
+        if (i === predictJQL.jql.length - 1) {
+          const query = new AnalyzedQuery(predictJQL.jql[i] as Query, database)
+          if (query.noDatabaseInvolved) query.databases.push(TEMP_DB_NAME)
+          const compiled = new CompiledQuery(query, {
+            ...options,
+            sandbox,
+            getTable: (database, table) => sandbox.getTable(database, table) || this.getTable(database, table),
+            functions: {
+              ...this.functions,
+              ...(options.functions || {}),
+            },
+          })
+          return resolve({ columns: compiled.table.columns, time: 0 })
+        }
+        else if (jql instanceof CreateJQL) {
+          await sandbox.prepare(jql, options)
+        }
+      }
     })
   }
 

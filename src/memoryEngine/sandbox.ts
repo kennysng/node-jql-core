@@ -1,6 +1,6 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import _ from 'lodash'
-import { checkNull, normalize } from 'node-jql'
+import { checkNull, CreateFunctionJQL, CreateJQL, CreateTableJQL, normalize } from 'node-jql'
 import timsort = require('timsort')
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '.'
@@ -13,6 +13,8 @@ import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
 import { RowCursor, TableCursor } from './cursor/table'
 import { UnionCursor } from './cursor/union'
+import { ICompileOptions } from './expr/compile'
+import { GenericJQLFunction } from './function'
 import { CompiledQuery } from './query'
 import { CompiledFromTable } from './query/FromTable'
 import { Column, Table } from './table'
@@ -77,6 +79,33 @@ export class Sandbox {
     if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
     if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
     return this.context[database][name][i] || {}
+  }
+
+  /**
+   * Find table
+   * @param database [string]
+   * @param name [string]
+   */
+  public getTable(database: string, name: string): Table|undefined {
+    return this.context[database].__tables.find(table => table.name === name)
+  }
+
+  /**
+   * Prepare for prediction
+   * @param jql [CreateJQL]
+   * @param options [Partial<ICompileOptions>]
+   */
+  public prepare(jql: CreateJQL, options: Partial<ICompileOptions>): void {
+    if (jql instanceof CreateTableJQL) {
+      const database = jql.database || options.defDatabase
+      if (!database) throw new NoDatabaseError()
+      if (!this.context[database]) throw new NotFoundError(`Database ${database} not found in sandbox`)
+      this.context[database].__tables.push(new Table(jql.name, jql.columns, jql.constraints, ...(jql.options || [])))
+    }
+    else if (jql instanceof CreateFunctionJQL) {
+      if (!options.functions) options.functions = {}
+      options.functions[jql.name] = () => new GenericJQLFunction(jql.name, jql.fn, jql.type, jql.parameters)
+    }
   }
 
   /**
