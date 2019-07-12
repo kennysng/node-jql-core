@@ -1,10 +1,17 @@
-export { Schema, Column, Database, Table } from './schema'
+// core
+export { ApplicationCore } from './core'
+export { Session } from './core/session'
+export { Database } from './core/database'
+export { DatabaseEngine } from './core/engine'
+export { Task, TaskFn, StatusCode } from './core/task'
+export { IResult, IUpdateResult, IQueryResult, Resultset } from './core/result'
+export { PreparedQuery } from './core/query'
 
-export { DatabaseCore, Connection } from './core'
-export { IDataSource, IMapping, IQueryResult, IResult, IRow } from './core/interfaces'
-export { ResultSet } from './engine/core/cursor/result'
+// in-memory engine
+export { InMemoryDatabaseEngine } from './memoryEngine'
+export { Table, Column } from './memoryEngine/table'
+export { JQLFunction, JQLAggregateFunction } from './memoryEngine/function'
 
-export { DatabaseEngine } from './engine/core'
-export { InMemoryEngine } from './engine/memory'
-
-export { JQLAggregateFunction, JQLFunction } from './function'
+// utils
+export { ReadWriteLock } from './utils/lock'
+export { ILogger, Logger } from './utils/logger'

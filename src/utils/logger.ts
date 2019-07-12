@@ -1,111 +1,109 @@
 /* tslint:disable:no-console */
-
-import chalk = require('chalk')
-import moment = require('moment')
-import { getEnv } from './env'
-
-type LogLevel = 'DEBUG'|'INFO'|'WARN'|'ERROR'
+import chalk from 'chalk'
+import moment from 'moment'
 
 /**
- * Advanced logging
+ * Logger interface
  */
-export class Logger {
-  private readonly tag: string
-  private levels: LogLevel[]
-  private enabled = false
+export interface ILogger {
+  /**
+   * console.log
+   * @param args [Array<string>]
+   */
+  log: (...args: string[]) => void
 
   /**
-   * @param key [string]
+   * console.debug
+   * @param args [Array<string>]
    */
-  constructor(key: string) {
-    this.tag = `node-jql:${key}`
+  debug: (...args: string[]) => void
 
-    const levels = (getEnv('log') || 'DEBUG,INFO,WARN,ERROR').split(',')
-    this.setLogLevels(...levels as LogLevel[])
+  /**
+   * console.info
+   * @param args [Array<string>]
+   */
+  info: (...args: string[]) => void
+
+  /**
+   * console.warn
+   * @param args [Array<string>]
+   */
+  warn: (...args: string[]) => void
+
+  /**
+   * console.error
+   * @param args [Array<string>]
+   */
+  error: (...args: string[]) => void
+}
+
+type LogLevel = 'debug'|'log'|'info'|'warn'|'error'
+
+/**
+ * Simple logger class
+ */
+export class Logger implements ILogger {
+  /**
+   * @param tag [string]
+   */
+  constructor(private readonly tag: string) {
   }
 
   // @override
-  get [Symbol.toStringTag](): string {
-    return 'Logger'
+  public log(...args: string[]): void {
+    this.print('log', ...args)
   }
 
-  /**
-   * @param value [boolean]
-   */
-  public setEnabled(value: boolean): void {
-    this.enabled = value
+  // @override
+  public debug(...args: string[]): void {
+    this.print('debug', ...args)
   }
 
-  /**
-   * The list of levels that will be shown
-   * @param levels [...Array<string>] Accepts DEBUG, INFO, WARN, ERROR only
-   */
-  public setLogLevels(...levels: LogLevel[]): void {
-    this.levels = levels
+  // @override
+  public info(...args: string[]): void {
+    this.print('info', ...args)
   }
 
-  /**
-   * Same as console.debug
-   * @param args [any]
-   */
-  public debug(...args: any[]): void {
-    this.print('DEBUG', ...args)
+  // @override
+  public warn(...args: string[]): void {
+    this.print('warn', ...args)
   }
 
-  /**
-   * Same as console.info
-   * @param args [any]
-   */
-  public info(...args: any[]): void {
-    this.print('INFO', ...args)
+  // @override
+  public error(...args: string[]): void {
+    this.print('error', ...args)
   }
 
-  /**
-   * Same as console.warn
-   * @param args [any]
-   */
-  public warn(...args: any[]): void {
-    this.print('WARN', ...args)
+  private print(level: LogLevel, ...args: string[]): void {
+    args.unshift(chalk.bold(`[${level.toLocaleUpperCase()}]`))
+    args = this.wrap(level, ...args)
+    args.unshift(chalk.italic(this.tag))
+    args.unshift(chalk.grey(moment.utc().format()))
+    switch (level) {
+      case 'log':
+        return console.log(...args)
+      case 'debug':
+        return console.debug(...args)
+      case 'info':
+        return console.info(...args)
+      case 'warn':
+        return console.warn(...args)
+      case 'error':
+        return console.error(...args)
+    }
   }
 
-  /**
-   * Same as console.error
-   * @param args [any]
-   */
-  public error(...args: any[]): void {
-    this.print('ERROR', ...args)
-  }
-
-  private print(level: LogLevel, ...args: any[]): void {
-    if (this.enabled) {
-      if (this.levels.indexOf(level) > -1) {
-        switch (level) {
-          case 'DEBUG':
-            args.unshift(chalk.default.gray(this.tag))
-            args.unshift(chalk.default.bgBlackBright('[DEBUG]'))
-            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-            console.debug(...args)
-            break
-          case 'INFO':
-            args.unshift(this.tag)
-            args.unshift(chalk.default.inverse('[INFO]'))
-            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-            console.info(...args)
-            break
-          case 'WARN':
-            args.unshift(chalk.default.yellow(this.tag))
-            args.unshift(chalk.default.bgYellow('[WARN]'))
-            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-            console.warn(...args)
-            break
-          case 'ERROR':
-            args.unshift(chalk.default.red(this.tag))
-            args.unshift(chalk.default.bgRed('[ERROR]'))
-            args.unshift(moment.utc().format('YYYY-MM-DD HH:mm:ss'))
-            console.error(...args)
-            break
-        }
-      }
+  private wrap(level: LogLevel, ...args: string[]): string[] {
+    switch (level) {
+      case 'log':
+      case 'debug':
+        return args.map(arg => chalk.gray(arg))
+      case 'info':
+        return args
+      case 'warn':
+        return args.map(arg => chalk.yellow(arg))
+      case 'error':
+        return args.map(arg => chalk.red(arg))
     }
   }
 }

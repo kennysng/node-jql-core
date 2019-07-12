@@ -1,95 +1,121 @@
-/**
- * Similar to a Semaphore
- * Avoid concurrent reading and writing to avoid data collision
- */
+import { ClosedError } from './error/ClosedError'
+
 export class ReadWriteLock {
-  private reading = 0
-  private writing = false
+  private readCount = 0
+  private writeCount = 0
+  private closed = false
+
+  /**
+   * @param maxReadCount [number] optional. maximum number of simultaneous reading process
+   * @param maxWriteCount [number] optional. maximum number of simultaneous writing process
+   */
+  constructor(private readonly maxReadCount = 0, private readonly maxWriteCount = 0) {
+  }
+
+  /**
+   * Whether someone is reading
+   */
+  get isReading(): boolean {
+    return this.readCount > 0
+  }
+
+  /**
+   * Whether someone is writing
+   */
+  get isWriting(): boolean {
+    return this.writeCount > 0 && this.readCount === 0
+  }
 
   // @override
   get [Symbol.toStringTag](): string {
-    return 'ReadWriteLock'
+    return ReadWriteLock.name
   }
 
   /**
-   * Wait if someone is writing
-   * Mark down that someone is reading
+   * Acquire read lock to avoid writing
    */
-  public startReading(): Promise<void> {
-    return new Promise(resolve => {
+  public read(): Promise<void> {
+    return new Promise((resolve, reject) => {
       const fn = () => {
-        if (!this.writing) {
-          this.reading += 1
-          return resolve()
-        }
-        setTimeout(fn, 1)
-      }
-      fn()
-    })
-  }
+        try {
+          this.checkClosed()
 
-  /**
-   * Someone ends reading
-   */
-  public endReading(): void {
-    this.reading = Math.max(0, this.reading - 1)
-  }
-
-  /**
-   * Wait if someone is writing
-   * Hold the writing flag and wait until no one is reading
-   */
-  public startWriting(): Promise<void> {
-    return new Promise(resolve => {
-      const fn = () => {
-        if (!this.writing) {
-          this.writing = true
-          const fn_ = () => {
-            if (!this.reading) return resolve()
-            setTimeout(fn_, 1)
+          // wait until no one is writing and read count not reached
+          if (!this.writeCount && (!this.maxReadCount || this.readCount < this.maxReadCount)) {
+            this.readCount += 1
+            return resolve()
           }
-          return fn_()
+          setTimeout(fn, 0)
         }
-        setTimeout(fn, 1)
+        catch (e) {
+          return reject(e)
+        }
       }
       fn()
     })
   }
 
   /**
-   * Someone ends writing
+   * Release read lock
    */
-  public endWriting(): void {
-    this.writing = false
-  }
-}
-
-/**
- * Manage multiple read-write locks
- */
-export class ReadWriteLocks {
-  private readonly locks: { [key: string]: ReadWriteLock } = {}
-
-  // @override
-  get [Symbol.toStringTag](): string {
-    return 'ReadWriteLocks'
+  public readEnd(): void {
+    this.checkClosed()
+    this.readCount = Math.max(0, this.readCount - 1)
   }
 
-  public startReading(key: string): Promise<void> {
-    if (!this.locks[key]) this.locks[key] = new ReadWriteLock()
-    return this.locks[key].startReading()
+  /**
+   * Acquire write lock to avoid reading
+   */
+  public write(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const fn1 = () => {
+        try {
+          this.checkClosed()
+
+          // wait until write count not reached
+          if (!this.maxWriteCount || this.writeCount < this.maxWriteCount) {
+            this.writeCount += 1
+            const fn2 = () => {
+              try {
+                this.checkClosed()
+
+                // wait until no one is reading
+                if (!this.readCount) return resolve()
+                setTimeout(fn2, 0)
+              }
+              catch (e) {
+                return reject(e)
+              }
+            }
+            return fn2()
+          }
+          setTimeout(fn1, 0)
+        }
+        catch (e) {
+          return reject(e)
+        }
+      }
+      fn1()
+    })
   }
 
-  public endReading(key: string): void {
-    if (this.locks[key]) this.locks[key].endReading()
+  /**
+   * Release write lock
+   */
+  public writeEnd(): void {
+    this.checkClosed()
+    this.writeCount = Math.max(0, this.writeCount - 1)
   }
 
-  public startWriting(key: string): Promise<void> {
-    if (!this.locks[key]) this.locks[key] = new ReadWriteLock()
-    return this.locks[key].startWriting()
+  /**
+   * No further reading or writing
+   */
+  public close(): void {
+    this.checkClosed()
+    this.closed = true
   }
 
-  public endWriting(key: string): void {
-    if (this.locks[key]) this.locks[key].endWriting()
+  private checkClosed(): void {
+    if (this.closed) throw new ClosedError('ReadWriteLock already closed')
   }
 }
