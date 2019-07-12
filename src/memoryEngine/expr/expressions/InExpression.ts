@@ -45,7 +45,7 @@ export class InExpression extends BinaryExpression implements IInExpression {
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {
     let right: any[]
     if (this.right instanceof CompiledQuery) {
-      const result = await sandbox.run(this.right, { cursor: new FixedCursor(cursor) })
+      const result = await sandbox.run(this.right, { subquery: true, cursor: new FixedCursor(cursor) })
       const columns = result.columns as Column[]
       if (columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
       right = result.rows.map(row => row[columns[0].id])

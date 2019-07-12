@@ -29,6 +29,12 @@ export interface IInMemoryOptions {
    * Custom logging
    */
   logger?: ILogger
+
+  /**
+   * Time gap between each cancel check
+   * The smaller the time gap, the more sensitive the cancel trigger, the higher the overhead
+   */
+  checkWindowSize?: number
 }
 
 /**
@@ -44,6 +50,13 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
   constructor(protected readonly options: IInMemoryOptions = {}) {
     super()
+  }
+
+  /**
+   * Time gap between each cancel check
+   */
+  get checkWindowSize(): number {
+    return this.options.checkWindowSize || 5000
   }
 
   // @override
@@ -306,7 +319,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     return task => new CancelablePromise(async (resolve, _reject, check) => {
       const start = Date.now()
 
-      task.status(StatusCode.RUNNING)
+      task.status(StatusCode.PREPARING)
 
       // check table
       this.checkTable(database, name)

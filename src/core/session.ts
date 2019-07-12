@@ -207,9 +207,6 @@ export class Session {
         () => database.executeUpdate(jql)(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
-            // check canceled
-            await check()
-
             // run JQL
             let result = await fn()
 
@@ -271,9 +268,6 @@ export class Session {
         () => database.executeQuery(jql)(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
-            // check canceled
-            await check()
-
             // run JQL
             const result = await fn()
 
