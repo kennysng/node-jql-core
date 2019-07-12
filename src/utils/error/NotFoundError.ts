@@ -1,4 +1,4 @@
-import { JQLError } from '.'
+import { JQLError } from 'node-jql'
 
 /**
  * Throw when something is not found

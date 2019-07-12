@@ -1,354 +1,360 @@
-import { AxiosInstance } from 'axios'
-import { Query } from 'node-jql'
-import uuid = require('uuid/v4')
-import { DatabaseEngine, IPreparedQuery, IRunningQuery } from '../engine/core'
-import { ResultSet } from '../engine/core/cursor/result'
-import { InMemoryEngine } from '../engine/memory'
-import { JQLFunction } from '../function'
-import { Column } from '../schema'
-import { AlreadyClosedError } from '../utils/error/AlreadyClosedError'
-import { NoDatabaseSelectedError } from '../utils/error/NoDatabaseSelectedError'
+import { CancelablePromise, CancelError } from '@kennysng/c-promise'
+import { CreateDatabaseJQL, CreateFunctionJQL, DropDatabaseJQL, DropFunctionJQL, JQLError } from 'node-jql'
+import { InMemoryDatabaseEngine } from '../memoryEngine'
+import { GenericJQLFunction } from '../memoryEngine/function'
+import { ExistsError } from '../utils/error/ExistsError'
+import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
-import { Logger } from '../utils/logger'
-import { IPredictResult, IResult, IRow } from './interfaces'
+import { NotInitedError } from '../utils/error/NotInitedError'
+import { SessionError } from '../utils/error/SessionError'
+import { TEMP_DB_NAME } from './constants'
+import { Database } from './database'
+import { DatabaseEngine } from './engine'
+import { IUpdateResult } from './result'
+import { Session } from './session'
+import { StatusCode, Task } from './task'
 
-export const TEMP_DB_KEY = uuid()
+let DEFAULT_IN_MEMORY_ENGINE: InMemoryDatabaseEngine
 
-export interface IDatabaseOptions {
-  axiosInstance?: AxiosInstance
-  logging?: boolean
-}
+/**
+ * Application options
+ */
+export interface IApplicationOptions {
+  /**
+   * Default engine used when creating database if not specified
+   */
+  defaultEngine?: DatabaseEngine
 
-export interface IConnectionOptions extends IDatabaseOptions {
+  /**
+   * Default in-memory engine used
+   */
+  defaultInMemoryEngine?: InMemoryDatabaseEngine
 }
 
 /**
- * Main class of the Database
+ * JavaScript-Database bridge application
  */
-export class DatabaseCore {
-  public readonly engine: DatabaseEngine
-  public readonly connections: Connection[] = []
+export class ApplicationCore {
+  private initing = false
+  private inited = false
+  private readonly sessions: Session[] = []
+  private readonly databases: Database[] = []
+  private readonly engines: _.Dictionary<DatabaseEngine> = {}
 
-  protected readonly options: IDatabaseOptions
+  /**
+   * @param options [IApplicationOptions]
+   */
+  constructor(public readonly options: IApplicationOptions = {}) {
+    DEFAULT_IN_MEMORY_ENGINE = options.defaultInMemoryEngine || new InMemoryDatabaseEngine()
+    const defaultEngine = options.defaultEngine || DEFAULT_IN_MEMORY_ENGINE
+    this.register('DEFAULT_ENGINE', defaultEngine)
+    this.register('InMemoryEngine', defaultEngine instanceof InMemoryDatabaseEngine ? defaultEngine : DEFAULT_IN_MEMORY_ENGINE)
+  }
 
-  constructor(options?: IDatabaseOptions)
-  constructor(engine: DatabaseEngine, options?: IDatabaseOptions)
-  constructor(...args: any[]) {
-    switch (args.length) {
-      case 2:
-        this.engine = args[0]
-        this.options = args[1] || {}
-        break
-      default:
-        this.options = args[0] || {}
-        this.engine = new InMemoryEngine(this.options)
+  /**
+   * Initialize the application
+   */
+  public async init(): Promise<void> {
+    // initialize registered database engines
+    const promises = Object.keys(this.engines).map(name => this.engines[name].init())
+    await Promise.all(promises)
+
+    if (!this.initing && !this.inited) {
+      this.initing = true
+
+      // create in-memory temporary database
+      await this.createDatabase(new CreateDatabaseJQL(TEMP_DB_NAME, true, 'InMemoryEngine'))
+
+      this.inited = true
+      this.initing = false
     }
   }
 
   // @override
   get [Symbol.toStringTag](): string {
-    return 'DatabaseCore'
+    return ApplicationCore.name
   }
 
   /**
-   * Create a Connection for access
-   * @param useDatabase [string] Default database
-   */
-  public createConnection(options?: IConnectionOptions): Connection {
-    const connection = new Connection(this, Object.assign({}, this.options, options))
-    this.connections.push(connection)
-    return connection
-  }
-
-  /**
-   * Drop the Connection
-   * @param id [number] The Connection ID
-   */
-  public closeConnection(id: number): void {
-    const index = this.connections.findIndex(connection => connection.id === id)
-    if (index === -1) throw new NotFoundError(`Connection #${id} not found`)
-    this.connections.splice(index, 1)
-  }
-}
-
-/**
- * For each client Connection
- */
-export class Connection {
-  public static count = 0
-
-  public readonly id = ++Connection.count
-  public databaseKey?: string
-  public closed: boolean = false
-
-  protected readonly logger = new Logger(`[Connection#${this.id}]`)
-
-  constructor(protected readonly core: DatabaseCore, protected readonly options?: IConnectionOptions) {
-    if (options && options.logging) this.logger.setEnabled(true)
-  }
-
-  // @override
-  get [Symbol.toStringTag](): string {
-    return 'Connection'
-  }
-
-  /**
-   * Whether the Connection is closed
-   */
-  get isClosed(): boolean {
-    return this.closed
-  }
-
-  /**
-   * List all running queries
-   */
-  public get runningQueries(): IRunningQuery[] {
-    this.checkClosed()
-    return this.core.engine.runningQueries
-  }
-
-  /**
-   * Get the id of the last running query
-   */
-  public get lastQueryId(): any {
-    this.checkClosed()
-    return this.core.engine.lastQueryId
-  }
-
-  /**
-   * Register user-defined function
-   * @param name [name]
-   * @param fn [JQLFunction]
-   */
-  public registerFunction(name: string, fn: JQLFunction): void {
-    this.core.engine.registerFunction(name, fn)
-  }
-
-  /**
-   * Set default Database
+   * Register database engine
    * @param name [string]
+   * @param engine [DatabaseEngine]
    */
-  public async useDatabase(name: string): Promise<IResult> {
-    this.checkClosed()
-    const base = Date.now()
-    const database = await Promise.resolve(this.core.engine.getDatabase(name))
-    this.databaseKey = database.key
-    const time = Date.now() - base
-    this.logger.info(`USE \`${name}\` - ${this.timestamp({ time })}`)
-    return { time }
+  public async register(name: string, engine: DatabaseEngine): Promise<ApplicationCore> {
+    this.engines[name] = engine
+    if (this.inited) await engine.init()
+    return this
   }
 
   /**
-   * Create a clean Database
-   * @param name [string]
-   * @param ifNotExists [boolean] Suppress error if the Database with the same name exists
+   * Create a session instance
+   * @param database [string] default database
    */
-  public async createDatabase(name: string, ifNotExists?: true): Promise<IResult> {
-    this.checkClosed()
-    const result = await this.core.engine.createDatabase(name, ifNotExists)
-    this.logger.info(`CREATE DATABASE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-    return result
+  public createSession(database?: string): Session {
+    this.checkInited()
+    const session = new Session(this)
+    this.sessions.push(session)
+    if (database) session.use(database)
+    return session
   }
 
   /**
-   * Rename the Database
-   * @param name [string]
-   * @param newName [string]
+   * Get the session instance
+   * @param uuid [string] session ID
    */
-  public async renameDatabase(name: string, newName: string): Promise<IResult> {
-    this.checkClosed()
-    const result = await this.core.engine.renameDatabase(name, newName)
-    this.logger.info(`RENAME DATABASE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
-    return result
+  public getSession(uuid: string): Session {
+    this.checkInited()
+    const session = this.sessions.find(({ id }) => id === uuid)
+    if (!session) throw new SessionError('Session not found')
+    return session
   }
 
   /**
-   * Drop the Database
-   * @param name [string]
-   * @param ifExists [boolean] Suppress error if the Database does not exists
+   * Close a session
+   * @param uuid [string] session ID
    */
-  public async dropDatabase(name: string, ifExists?: true): Promise<IResult> {
-    this.checkClosed()
-    const result = await this.core.engine.dropDatabase(name, ifExists)
-    this.logger.info(`DROP DATABASE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-    return result
+  public closeSession(uuid: string, force?: boolean): void {
+    this.checkInited()
+    const index = this.sessions.findIndex(({ id }) => id === uuid)
+    if (index === -1) throw new SessionError('Session not found')
+    const session = this.sessions[index]
+    this.sessions.splice(index, 1)
+    session.close(force)
   }
 
   /**
-   * Create a clean Table
-   * @param name [string]
-   * @param columns [Array<Column>]
-   * @param ifNotExists [boolean] Suppress error if the Table with the same name exists
+   * Create a database
+   * @param jql [CreateDatabaseJQL]
    */
-  public createTable(name: string, columns: Column[], ifNotExists?: true): Promise<IResult>
+  public createDatabase(jql: CreateDatabaseJQL): Task<IUpdateResult> {
+    // parse args
+    const name = jql.name
+    const engine = jql.engine ? this.engines[jql.engine] : this.engines['DEFAULT_ENGINE']
+    const ifNotExists = jql.$ifNotExists || false
 
-  /**
-   * Create a clean Table
-   * @param databaseName [string]
-   * @param name [string]
-   * @param columns [Array<Column>]
-   * @param ifNotExists [boolean] Suppress error if the Table with the same name exists
-   */
-  public createTable(databaseName: string, name: string, columns: Column[], ifNotExists?: true): Promise<IResult>
+    // check args
+    if (!engine) throw new JQLError(`Database engine ${jql.engine} not found`)
 
-  public async createTable(...args: any[]): Promise<IResult> {
-    this.checkClosed()
-    let databaseName = this.databaseKey, name: string, columns: Column[], ifNotExists: true | undefined
-    if (typeof args[0] === 'string' && typeof args[1] === 'string') {
-      databaseName = args[0]
-      name = args[1]
-      columns = args[2]
-      if (args[3]) ifNotExists = args[3]
-    }
-    else {
-      name = args[0]
-      columns = args[1]
-      if (args[2]) ifNotExists = args[2]
-    }
-    if (!databaseName) throw new NoDatabaseSelectedError()
-    const result = await this.core.engine.createTable(databaseName, name, columns, ifNotExists)
-    this.logger.info(`CREATE TABLE${ifNotExists ? ' IF NOT EXISTS' : ''} \`${name}\`(${columns.map(column => column.sql).join(', ')}) - ${this.timestamp(result)}`)
-    return result
-  }
+    // create task
+    return new Task(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const database = this.getDatabase(name)
+      if (database && !ifNotExists) throw new ExistsError(`Database ${name} already exists`)
 
-  // TODO create table as
+      // database created
+      if (database) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
 
-  /**
-   * Rename the Table
-   * @param name [string]
-   * @param newName [string]
-   */
-  public renameTable(name: string, newName: string): Promise<IResult>
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
 
-  /**
-   * Rename the Table
-   * @param databaseName [string]
-   * @param name [string]
-   * @param newName [string]
-   */
-  public renameTable(databaseName: string, name: string, newName: string): Promise<IResult>
+      // database not created
+      const database_ = new Database(name, engine)
+      return new CancelablePromise(
+        () => database_.create()(task),
+        async (fn, resolve, reject, check, canceled) => {
+          try {
+            // check canceled
+            await check()
 
-  public async renameTable(...args: any[]): Promise<IResult> {
-    this.checkClosed()
-    let database = this.databaseKey, name: string, newName: string
-    if (args.length === 2) {
-      name = args[0]
-      newName = args[1]
-    }
-    else {
-      database = args[0]
-      name = args[1]
-      newName = args[2]
-    }
-    if (!database) throw new NoDatabaseSelectedError()
-    const result = await this.core.engine.renameTable(database, name, newName)
-    this.logger.info(`RENAME TABLE \`${name}\` TO \`${newName}\` - ${this.timestamp(result)}`)
-    return result
+            // create database
+            const result = await fn()
+            this.databases.push(database_)
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve(result)
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        },
+      )
+    })
   }
 
   /**
-   * Remove the Table
-   * @param name [string]
-   * @param ifExists [boolean] Suppress error if the Table does not exists
+   * Define NodeJQL function
+   * @param jql [CreateFunctionJQL]
    */
-  public dropTable(name: string, ifExists?: true): Promise<IResult>
+  public createFunction(jql: CreateFunctionJQL): Task<IUpdateResult> {
+    // parse args
+    const name = jql.name
+    const fn = jql.fn
+    const parameters = jql.parameters
+    const type = jql.type
 
-  /**
-   * Remove the Table
-   * @param databaseName [string]
-   * @param name [string]
-   * @param ifExists [boolean] Suppress error if the Table does not exists
-   */
-  public dropTable(databaseName: string, name: string, ifExists?: true): Promise<IResult>
+    // create task
+    return new Task(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
+      const fn_ = database.engine.functions[name]
 
-  public async dropTable(...args: any[]): Promise<IResult> {
-    this.checkClosed()
-    let database = this.databaseKey, name: string, ifExists: true | undefined
-    if (typeof args[0] === 'string' && typeof args[1] === 'string') {
-      database = args[0]
-      name = args[1]
-      if (args[2]) ifExists = args[2]
-    }
-    else {
-      name = args[0]
-      if (args[1]) ifExists = args[1]
-    }
-    if (!database) throw new NoDatabaseSelectedError()
-    const result = await this.core.engine.dropTable(database, name, ifExists)
-    this.logger.info(`DROP TABLE${ifExists ? ' IF EXISTS' : ''} \`${name}\` - ${this.timestamp(result)}`)
-    return result
+      // function created
+      if (fn_) throw new ExistsError(`Function ${name} already exists`)
+
+      // function not created
+      return new CancelablePromise(async (resolve, reject, check, canceled) => {
+        try {
+          await check()
+
+          database.engine.functions[name.toLocaleLowerCase()] = () => new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
+
+          // return
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 1, jql, time: 0 })
+        }
+        catch (e) {
+          if (e instanceof CancelError) canceled()
+          return reject(e)
+        }
+      })
+    })
   }
 
   /**
-   * Run a Query
-   * @param query [Query|IPreparedQuery|Array<Query|IPreparedQuery>]
+   * Drop NodeJQL function
+   * @param jql [DropFunctionJQL]
    */
-  public async query<T>(query: Query|IPreparedQuery|Array<Query|IPreparedQuery>): Promise<ResultSet<T>> {
-    const result = await (this.databaseKey ? this.core.engine.query(this.databaseKey, query) : this.core.engine.query(query))
-    this.logger.info(`${result.sql || query.toString()} - length: ${result.data.length} - ${this.timestamp(result)}`)
-    return new ResultSet<T>(result)
+  public dropFunction(jql: DropFunctionJQL): Task<IUpdateResult> {
+    // parse args
+    const name = jql.name.toLocaleLowerCase()
+    const $ifExists = jql.$ifExists
+
+    // create task
+    return new Task(jql, task => {
+      // preparing
+      task.status(StatusCode.PREPARING)
+      const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
+      const fn_ = database.engine.functions[name]
+      if (!fn_ && !$ifExists) throw new NotFoundError(`Function ${name.toLocaleUpperCase()} not found`)
+
+      // not user-defined
+      const instance = fn_()
+      if (!(instance instanceof GenericJQLFunction)) throw new InMemoryError(`Fail to drop built-in function ${name.toLocaleUpperCase()}`)
+
+      // function not exists
+      if (!fn_) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
+
+      // function exists
+      return new CancelablePromise(async (resolve, reject, check, canceled) => {
+        try {
+          await check()
+
+          delete database.engine.functions[name]
+
+          // return
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 1, jql, time: 0 })
+        }
+        catch (e) {
+          if (e instanceof CancelError) canceled()
+          return reject(e)
+        }
+      })
+    })
   }
 
   /**
-   * Predict the result structure of a Query
-   * @param query [Query]
+   * Get the database by name
+   * @param database [string] database name
    */
-  public predict(query: Query): Promise<IPredictResult> {
-    return this.databaseKey ? this.core.engine.predict(this.databaseKey, query) : this.core.engine.predict(query)
+  public getDatabase(database: string): Database|undefined {
+    return this.databases.find(({ name }) => name === database)
   }
 
   /**
-   * Insert data into a Table
-   * @param name [string]
-   * @param values [Array<IRow>]
+   * Get the temporary database
    */
-  public insertInto(name: string, values: IRow[]): Promise<IResult>
-
-  /**
-   * Insert data into a Table
-   * @param databaseName [string]
-   * @param name [string]
-   * @param values [Array<IRow>]
-   */
-  public insertInto(databaseName: string, name: string, values: IRow[]): Promise<IResult>
-
-  public async insertInto(...args: any[]): Promise<IResult> {
-    this.checkClosed()
-    let database = this.databaseKey, name: string, values: IRow[]
-    if (typeof args[1] === 'string') {
-      database = args[0]
-      name = args[1]
-      values = args[2]
-    }
-    else {
-      name = args[0]
-      values = args[1]
-    }
-    if (!database) throw new NoDatabaseSelectedError()
-    const result = await this.core.engine.insertInto(database, name, values)
-    this.logger.info(`INSERT INTO \`${name}\` VALUES ${values.length > 10 ? `(${values.length} records)` : values.map(row => JSON.stringify(row)).join(', ')} - ${this.timestamp(result)}`)
-    return result
-  }
-
-  public async cancel(id: any): Promise<void> {
-    this.checkClosed()
-    await this.core.engine.cancel(id)
+  public async getTempDB(): Promise<Database> {
+    return this.getDatabase(TEMP_DB_NAME) as Database
   }
 
   /**
-   * Close this Connection
+   * Drop a database
+   * @param jql [DropDatabaseJQL]
    */
-  public close(): void {
-    this.checkClosed()
-    this.core.closeConnection(this.id)
-    this.closed = true
+  public dropDatabase(jql: DropDatabaseJQL): Task<IUpdateResult> {
+    // parse args
+    const database = jql.name
+    const ifExists = jql.$ifExists || false
+
+    // create task
+    return new Task(jql, task => {
+      task.status(StatusCode.PREPARING)
+      const index = this.databases.findIndex(({ name }) => name === database)
+      if ((index === -1 || this.databases[index].name === TEMP_DB_NAME) && !ifExists) throw new NotFoundError(`Database ${database} not found`)
+
+      // database not exists
+      if (index === -1) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
+
+      // database exists
+      return new CancelablePromise(
+        () => this.databases[index].drop()(task),
+        async (fn, resolve, reject, check, canceled) => {
+          try {
+            // check canceled
+            await check()
+
+            // delete database
+            const result = await fn()
+            this.databases.splice(index, 1)
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve(result)
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        },
+      )
+    })
   }
 
-  private checkClosed(): void {
-    if (this.isClosed) throw new AlreadyClosedError(`Connection #${this.id} already closed`)
-  }
-
-  private timestamp(result: IResult): string {
-    return `time: ${result.time === 0 ? '< 1' : result.time}ms`
+  private checkInited(): void {
+    if (!this.inited) throw new NotInitedError(ApplicationCore)
   }
 }
