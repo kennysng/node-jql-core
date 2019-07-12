@@ -14,6 +14,54 @@ Note: It's not fully optimized, and may be slow. Please avoid doing intensive co
 
 Note: NodeJS version 8 or higher is highly recommended due to the native support of `async/await`
 
+# Usage
+
+``` js
+(async () => {
+  // initialize core
+  const core = new ApplicationCore({ defaultEngine: new InMemoryDatabaseEngine({ logger: new Logger('InMemoryDatabaseEngine') }) })
+  await core.init()
+
+  // create session
+  const session = core.createSession()
+
+  /**
+   * USE database
+   */
+  session.use(string)
+
+  /**
+   * ID of the last running task
+   */
+  session.lastTaskId
+
+  /**
+   * CRETAE, INSERT, UPDATE, ALTER etc.
+   */
+  session.update(JQL)
+
+  /**
+   * Predict SELECT result structure
+   */
+  session.predict(JQL)
+
+  /**
+   * SELECT
+   */
+  session.query(JQL)
+
+  /**
+   * Kill running task
+   */
+  session.kill(string)
+
+  /**
+   * Close the session
+   */
+  session.close(boolean?)
+})()
+```
+
 # Custom Engine
 
 You can develop your custom engine.  
