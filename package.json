@@ -51,12 +51,12 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "@kennysng/c-promise": "^1.4.0",
+    "@kennysng/c-promise": "^2.0.0",
     "esrever": "^0.2.0",
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.14",
     "moment": "^2.24.0",
-    "node-jql": "^2.0.0-rc.27",
+    "node-jql": "^2.0.0-rc.28",
     "numeral": "^2.0.6",
     "seedrandom": "^3.0.1",
     "timsort": "^0.3.0",

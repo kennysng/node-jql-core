@@ -285,10 +285,10 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@kennysng/c-promise@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-1.4.0.tgz#13446b527514582856c0b596afe5504ac594f487"
-  integrity sha512-swwHCW14WCKlpgou0QC25njp9gFU7JtMdUFApq6JOo5Clf1DTIxAv1EIkSU53Rgftq8XVjMrLMsLQ4HxMRnJXQ==
+"@kennysng/c-promise@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@kennysng/c-promise/-/c-promise-2.0.0.tgz#b0f020c18d6303302b757d3998d216d025b829fa"
+  integrity sha512-7IO/dGBqzx1MNhmAB/h/nhM3TvvcrrzUFYvs5SC6i5li49Q4RVd908xpvVZaBWzUCn7mn1Zyx0dwMkz8uISiwg==
   dependencies:
     axios "^0.19.0"
     wolfy87-eventemitter "^5.2.6"
@@ -2783,10 +2783,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^2.0.0-rc.27:
-  version "2.0.0-rc.27"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.27.tgz#a823966b806db1ccc371d4a980e982fb34ae4732"
-  integrity sha512-fM8wVoHMHhyBiokk2qKUJ61pGja3VFQBTfHH/WahPtK9m2+IcT73cZeUkNcETbxqVAh7aPdq2J8AG4jrbQInXw==
+node-jql@^2.0.0-rc.28:
+  version "2.0.0-rc.28"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.28.tgz#3f08610bc113b29cbb1b57a7345d122591ced57a"
+  integrity sha512-/EgIBah3WU6T1FZUwrvjAXmBbKsVetp5t+9J7CktuxTBcXIqPAOmKtRPC9cQeStx35fDaAR3/VfEJqARy3lAQQ==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
