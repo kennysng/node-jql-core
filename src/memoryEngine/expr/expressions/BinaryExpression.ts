@@ -1,7 +1,6 @@
 import { BinaryExpression as NodeJQLBinaryExpression, BinaryOperator, Expression, IBinaryExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -16,14 +15,13 @@ export class BinaryExpression extends CompiledConditionalExpression implements I
   public readonly right: any
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLBinaryExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, protected readonly jql: NodeJQLBinaryExpression, options: ICompileOptions) {
+  constructor(protected readonly jql: NodeJQLBinaryExpression, options: ICompileOptions) {
     super()
-    this.left = compile(engine, jql.left, options)
-    if (jql.right instanceof Expression) this.right = compile(engine, jql.right, options)
+    this.left = compile(jql.left, options)
+    if (jql.right instanceof Expression) this.right = compile(jql.right, options)
   }
 
   // @override

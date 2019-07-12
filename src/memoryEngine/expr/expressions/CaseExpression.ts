@@ -1,7 +1,6 @@
 import { CaseExpression as NodeJQLCaseExpression, ICaseExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -17,14 +16,13 @@ export class CaseExpression extends CompiledConditionalExpression implements ICa
   public readonly $else?: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLCaseExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLCaseExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLCaseExpression, options: ICompileOptions) {
     super()
-    this.cases = jql.cases.map(({ $when, $then }) => ({ $when: compile(engine, $when, options), $then: compile(engine, $then, options) }))
-    if (jql.$else) this.$else = compile(engine, jql.$else, options)
+    this.cases = jql.cases.map(({ $when, $then }) => ({ $when: compile($when, options), $then: compile($then, options) }))
+    if (jql.$else) this.$else = compile(jql.$else, options)
   }
 
   // @override

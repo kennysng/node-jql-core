@@ -1,7 +1,8 @@
 import { AxiosInstance } from 'axios'
 import { ConditionalExpression, Expression } from 'node-jql'
 import { CompiledConditionalExpression, CompiledExpression } from '.'
-import { InMemoryDatabaseEngine } from '..'
+import { JQLFunction } from '../function'
+import { Sandbox } from '../sandbox'
 import { Table } from '../table'
 import { ColumnExpression } from './expressions/ColumnExpression'
 import { FunctionExpression } from './expressions/FunctionExpression'
@@ -10,6 +11,16 @@ import { FunctionExpression } from './expressions/FunctionExpression'
  * Options required for compilation
  */
 export interface ICompileOptions {
+  /**
+   * Sandbox environment
+   */
+  sandbox?: Sandbox
+
+  /**
+   * Get table function
+   */
+  getTable: (database: string, table: string) => Table
+
   /**
    * Subquery with name
    */
@@ -49,17 +60,22 @@ export interface ICompileOptions {
    * List of aggregate functions used
    */
   aggregateFunctions: FunctionExpression[]
+
+  /**
+   * List of available functions
+   */
+  functions: _.Dictionary<() => JQLFunction>
 }
 
 /**
  * Compile expressions
  * @param jql [Expression]
  */
-export function compile<T extends CompiledConditionalExpression>(engine: InMemoryDatabaseEngine, jql: ConditionalExpression, options: ICompileOptions): T
-export function compile<T extends CompiledExpression>(engine: InMemoryDatabaseEngine, jql: Expression, options: ICompileOptions): T
-export function compile(engine: InMemoryDatabaseEngine, jql: Expression, options: ICompileOptions): CompiledExpression
-export function compile(engine: InMemoryDatabaseEngine, jql: Expression, options: ICompileOptions): CompiledExpression {
+export function compile<T extends CompiledConditionalExpression>(jql: ConditionalExpression, options: ICompileOptions): T
+export function compile<T extends CompiledExpression>(jql: Expression, options: ICompileOptions): T
+export function compile(jql: Expression, options: ICompileOptions): CompiledExpression
+export function compile(jql: Expression, options: ICompileOptions): CompiledExpression {
   const CONSTRUCTOR = require(`./expressions/${jql.classname}`)[jql.classname]
   if (!CONSTRUCTOR) throw new SyntaxError(`Unknown expression: classname ${jql.classname} not found`)
-  return new CONSTRUCTOR(engine, jql, options)
+  return new CONSTRUCTOR(jql, options)
 }

@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { ColumnExpression as NodeJQLColumnExpression, JQL, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
-import { InMemoryDatabaseEngine } from '..'
+import { InMemoryError } from '../../utils/error/InMemoryError'
 import { CompiledConditionalExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
 import { AndExpressions } from '../expr/expressions/AndExpressions'
@@ -17,7 +17,7 @@ import { LikeExpression } from '../expr/expressions/LikeExpression'
 import { MathExpression } from '../expr/expressions/MathExpression'
 import { OrExpressions } from '../expr/expressions/OrExpressions'
 import { ParameterExpression } from '../expr/expressions/ParameterExpression'
-import { JQLAggregateFunction } from '../function'
+import { JQLAggregateFunction, JQLFunction } from '../function'
 import { Column, Table } from '../table'
 import { CompiledFromTable } from './FromTable'
 import { CompiledGroupBy } from './GroupBy'
@@ -39,11 +39,10 @@ export class CompiledQuery extends Query {
   public readonly options: ICompileOptions
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [AnalyzedQuery]
    * @param options [ICompileOptions] optional
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: Query, options: Partial<ICompileOptions> = {}) {
+  constructor(private readonly jql: Query, options: Partial<ICompileOptions> & { getTable: (database: string, table: string) => Table, functions: _.Dictionary<() => JQLFunction> }) {
     super(jql)
 
     // initialize options
@@ -58,7 +57,7 @@ export class CompiledQuery extends Query {
 
     // analyze tables
     if (jql.$from) {
-      this.$from = jql.$from.map(jql => new CompiledFromTable(engine, jql, options_))
+      this.$from = jql.$from.map(jql => new CompiledFromTable(jql, options_))
     }
 
     // analyze wildcard
@@ -81,25 +80,25 @@ export class CompiledQuery extends Query {
       }
       return result
     }, [])
-    this.$select = $select.map(jql => new CompiledResultColumn(engine, jql, options_))
+    this.$select = $select.map(jql => new CompiledResultColumn(jql, options_))
 
     // lock columns
     options_ = { ...options_, columns: [] }
 
     // analyze GROUP BY statement first
-    if (jql.$group) this.$group = new CompiledGroupBy(engine, jql.$group, { ...options_, columns: [] })
+    if (jql.$group) this.$group = new CompiledGroupBy(jql.$group, { ...options_, columns: [] })
 
     // lock aggregate functions
     options_ = { ...options_, aggregateFunctions: [] }
 
     // analyze WHERE conditions
-    if (jql.$where) this.$where = compile(engine, jql.$where, { ...options_, columns: [] })
+    if (jql.$where) this.$where = compile(jql.$where, { ...options_, columns: [] })
 
     // analyze ORDER BY statement
-    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(engine, jql, { ...options_, columns: [] }))
+    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(jql, { ...options_, columns: [] }))
 
     // analyze OFFSET statement
-    if (jql.$limit) this.$limit = new CompiledLimitOffset(engine, jql.$limit, { ...options_, columns: [] })
+    if (jql.$limit) this.$limit = new CompiledLimitOffset(jql.$limit, { ...options_, columns: [] })
   }
 
   /**

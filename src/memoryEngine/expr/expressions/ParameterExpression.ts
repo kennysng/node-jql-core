@@ -1,7 +1,6 @@
 import { IExpression, IParameterExpression, ParameterExpression as NodeJQLParameterExpression, Type } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -15,13 +14,12 @@ export class ParameterExpression extends CompiledExpression implements IParamete
   public readonly expression: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLParameterExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLParameterExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLParameterExpression, options: ICompileOptions) {
     super()
-    this.expression = compile(engine, jql.expression, options)
+    this.expression = compile(jql.expression, options)
   }
 
   // @override

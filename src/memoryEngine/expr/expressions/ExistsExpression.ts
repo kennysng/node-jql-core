@@ -1,7 +1,6 @@
 import { ExistsExpression as NodeJQLExistsExpression, IExistsExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { FixedCursor } from '../../cursor/fixed'
 import { CompiledQuery } from '../../query'
@@ -17,13 +16,12 @@ export class ExistsExpression extends CompiledConditionalExpression implements I
   public readonly query: CompiledQuery
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLExistsExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLExistsExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLExistsExpression, options: ICompileOptions) {
     super()
-    this.query = new CompiledQuery(engine, jql.query, {
+    this.query = new CompiledQuery(jql.query, {
       ...options,
       tables: { ...options.tables },
       tablesOrder: [...options.tablesOrder],

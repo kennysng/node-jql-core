@@ -1,7 +1,6 @@
 import { IGroupedExpressions, OrExpressions as NodeJQLOrExpressions } from 'node-jql'
 import squel from 'squel'
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -15,13 +14,12 @@ export class OrExpressions extends CompiledConditionalExpression implements IGro
   public readonly expressions: CompiledExpression[]
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLOrExpressions]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLOrExpressions, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLOrExpressions, options: ICompileOptions) {
     super()
-    this.expressions = jql.expressions.map(jql => compile(engine, jql, options))
+    this.expressions = jql.expressions.map(jql => compile(jql, options))
   }
 
   // @override

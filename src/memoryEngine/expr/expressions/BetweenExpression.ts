@@ -1,7 +1,6 @@
 import { BetweenExpression as NodeJQLBetweenExpression, IBetweenExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -17,15 +16,14 @@ export class BetweenExpression extends CompiledConditionalExpression implements 
   public readonly end: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLBetweenExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLBetweenExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLBetweenExpression, options: ICompileOptions) {
     super()
-    this.left = compile(engine, jql.left, options)
-    this.start = compile(engine, jql.start, options)
-    this.end = compile(engine, jql.end, options)
+    this.left = compile(jql.left, options)
+    this.start = compile(jql.start, options)
+    this.end = compile(jql.end, options)
   }
 
   // @override

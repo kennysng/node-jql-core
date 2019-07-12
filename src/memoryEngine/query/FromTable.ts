@@ -2,7 +2,6 @@ import { CancelableAxiosPromise, CreatePromiseFn } from '@kennysng/c-promise'
 import { AxiosResponse } from 'axios'
 import { FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
-import { InMemoryDatabaseEngine } from '..'
 import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
 import { CompiledConditionalExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
@@ -14,14 +13,13 @@ export class CompiledJoinClause extends JoinClause {
   public readonly $on?: CompiledConditionalExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [FromTable]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: JoinClause, options: ICompileOptions) {
+  constructor(jql: JoinClause, options: ICompileOptions) {
     super(jql)
-    this.table = new CompiledFromTable(engine, jql.table, options)
-    if (jql.$on) this.$on = compile(engine, jql.$on, options)
+    this.table = new CompiledFromTable(jql.table, options)
+    if (jql.$on) this.$on = compile(jql.$on, options)
   }
 }
 
@@ -37,23 +35,22 @@ export class CompiledFromTable extends FromTable {
   public readonly joinClauses: CompiledJoinClause[]
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [FromTable]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: FromTable, options: ICompileOptions) {
+  constructor(jql: FromTable, options: ICompileOptions) {
     super(jql)
 
     if (typeof jql.table === 'string') {
       const database = jql.database || options.defDatabase
       if (!database) throw new NoDatabaseError()
-      this.table = engine.getTable(database, jql.table)
+      this.table = options.getTable(database, jql.table)
       options.tables[jql.$as || jql.table] = this.table
       options.ownTables.push(jql.$as || jql.table)
       options.tablesOrder.push(jql.$as || jql.table)
     }
     else if (jql.table instanceof Query) {
-      this.query = new CompiledQuery(engine, jql.table, { ...options,
+      this.query = new CompiledQuery(jql.table, { ...options,
         $as: jql.$as,
         tables: { ...options.tables },
         tablesOrder: [...options.tablesOrder],
@@ -74,6 +71,6 @@ export class CompiledFromTable extends FromTable {
       options.tablesOrder.push(jql.$as as string)
     }
 
-    this.joinClauses = jql.joinClauses.map(jql => new CompiledJoinClause(engine, jql, options))
+    this.joinClauses = jql.joinClauses.map(jql => new CompiledJoinClause(jql, options))
   }
 }

@@ -1,7 +1,6 @@
 import { ColumnExpression as NodeJQLColumnExpression, IColumnExpression, Type } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
@@ -18,11 +17,10 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
   public readonly type: Type
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLColumnExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLColumnExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLColumnExpression, options: ICompileOptions) {
     super()
     let column: Column|undefined
     if (jql.table) {

@@ -1,7 +1,6 @@
 import { IMathExpression, MathExpression as NodeJQLMathExpression, MathOperator } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -17,14 +16,13 @@ export class MathExpression extends CompiledExpression implements IMathExpressio
   public readonly right: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLMathExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLMathExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLMathExpression, options: ICompileOptions) {
     super()
-    this.left = compile(engine, jql.left, options)
-    this.right = compile(engine, jql.right, options)
+    this.left = compile(jql.left, options)
+    this.right = compile(jql.right, options)
   }
 
   // @override

@@ -1,7 +1,6 @@
 import { AndExpressions as NodeJQLAndExpressions, IGroupedExpressions } from 'node-jql'
 import squel from 'squel'
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { compile, ICompileOptions } from '../compile'
@@ -15,13 +14,12 @@ export class AndExpressions extends CompiledConditionalExpression implements IGr
   public readonly expressions: CompiledExpression[]
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLAndExpressions]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLAndExpressions, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLAndExpressions, options: ICompileOptions) {
     super()
-    this.expressions = jql.expressions.map(jql => compile(engine, jql, options))
+    this.expressions = jql.expressions.map(jql => compile(jql, options))
   }
 
   // @override

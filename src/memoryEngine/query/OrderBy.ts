@@ -1,6 +1,5 @@
 import { OrderBy } from 'node-jql'
 import uuid = require('uuid/v4')
-import { InMemoryDatabaseEngine } from '..'
 import { CompiledExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
 import { ColumnExpression } from '../expr/expressions/ColumnExpression'
@@ -17,13 +16,12 @@ export class CompiledOrderBy extends OrderBy {
   public readonly order: 'ASC'|'DESC'
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [OrderBy]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: OrderBy, options: ICompileOptions) {
+  constructor(jql: OrderBy, options: ICompileOptions) {
     super(jql)
-    this.expression = compile(engine, jql.expression, options)
+    this.expression = compile(jql.expression, options)
     if (this.expression instanceof ColumnExpression) this.id = this.expression.key
   }
 }

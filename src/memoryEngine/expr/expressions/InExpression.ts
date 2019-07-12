@@ -1,6 +1,5 @@
 import { Expression, IInExpression, InExpression as NodeJQLInExpression } from 'node-jql'
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
 import { FixedCursor } from '../../cursor/fixed'
@@ -20,17 +19,16 @@ export class InExpression extends BinaryExpression implements IInExpression {
   public readonly right: CompiledExpression|CompiledQuery
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLInExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: NodeJQLInExpression, options: ICompileOptions) {
-    super(engine, jql, options)
+  constructor(jql: NodeJQLInExpression, options: ICompileOptions) {
+    super(jql, options)
     if (jql.right instanceof Expression) {
-      this.right = compile(engine, jql.right, options)
+      this.right = compile(jql.right, options)
     }
     else {
-      this.right = new CompiledQuery(engine, jql.right, {
+      this.right = new CompiledQuery(jql.right, {
         ...options,
         tables: { ...options.tables },
         tablesOrder: [...options.tablesOrder],

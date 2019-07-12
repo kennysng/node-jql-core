@@ -2,7 +2,6 @@ import { checkNull, ColumnExpression, FunctionExpression as NodeJQLFunctionExpre
 import squel = require('squel')
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
 import { JQLAggregateFunction, JQLFunction } from '../../function'
 import { Sandbox } from '../../sandbox'
@@ -20,14 +19,13 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
   public readonly function: JQLFunction
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLFunctionExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLFunctionExpression, options: ICompileOptions) {
+  constructor(private readonly jql: NodeJQLFunctionExpression, options: ICompileOptions) {
     super()
     // set function
-    this.function = engine.functions[jql.name.toLocaleLowerCase()]()
+    this.function = options.functions[jql.name.toLocaleLowerCase()]()
     if (this.isAggregate && jql.parameters.length !== 1) throw new SyntaxError(`Aggregate function ${jql.name} should have exactly 1 argument`)
     this.function.interpret(jql.parameters)
 
@@ -48,7 +46,7 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
         }
       }
     }
-    this.parameters = parameters.map(jql => new ParameterExpression(engine, jql, options))
+    this.parameters = parameters.map(jql => new ParameterExpression(jql, options))
 
     // register aggregate function
     if (this.function instanceof JQLAggregateFunction) options.aggregateFunctions.push(this)

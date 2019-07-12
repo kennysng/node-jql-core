@@ -1,7 +1,6 @@
 import { IUnknown, Type, type, Unknown as NodeJQLUnknown } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
@@ -14,11 +13,10 @@ export class Unknown extends CompiledExpression implements IUnknown {
   public readonly classname = Unknown.name
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [NodeJQLUnknown]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, protected readonly jql: NodeJQLUnknown, options: ICompileOptions) {
+  constructor(protected readonly jql: NodeJQLUnknown, options: ICompileOptions) {
     super()
   }
 

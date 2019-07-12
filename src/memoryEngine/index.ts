@@ -1,6 +1,6 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { AxiosInstance } from 'axios'
-import { checkNull, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize } from 'node-jql'
+import { checkNull, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
 import { TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
 import { AnalyzedQuery } from '../core/query'
@@ -11,6 +11,7 @@ import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { ILogger } from '../utils/logger'
+import { ICompileOptions } from './expr/compile'
 import { functions } from './function/functions'
 import { CompiledQuery } from './query'
 import { Sandbox } from './sandbox'
@@ -98,6 +99,14 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
     return table
   }
 
+  /**
+   * Create a sandbox
+   * @param database [string] optional
+   */
+  public prepareSandbox(database?: string): Sandbox {
+    return new Sandbox(this, database)
+  }
+
   // @override
   public createDatabase(name: string): TaskFn<IUpdateResult> {
     this.checkInited()
@@ -170,9 +179,14 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   // @override
   public executeQuery(jql: AnalyzedQuery): TaskFn<IQueryResult> {
     this.checkInited()
-    const compiled = new CompiledQuery(this, jql, { axiosInstance: this.options.axiosInstance, defDatabase: jql.defDatabase })
+    const compiled = new CompiledQuery(jql, {
+      axiosInstance: this.options.axiosInstance,
+      defDatabase: jql.defDatabase,
+      getTable: this.getTable.bind(this),
+      functions: this.functions,
+    })
     return task => new CancelablePromise(
-      new Sandbox(this, jql.defDatabase).run(compiled),
+      this.prepareSandbox(jql.defDatabase).run(compiled),
       async (promise, resolve, _reject, check) => {
         const start = Date.now()
 
@@ -350,7 +364,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         task.status(StatusCode.RUNNING)
 
         const nValues = [] as any[]
-        for (const row of values) {
+        for (const row of values as any[]) {
           const nRow = {} as any
           for (const column of table.columns) {
             // validate value
