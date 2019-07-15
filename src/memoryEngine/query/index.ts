@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import { ColumnExpression as NodeJQLColumnExpression, JQL, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
-import { InMemoryError } from '../../utils/error/InMemoryError'
 import { CompiledConditionalExpression } from '../expr'
 import { compile, ICompileOptions } from '../expr/compile'
 import { AndExpressions } from '../expr/expressions/AndExpressions'
@@ -86,19 +85,19 @@ export class CompiledQuery extends Query {
     options_ = { ...options_, columns: [] }
 
     // analyze GROUP BY statement first
-    if (jql.$group) this.$group = new CompiledGroupBy(jql.$group, { ...options_, columns: [] })
+    if (jql.$group) this.$group = new CompiledGroupBy(jql.$group, options_)
 
     // lock aggregate functions
     options_ = { ...options_, aggregateFunctions: [] }
 
     // analyze WHERE conditions
-    if (jql.$where) this.$where = compile(jql.$where, { ...options_, columns: [] })
+    if (jql.$where) this.$where = compile(jql.$where, options_)
 
     // analyze ORDER BY statement
-    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(jql, { ...options_, columns: [] }))
+    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(jql, options_))
 
     // analyze OFFSET statement
-    if (jql.$limit) this.$limit = new CompiledLimitOffset(jql.$limit, { ...options_, columns: [] })
+    if (jql.$limit) this.$limit = new CompiledLimitOffset(jql.$limit, options_)
   }
 
   /**

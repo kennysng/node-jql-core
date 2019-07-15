@@ -42,6 +42,9 @@ export interface IInMemoryOptions {
  * Save data in volatile memory i.e. RAM
  */
 export class InMemoryDatabaseEngine extends DatabaseEngine {
+  // @override
+  public readonly isPredictSupported = true
+
   /**
    * JQL functions
    */
@@ -173,7 +176,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       // single query
       if (predictJQL.jql.length === 1) {
         const query = new AnalyzedQuery(predictJQL.jql[0] as Query, database)
-        if (query.noDatabaseInvolved) query.databases.push(TEMP_DB_NAME)
         const compiled = new CompiledQuery(query, {
           axiosInstance: this.options.axiosInstance,
           defDatabase: query.defDatabase,
@@ -190,7 +192,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         const jql = predictJQL.jql[i]
         if (i === predictJQL.jql.length - 1) {
           const query = new AnalyzedQuery(predictJQL.jql[i] as Query, database)
-          if (query.noDatabaseInvolved) query.databases.push(TEMP_DB_NAME)
           const compiled = new CompiledQuery(query, {
             ...options,
             sandbox,

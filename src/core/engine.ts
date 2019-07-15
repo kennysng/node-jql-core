@@ -1,6 +1,5 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { JQL, PredictJQL } from 'node-jql'
-import { Table } from '../memoryEngine/table'
 import { AnalyzedQuery } from './query'
 import { IPredictResult, IQueryResult, IUpdateResult } from './result'
 import { TaskFn } from './task'
@@ -9,6 +8,11 @@ import { TaskFn } from './task'
  * Definition of a database engine
  */
 export abstract class DatabaseEngine {
+  /**
+   * Whether PREDICT syntax supported
+   */
+  public readonly isPredictSupported: boolean
+
   protected initing = false
   protected inited = false
 

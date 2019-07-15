@@ -1,5 +1,9 @@
 import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, CreateTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, PredictJQL, Query, Unknown } from 'node-jql'
+import { ApplicationCore } from '.'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
+import { NotFoundError } from '../utils/error/NotFoundError'
+import { TEMP_DB_NAME } from './constants'
+import { DatabaseEngine } from './engine'
 
 /**
  * Reusable query with unknowns
@@ -45,7 +49,7 @@ export class PreparedQuery extends Query {
    */
   public commit(): Query {
     try {
-      return this.clone()
+      return new Query(this)
     }
     finally {
       for (const unknown of this.unknowns) unknown.value = undefined
@@ -158,20 +162,23 @@ export class AnalyzedQuery extends Query {
 
     // unique databases
     this.databases = Array.from(new Set(this.databases))
+
+    // no database
+    if (!this.databases.length) this.databases.push(TEMP_DB_NAME)
   }
 
   /**
-   * Whether no database involved in this query
+   * Whether multiple database engines involved in this query
    */
-  get noDatabaseInvolved(): boolean {
-    return !this.databases.length
-  }
-
-  /**
-   * Whether multiple databases involved in this query
-   */
-  get multiDatabasesInvolved(): boolean {
-    return this.databases.length > 1
+  public multiEnginesInvolved(core: ApplicationCore): boolean {
+    let engine: DatabaseEngine|undefined
+    for (const name of this.databases) {
+      const database = core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (engine && engine !== database.engine) return true
+      engine = database.engine
+    }
+    return false
   }
 
   private registerDatabase(jql: JQL): void {
@@ -269,16 +276,16 @@ export class AnalyzedPredictJQL extends PredictJQL {
   }
 
   /**
-   * Whether no database involved in this JQL
+   * Whether multiple database engines involved in this query
    */
-  get noDatabaseInvolved(): boolean {
-    return !this.databases.length
-  }
-
-  /**
-   * Whether multiple databases involved in this JQL
-   */
-  get multiDatabasesInvolved(): boolean {
-    return this.databases.length > 1
+  public multiEnginesInvolved(core: ApplicationCore): boolean {
+    let engine: DatabaseEngine|undefined
+    for (const name of this.databases) {
+      const database = core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (engine && engine !== database.engine) return true
+      engine = database.engine
+    }
+    return false
   }
 }

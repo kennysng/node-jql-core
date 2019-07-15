@@ -121,23 +121,10 @@ export class Session {
     for (const name of analyzed.databases) {
       const database = this.core.getDatabase(name)
       if (!database) throw new NotFoundError(`Database ${name} not found`)
-      if (!(database.engine instanceof InMemoryDatabaseEngine)) throw new SyntaxError(`Database ${name} does not support PREDICT`)
+      if (!database.engine.isPredictSupported) throw new SyntaxError(`Database ${name} does not support PREDICT`)
     }
-
-    let result: IPredictResult
-    if (analyzed.multiDatabasesInvolved) {
-      result = await this.predictWithMultiDatabases(analyzed)
-    }
-    else {
-      if (analyzed.noDatabaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
-      result = await this.predictWithSingleDatabase(analyzed)
-    }
-
-    return {
-      ...result,
-      jql,
-      time: Date.now() - startTime,
-    }
+    const result = analyzed.multiEnginesInvolved(this.core) ? await this.predictWithMultiDatabases(analyzed) : await this.predictWithSingleDatabase(analyzed)
+    return { ...result, jql, time: Date.now() - startTime }
   }
 
   /**
@@ -148,19 +135,8 @@ export class Session {
     const startTime = Date.now()
     jql = jql instanceof PreparedQuery ? jql.commit() : new Query(jql)
     const analyzed = new AnalyzedQuery(jql, this.database)
-    let result: IQueryResult
-    if (analyzed.multiDatabasesInvolved) {
-      result = await this.queryWithMultiDatabases(analyzed)
-    }
-    else {
-      if (analyzed.noDatabaseInvolved) analyzed.databases.push(TEMP_DB_NAME)
-      result = await this.queryWithSingleDatabase(analyzed)
-    }
-    return {
-      ...result,
-      jql,
-      time: Date.now() - startTime,
-    }
+    const result = analyzed.multiEnginesInvolved(this.core) ? await this.queryWithMultiDatabases(analyzed) : await this.queryWithSingleDatabase(analyzed)
+    return { ...result, jql, time: Date.now() - startTime }
   }
 
   /**

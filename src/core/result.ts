@@ -44,7 +44,7 @@ export interface IQueryResult extends IResult {
   /**
    * Result structure
    */
-  columns?: Column[]
+  columns: Column[]
 }
 
 /**
