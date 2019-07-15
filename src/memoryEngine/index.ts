@@ -1,10 +1,10 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { AxiosInstance } from 'axios'
-import { checkNull, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
+import { checkNull, Column, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
 import { TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
 import { AnalyzedQuery } from '../core/query'
-import { IPredictResult, IQueryResult, IUpdateResult } from '../core/result'
+import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from '../core/result'
 import { StatusCode, TaskFn } from '../core/task'
 import { ExistsError } from '../utils/error/ExistsError'
 import { InMemoryError } from '../utils/error/InMemoryError'
@@ -289,7 +289,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected createTable(jql: CreateTableJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { $temporary, database, name, $ifNotExists, columns, constraints, options } = jql
+    const { $temporary, database, name, $ifNotExists, columns, constraints, options, $as } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -310,9 +310,18 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         await check()
 
         // create table
-        const table = new Table($temporary, name, columns, constraints, ...(options || []))
+        let table: Table, values: any[] = []
+        if ($as) {
+          const result = await this.executeQuery(new AnalyzedQuery($as))(task)
+          const resultset = new Resultset(result)
+          table = new Table($temporary, name, result.columns, constraints, ...(options || []))
+          values = resultset.toArray()
+        }
+        else {
+          table = new Table($temporary, name, columns as Column[], constraints, ...(options || []))
+        }
         this.context[database].__tables.push(table)
-        this.context[database][name] = []
+        this.context[database][name] = values
 
         // return
         if (this.options.logger) this.options.logger.info(`Table ${name} created in database ${database}`)
@@ -372,7 +381,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected insert(jql: InsertJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { database, name, values } = jql
+    const { database, name, values, columns, query } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -397,8 +406,30 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       try {
         task.status(StatusCode.RUNNING)
 
+        let values_: any[]
+        if (query) {
+          const { rows, columns } = await this.executeQuery(new AnalyzedQuery(query))(task)
+
+          if (!columns || columns.length !== (jql.columns as string[]).length) {
+            throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+          }
+
+          const columns_ = jql.columns as string[]
+          values_ = [] as any[]
+          for (let i = 0, length = rows.length; i < length; i += 1) {
+            const row = rows[i]
+            values_.push(columns.reduce((row_, { id }, i) => {
+              row_[columns_[i]] = row[id]
+              return row_
+            }, {} as any))
+          }
+        }
+        else {
+          values_ = values || []
+        }
+
         const nValues = [] as any[]
-        for (const row of values as any[]) {
+        for (const row of values_) {
           const nRow = {} as any
           for (const column of table.columns) {
             // validate value

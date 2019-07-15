@@ -42,7 +42,7 @@ export class ArrayCursor<T = any> extends Cursor {
   // @override
   public async moveToFirst(): Promise<boolean> {
     this.index = -1
-    return await this.next()
+    return this.next()
   }
 
   // @override

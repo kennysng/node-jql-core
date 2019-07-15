@@ -44,7 +44,7 @@ export class CaseExpression extends CompiledConditionalExpression implements ICa
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     for (const { $when, $then } of this.cases) {
       if (await $when.evaluate(sandbox, cursor)) {
-        return await $then.evaluate(sandbox, cursor)
+        return $then.evaluate(sandbox, cursor)
       }
     }
     return this.$else ? await this.$else.evaluate(sandbox, cursor) : null

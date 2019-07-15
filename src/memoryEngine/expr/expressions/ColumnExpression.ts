@@ -70,6 +70,6 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
-    return await cursor.get(this.key)
+    return cursor.get(this.key)
   }
 }

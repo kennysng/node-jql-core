@@ -54,6 +54,6 @@ export class ParameterExpression extends CompiledExpression implements IParamete
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
-    return await this.expression.evaluate(sandbox, cursor)
+    return this.expression.evaluate(sandbox, cursor)
   }
 }
