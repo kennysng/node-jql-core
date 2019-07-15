@@ -115,6 +115,7 @@ export class Sandbox {
    */
   public run(jql: CompiledQuery, options: Partial<IQueryOptions> = {}): CancelablePromise<IQueryResult> {
     const requests: CancelablePromise[] = []
+    let unionPromise: CancelablePromise<IQueryResult>|undefined
     const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject, check_) => {
       const check = async () => {
         if (!options.subquery && Date.now() > this.lastCheck + this.engine.checkWindowSize) await check_()
@@ -270,6 +271,28 @@ export class Sandbox {
         // LIMIT & OFFSET
         if (jql.$limit) rows = rows.slice($offset, $limit)
 
+        // UNION
+        if (jql.$union) {
+          // run UNION query
+          unionPromise = this.run(jql.$union)
+          const result = await unionPromise
+
+          // post process
+          result.rows = result.rows.reduce<any[]>((result_, row) => {
+            const row_ = {} as any
+            for (let i = 0, length = result.columns.length; i < length; i += 1) {
+              const newColumn = jql.table.columns[i]
+              const oldColumn = result.columns[i]
+              row_[newColumn.id] = row[oldColumn.id]
+            }
+            result_.push(row_)
+            return result_
+          }, [])
+
+          // merge
+          rows = rows.concat(result.rows)
+        }
+
         return resolve({
           rows,
           columns: jql.table.columns,
@@ -280,6 +303,7 @@ export class Sandbox {
     // cancel axios requests
     promise.on('cancel', () => {
       for (const request of requests) request.cancel()
+      if (unionPromise) unionPromise.cancel()
     })
     return promise
   }
@@ -309,7 +333,7 @@ export class Sandbox {
       this.context[TEMP_DB_NAME].__tables.push(table)
       this.context[TEMP_DB_NAME][table.name] = result.rows.map(row => {
         const row_ = {} as any
-        for (const { id, name } of result.columns as Column[]) row_[name] = row[id]
+        for (const { id, name } of result.columns) row_[name] = row[id]
         return row_
       })
     }

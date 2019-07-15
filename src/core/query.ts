@@ -31,6 +31,9 @@ export class PreparedQuery extends Query {
 
     // $limit
     if (this.$limit) this.registerUnknown(this.$limit)
+
+    // $union
+    if (this.$union) this.registerUnknown(this.$union)
   }
 
   /**
@@ -159,6 +162,9 @@ export class AnalyzedQuery extends Query {
 
     // $limit
     if (this.$limit) this.registerDatabase(this.$limit)
+
+    // $unino
+    if (this.$union) this.registerDatabase(this.$union)
 
     // unique databases
     this.databases = Array.from(new Set(this.databases))

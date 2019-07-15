@@ -34,6 +34,7 @@ export class CompiledQuery extends Query {
   public readonly $group?: CompiledGroupBy
   public readonly $order?: CompiledOrderBy[]
   public readonly $limit?: CompiledLimitOffset
+  public readonly $union?: CompiledQuery
 
   public readonly options: ICompileOptions
 
@@ -98,6 +99,21 @@ export class CompiledQuery extends Query {
 
     // analyze OFFSET statement
     if (jql.$limit) this.$limit = new CompiledLimitOffset(jql.$limit, options_)
+
+    // analyze UNION query
+    if (jql.$union) {
+      this.$union = new CompiledQuery(jql.$union, {
+        ...options_,
+        tables: {},
+        tablesOrder: [],
+        ownTables: [],
+        columns: [],
+        aggregateFunctions: [],
+      })
+
+      // check column numbers
+      if (this.table.columns.length !== this.$union.table.columns.length) throw new SyntaxError(`Column numbers not matched: ${this.toString()}`)
+    }
   }
 
   /**
