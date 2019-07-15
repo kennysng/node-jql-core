@@ -2,12 +2,10 @@ import { CancelablePromise, CancelError } from '@kennysng/c-promise'
 import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, PredictJQL, Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ApplicationCore } from '.'
-import { InMemoryDatabaseEngine } from '../memoryEngine'
 import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
-import { TEMP_DB_NAME } from './constants'
 import { AnalyzedPredictJQL, AnalyzedQuery, PreparedQuery } from './query'
 import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from './result'
 import { StatusCode, Task } from './task'
@@ -76,7 +74,7 @@ export class Session {
         case CreateTableJQL.name: {
           const jql_ = jql as CreateTableJQL
           jql_.database = jql_.database || this.database
-          result = await this.executeTableJQL(jql_)
+          result = await this.createTable(jql_)
           break
         }
         case DropTableJQL.name: {
@@ -86,9 +84,9 @@ export class Session {
           break
         }
         case InsertJQL.name: {
-          const jql_ = jql as CreateTableJQL
+          const jql_ = jql as InsertJQL
           jql_.database = jql_.database || this.database
-          result = await this.executeTableJQL(jql_)
+          result = await this.insertTable(jql_)
           break
         }
         case CreateFunctionJQL.name:
@@ -180,25 +178,25 @@ export class Session {
   private async createDatabase(jql: CreateDatabaseJQL): Promise<IUpdateResult> {
     const task = this.core.createDatabase(jql)
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async dropDatabase(jql: DropDatabaseJQL): Promise<IUpdateResult> {
     const task = this.core.dropDatabase(jql)
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async createFunction(jql: CreateFunctionJQL): Promise<IUpdateResult> {
     const task = this.core.createFunction(jql)
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async dropFunction(jql: DropFunctionJQL): Promise<IUpdateResult> {
     const task = this.core.dropFunction(jql)
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async executeTableJQL(jql: CreateTableJQL|DropTableJQL|InsertJQL): Promise<IUpdateResult> {
@@ -209,14 +207,12 @@ export class Session {
       if (!name) throw new NoDatabaseError()
       const database = this.core.getDatabase(name)
       if (!database) throw new NotFoundError(`Database ${name} not found`)
-
-      let taskId: string|undefined
-      const promise = new CancelablePromise(
+      return new CancelablePromise(
         () => database.executeUpdate(jql)(task),
-        async (fn, resolve, reject, check, canceled) => {
+        async (fn, resolve, reject, _check, canceled) => {
           try {
-            // INSERT INTO SELECT
-            if (jql instanceof InsertJQL && jql.query) {
+            /* // INSERT INTO SELECT
+            if (jql instanceof InsertJQL && jql.query && new AnalyzedQuery(jql.query, this.database).multiEnginesInvolved(this.core)) {
               const queryPromise = this.query(jql.query)
               taskId = this.lastTaskId
               const { rows, columns } = await queryPromise
@@ -235,10 +231,10 @@ export class Session {
                   return row_
                 }, {} as any))
               }
-            }
+            } */
 
             // run JQL
-            let result = await fn()
+            const result = await fn()
 
             // record temporary table
             if ('$temporary' in jql && jql.$temporary) {
@@ -251,23 +247,6 @@ export class Session {
               }
             }
 
-            // CREATE TABLE AS
-            if (jql instanceof CreateTableJQL && jql.$as) {
-              const queryPromise = this.query(jql.$as)
-              taskId = this.lastTaskId
-              const values = new Resultset(await queryPromise).toArray()
-              taskId = undefined
-
-              const insertPromise = this.update(new InsertJQL(jql.name, ...values))
-              taskId = this.lastTaskId
-              result = await insertPromise
-              taskId = undefined
-
-              // fix result
-              result.count += 1
-              result.jql = jql
-            }
-
             // return
             task.status(StatusCode.COMPLETED)
             return resolve(result)
@@ -278,11 +257,135 @@ export class Session {
           }
         },
       )
+    })
+    this.register(task)
+    return task.promise
+  }
+
+  private async createTable(jql: CreateTableJQL): Promise<IUpdateResult> {
+    if (!jql.$as) return this.executeTableJQL(jql)
+
+    // check multiple engines involved
+    const analyzed = new AnalyzedQuery(jql.$as, this.database)
+    const name = jql.database || this.database
+    if (!name) throw new NoDatabaseError()
+    const database = this.core.getDatabase(name)
+    if (!database) throw new NotFoundError(`Database ${name} not found`)
+    const multiEnginesInvolved = analyzed.databases.reduce((result, name) => {
+      if (result) return result
+      const database_ = this.core.getDatabase(name)
+      if (!database_) throw new NotFoundError(`Database ${name} not found`)
+      return database.engine !== database_.engine
+    }, false)
+
+    if (!multiEnginesInvolved) return this.executeTableJQL(jql)
+
+    let taskId: string|undefined
+    const task = new Task(jql, task => {
+      const promise = new CancelablePromise<IUpdateResult>(async (resolve, _reject, check) => {
+        // run query first
+        task.status(StatusCode.PREPARING)
+        const queryPromise = this.query(analyzed)
+        taskId = this.lastTaskId
+        const queryResult = await queryPromise
+        check()
+        const values = new Resultset(queryResult).toArray()
+        taskId = undefined
+
+        // creat table
+        task.status(StatusCode.RUNNING)
+        const createPromise = this.update({ ...jql, columns: queryResult.columns, $as: undefined })
+        taskId = this.lastTaskId
+        const createResult = await createPromise
+        check()
+
+        // insert into table
+        if (createResult.count === 1) {
+          const insertPromise = this.update(new InsertJQL(jql.name, ...values))
+          taskId = this.lastTaskId
+          const result = await insertPromise
+          taskId = undefined
+
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: result.count + 1, jql, time: 0 })
+        }
+        else {
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 0, jql, time: 0 })
+        }
+      })
       promise.on('cancel', () => { if (taskId) this.kill(taskId) })
       return promise
     })
     this.register(task)
-    return await task.promise
+    return task.promise
+  }
+
+  private async insertTable(jql: InsertJQL): Promise<IUpdateResult> {
+    if (!jql.query) return this.executeTableJQL(jql)
+
+    // check multiple engines involved
+    const analyzed = new AnalyzedQuery(jql.query, this.database)
+    const name = jql.database || this.database
+    if (!name) throw new NoDatabaseError()
+    const database = this.core.getDatabase(name)
+    if (!database) throw new NotFoundError(`Database ${name} not found`)
+    const multiEnginesInvolved = analyzed.databases.reduce((result, name) => {
+      if (result) return result
+      const database_ = this.core.getDatabase(name)
+      if (!database_) throw new NotFoundError(`Database ${name} not found`)
+      return database.engine !== database_.engine
+    }, false)
+
+    if (!multiEnginesInvolved) return this.executeTableJQL(jql)
+
+    let taskId: string|undefined
+    const task = new Task(jql, task => {
+      const promise = new CancelablePromise<IUpdateResult>(async (resolve, _reject, check) => {
+        // run query first
+        task.status(StatusCode.PREPARING)
+        const queryPromise = this.query(analyzed)
+        taskId = this.lastTaskId
+        const { rows, columns } = await queryPromise
+        check()
+        taskId = undefined
+
+        // post process
+        if (!columns || columns.length !== (jql.columns as string[]).length) {
+          throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+        }
+
+        const columns_ = jql.columns as string[]
+        const values = [] as any[]
+        for (let i = 0, length = rows.length; i < length; i += 1) {
+          const row = rows[i]
+          values.push(columns.reduce((row_, { id }, i) => {
+            row_[columns_[i]] = row[id]
+            return row_
+          }, {} as any))
+        }
+
+        // insert into table
+        if (rows.length > 0) {
+          task.status(StatusCode.RUNNING)
+          const insertPromise = this.update(new InsertJQL(jql.name, ...values))
+          taskId = this.lastTaskId
+          const result = await insertPromise
+          taskId = undefined
+
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: result.count + 1, jql, time: 0 })
+        }
+        else {
+          task.status(StatusCode.COMPLETED)
+          return resolve({ count: 0, jql, time: 0 })
+        }
+      })
+      promise.on('cancel', () => { if (taskId) this.kill(taskId) })
+      return promise
+    })
+    this.register(task)
+    return task.promise
   }
 
   private async predictWithSingleDatabase(jql: AnalyzedPredictJQL): Promise<IPredictResult> {
@@ -313,7 +416,7 @@ export class Session {
       )
     })
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async predictWithMultiDatabases(jql: AnalyzedPredictJQL): Promise<IPredictResult> {
@@ -350,7 +453,7 @@ export class Session {
       )
     })
     this.register(task)
-    return await task.promise
+    return task.promise
   }
 
   private async queryWithMultiDatabases(jql: AnalyzedQuery): Promise<IQueryResult> {
