@@ -183,7 +183,7 @@ class Import {
       let name: string|undefined
       const words = line.split(/(\s+)/).filter(w => w !== ' ')
       if (words[1] === 'abstract') words.splice(1, 1)
-      if (words[1] === 'class' || words[1] === 'interface' || words[1] === 'type' || words[1] === 'function') {
+      if (words[1] === 'const' || words[1] === 'class' || words[1] === 'interface' || words[1] === 'type' || words[1] === 'function') {
         name = getName(words[2])
       }
       if (name) {
