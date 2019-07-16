@@ -61,6 +61,7 @@ typings/
 .next
 
 # build folder
+intermediate
 dist
 
 # ignore some name pattern
