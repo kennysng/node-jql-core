@@ -1,42 +1,20 @@
 import { CancelablePromise } from '@kennysng/c-promise'
-import { AxiosInstance } from 'axios'
 import { checkNull, Column, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
 import { TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
+import { IPredictResult, IQueryResult, IUpdateResult } from '../core/interface'
 import { AnalyzedQuery } from '../core/query'
-import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from '../core/result'
+import { Resultset } from '../core/result'
 import { StatusCode, TaskFn } from '../core/task'
 import { ExistsError } from '../utils/error/ExistsError'
 import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
-import { ILogger } from '../utils/logger'
-import { ICompileOptions } from './expr/compile'
 import { functions } from './function/functions'
+import { ICompileOptions, IInMemoryOptions } from './interface'
 import { CompiledQuery } from './query'
 import { Sandbox } from './sandbox'
-import { Table } from './table'
-
-/**
- * In-memory database engine options
- */
-export interface IInMemoryOptions {
-  /**
-   * Default axios instance
-   */
-  axiosInstance?: AxiosInstance
-
-  /**
-   * Custom logging
-   */
-  logger?: ILogger
-
-  /**
-   * Time gap between each cancel check
-   * The smaller the time gap, the more sensitive the cancel trigger, the higher the overhead
-   */
-  checkWindowSize?: number
-}
+import { MemoryTable } from './table'
 
 /**
  * Save data in volatile memory i.e. RAM
@@ -50,7 +28,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   public readonly functions = functions
 
-  protected readonly context: { [key: string]: { __tables: Table[], [key: string]: any[] } } = {}
+  protected readonly context: { [key: string]: { __tables: MemoryTable[], [key: string]: any[] } } = {}
 
   constructor(protected readonly options: IInMemoryOptions = {}) {
     super()
@@ -95,7 +73,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    * @param database [string]
    * @param name [string]
    */
-  public getTable(database: string, name: string): Table {
+  public getTable(database: string, name: string): MemoryTable {
     this.checkTable(database, name)
     const table = this.context[database].__tables.find(table => table.name === name)
     if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
@@ -310,15 +288,15 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         await check()
 
         // create table
-        let table: Table, values: any[] = []
+        let table: MemoryTable, values: any[] = []
         if ($as) {
           const result = await this.executeQuery(new AnalyzedQuery($as))(task)
           const resultset = new Resultset(result)
-          table = new Table($temporary, name, result.columns, constraints, ...(options || []))
+          table = new MemoryTable($temporary, name, result.columns, constraints, ...(options || []))
           values = resultset.toArray()
         }
         else {
-          table = new Table($temporary, name, columns as Column[], constraints, ...(options || []))
+          table = new MemoryTable($temporary, name, columns as Column[], constraints, ...(options || []))
         }
         this.context[database].__tables.push(table)
         this.context[database][name] = values

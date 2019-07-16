@@ -1,28 +1,28 @@
-import { Expression, IInExpression, InExpression as NodeJQLInExpression } from 'node-jql'
+import { Expression, IInExpression, InExpression } from 'node-jql'
 import { CompiledExpression } from '..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
 import { FixedCursor } from '../../cursor/fixed'
+import { ICompileOptions } from '../../interface'
 import { CompiledQuery } from '../../query'
 import { Sandbox } from '../../sandbox'
-import { Column } from '../../table'
-import { compile, ICompileOptions } from '../compile'
-import { BinaryExpression } from './BinaryExpression'
+import { compile } from '../compile'
+import { CompiledBinaryExpression } from './BinaryExpression'
 
 /**
  * Analyze InExpression
  */
-export class InExpression extends BinaryExpression implements IInExpression {
-  public readonly classname = InExpression.name
+export class CompiledInExpression extends CompiledBinaryExpression implements IInExpression {
+  public readonly classname = CompiledInExpression.name
 
   public readonly operator: 'IN'
   public readonly right: CompiledExpression|CompiledQuery
 
   /**
-   * @param jql [NodeJQLInExpression]
+   * @param jql [InExpression]
    * @param options [ICompileOptions]
    */
-  constructor(jql: NodeJQLInExpression, options: ICompileOptions) {
+  constructor(jql: InExpression, options: ICompileOptions) {
     super(jql, options)
     if (jql.right instanceof Expression) {
       this.right = compile(jql.right, options)

@@ -1,28 +1,28 @@
-import { checkNull, ColumnExpression, FunctionExpression as NodeJQLFunctionExpression, IFunctionExpression, ParameterExpression as NodeJQLParameterExpression, Type } from 'node-jql'
+import { checkNull, ColumnExpression, FunctionExpression, IFunctionExpression, ParameterExpression, Type } from 'node-jql'
 import squel = require('squel')
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
 import { JQLAggregateFunction, JQLFunction } from '../../function'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { ICompileOptions } from '../compile'
-import { ParameterExpression } from './ParameterExpression'
+import { CompiledParameterExpression } from './ParameterExpression'
 
 /**
  * Analyze FunctionExpression
  */
-export class FunctionExpression extends CompiledExpression implements IFunctionExpression {
-  public readonly classname = FunctionExpression.name
+export class CompiledFunctionExpression extends CompiledExpression implements IFunctionExpression {
+  public readonly classname = CompiledFunctionExpression.name
 
   public readonly id = uuid()
-  public readonly parameters: ParameterExpression[]
+  public readonly parameters: CompiledParameterExpression[]
   public readonly function: JQLFunction
 
   /**
-   * @param jql [NodeJQLFunctionExpression]
+   * @param jql [FunctionExpression]
    * @param options [ICompileOptions]
    */
-  constructor(private readonly jql: NodeJQLFunctionExpression, options: ICompileOptions) {
+  constructor(private readonly jql: FunctionExpression, options: ICompileOptions) {
     super()
     // set function
     this.function = options.functions[jql.name.toLocaleLowerCase()]()
@@ -37,16 +37,16 @@ export class FunctionExpression extends CompiledExpression implements IFunctionE
       if (expression.table) {
         const tableName = expression.table
         const table = options.tables[tableName]
-        parameters.push(...table.columns.map(({ name }) => new NodeJQLParameterExpression(null, new ColumnExpression(tableName, name))))
+        parameters.push(...table.columns.map(({ name }) => new ParameterExpression(null, new ColumnExpression(tableName, name))))
       }
       else {
         for (const name of options.ownTables) {
           const table = options.tables[name]
-          parameters.push(...table.columns.map(column => new NodeJQLParameterExpression(null, new ColumnExpression(name, column.name))))
+          parameters.push(...table.columns.map(column => new ParameterExpression(null, new ColumnExpression(name, column.name))))
         }
       }
     }
-    this.parameters = parameters.map(jql => new ParameterExpression(jql, options))
+    this.parameters = parameters.map(jql => new CompiledParameterExpression(jql, options))
 
     // register aggregate function
     if (this.function instanceof JQLAggregateFunction) options.aggregateFunctions.push(this)

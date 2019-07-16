@@ -1,24 +1,25 @@
-import { BinaryExpression as NodeJQLBinaryExpression, BinaryOperator, Expression, IBinaryExpression } from 'node-jql'
+import { BinaryExpression, BinaryOperator, Expression, IBinaryExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze BinaryExpression
  */
-export class BinaryExpression extends CompiledConditionalExpression implements IBinaryExpression {
-  public readonly classname = BinaryExpression.name
+export class CompiledBinaryExpression extends CompiledConditionalExpression implements IBinaryExpression {
+  public readonly classname = CompiledBinaryExpression.name
 
   public readonly left: CompiledExpression
   public readonly right: any
 
   /**
-   * @param jql [NodeJQLBinaryExpression]
+   * @param jql [BinaryExpression]
    * @param options [ICompileOptions]
    */
-  constructor(protected readonly jql: NodeJQLBinaryExpression, options: ICompileOptions) {
+  constructor(protected readonly jql: BinaryExpression, options: ICompileOptions) {
     super()
     this.left = compile(jql.left, options)
     if (jql.right instanceof Expression) this.right = compile(jql.right, options)

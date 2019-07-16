@@ -1,7 +1,7 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { JQL, PredictJQL } from 'node-jql'
+import { IPredictResult, IQueryResult, IUpdateResult } from './interface'
 import { AnalyzedQuery } from './query'
-import { IPredictResult, IQueryResult, IUpdateResult } from './result'
 import { TaskFn } from './task'
 
 /**

@@ -1,13 +1,14 @@
 import { CancelablePromise, CancelError } from '@kennysng/c-promise'
-import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parse, PredictJQL, Query } from 'node-jql'
+import { CreateDatabaseJQL, CreateFunctionJQL, CreateTableJQL, DropDatabaseJQL, DropFunctionJQL, DropTableJQL, IJQL, InsertJQL, IQuery, isParseable, JQLError, parseJQL, PredictJQL, Query } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ApplicationCore } from '.'
 import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
+import { IPredictResult, IQueryResult, IUpdateResult } from './interface'
 import { AnalyzedPredictJQL, AnalyzedQuery, PreparedQuery } from './query'
-import { IPredictResult, IQueryResult, IUpdateResult, Resultset } from './result'
+import { Resultset } from './result'
 import { StatusCode, Task } from './task'
 
 /**
@@ -61,7 +62,7 @@ export class Session {
    */
   public async update(jql: IJQL): Promise<IUpdateResult> {
     const startTime = Date.now()
-    if (isParseable(jql)) jql = parse(jql)
+    if (isParseable(jql)) jql = parseJQL(jql)
     if (isParseable(jql)) {
       let result: IUpdateResult
       switch (jql.classname) {

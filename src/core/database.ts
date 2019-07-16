@@ -3,8 +3,8 @@ import { JQL, PredictJQL } from 'node-jql'
 import EventEmitter from 'wolfy87-eventemitter'
 import { ReadWriteLock } from '../utils/lock'
 import { DatabaseEngine } from './engine'
+import { IPredictResult, IQueryResult, IUpdateResult } from './interface'
 import { AnalyzedQuery } from './query'
-import { IPredictResult, IQueryResult, IUpdateResult } from './result'
 import { StatusCode, TaskFn } from './task'
 
 /**

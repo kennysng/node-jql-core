@@ -1,25 +1,26 @@
-import { IMathExpression, MathExpression as NodeJQLMathExpression, MathOperator } from 'node-jql'
+import { IMathExpression, MathExpression, MathOperator } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze MathExpression
  */
-export class MathExpression extends CompiledExpression implements IMathExpression {
-  public readonly classname = MathExpression.name
+export class CompiledMathExpression extends CompiledExpression implements IMathExpression {
+  public readonly classname = CompiledMathExpression.name
   public readonly type = 'number'
 
   public readonly left: CompiledExpression
   public readonly right: CompiledExpression
 
   /**
-   * @param jql [NodeJQLMathExpression]
+   * @param jql [MathExpression]
    * @param options [ICompileOptions]
    */
-  constructor(private readonly jql: NodeJQLMathExpression, options: ICompileOptions) {
+  constructor(private readonly jql: MathExpression, options: ICompileOptions) {
     super()
     this.left = compile(jql.left, options)
     this.right = compile(jql.right, options)

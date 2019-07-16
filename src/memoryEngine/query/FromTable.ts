@@ -4,8 +4,9 @@ import { FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
 import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
 import { CompiledConditionalExpression } from '../expr'
-import { compile, ICompileOptions } from '../expr/compile'
-import { Column, Table } from '../table'
+import { compile } from '../expr/compile'
+import { ICompileOptions } from '../interface'
+import { MemoryColumn, MemoryTable } from '../table'
 
 export class CompiledJoinClause extends JoinClause {
   public readonly operator: JoinOperator
@@ -28,7 +29,7 @@ export class CompiledJoinClause extends JoinClause {
  */
 export class CompiledFromTable extends FromTable {
   public readonly database?: string
-  public readonly table: Table
+  public readonly table: MemoryTable
   public readonly query?: CompiledQuery
   public readonly remote?: CreatePromiseFn<AxiosResponse<any[]>>
   public readonly $as?: string
@@ -65,7 +66,7 @@ export class CompiledFromTable extends FromTable {
     else {
       const axiosConfig = jql.table
       this.remote = () => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance)
-      this.table = new Table(jql.$as as string, jql.table.columns.map(({ name, type }) => new Column<Type>(name, type || 'any')))
+      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type }) => new MemoryColumn<Type>(name, type || 'any')))
       options.tables[jql.$as as string] = this.table
       options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)

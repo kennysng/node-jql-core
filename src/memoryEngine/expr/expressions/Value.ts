@@ -1,11 +1,11 @@
 import { IValue } from 'node-jql'
-import { Unknown } from './Unknown'
+import { CompiledUnknown } from './Unknown'
 
 /**
  * Analyze Value
  */
-export class Value extends Unknown implements IValue {
-  public readonly classname = Value.name
+export class CompiledValue extends CompiledUnknown implements IValue {
+  public readonly classname = CompiledValue.name
 
   // @override
   public toJson(): IValue {

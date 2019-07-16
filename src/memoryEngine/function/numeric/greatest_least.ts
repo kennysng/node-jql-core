@@ -1,7 +1,7 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
 
-export class MinMaxFunction extends JQLFunction<number> {
+export class GreatestLeastFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
   constructor(protected readonly name: string, protected readonly target: 'max'|'min') {

@@ -10,14 +10,14 @@ import { DayNameFunction } from './date/dayname'
 import { DiffFunction } from './date/diff'
 import { AbsFunction } from './numeric/abs'
 import { CountFunction } from './numeric/aggregate/count'
-import { MinMaxFunction as MinMaxAggregateFunction } from './numeric/aggregate/minmax'
+import { MinMaxFunction } from './numeric/aggregate/minmax'
 import { SumFunction } from './numeric/aggregate/sum'
 import { Atan2Function } from './numeric/atan2'
 import { ATrigoFunction } from './numeric/atrigo'
 import { ExpFunction } from './numeric/exp'
+import { GreatestLeastFunction } from './numeric/greatest_least'
 import { LnFunction } from './numeric/ln'
 import { LnWithBaseFunction } from './numeric/ln_with_base'
-import { MinMaxFunction } from './numeric/minmax'
 import { ModFunction } from './numeric/mod'
 import { PiFunction } from './numeric/pi'
 import { PowFunction } from './numeric/pow'
@@ -67,14 +67,14 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   degrees: () => new TrigoConvertFunction('DEGREES', 'radians-degrees'),
   exp: () => new ExpFunction('EXP'),
   floor: () => new RoundFunction('FLOOR', 'floor'),
-  greatest: () => new MinMaxFunction('GREATEST', 'max'),
-  least: () => new MinMaxFunction('LEAST', 'min'),
+  greatest: () => new GreatestLeastFunction('GREATEST', 'max'),
+  least: () => new GreatestLeastFunction('LEAST', 'min'),
   ln: () => new LnFunction('LN'),
   log: () => new LnFunction('LOG', true),
   log10: () => new LnWithBaseFunction('LOG10', 10),
   log2: () => new LnWithBaseFunction('LOG2', 2),
-  max: () => new MinMaxAggregateFunction('MAX', 'max'),
-  min: () => new MinMaxAggregateFunction('MIN', 'min'),
+  max: () => new MinMaxFunction('MAX', 'max'),
+  min: () => new MinMaxFunction('MIN', 'min'),
   mod: () => new ModFunction('MOD'),
   pi: () => new PiFunction('PI'),
   pow: () => new PowFunction('POW'),

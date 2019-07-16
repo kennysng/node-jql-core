@@ -1,8 +1,9 @@
 import { OrderBy } from 'node-jql'
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '../expr'
-import { compile, ICompileOptions } from '../expr/compile'
-import { ColumnExpression } from '../expr/expressions/ColumnExpression'
+import { compile } from '../expr/compile'
+import { CompiledColumnExpression } from '../expr/expressions/ColumnExpression'
+import { ICompileOptions } from '../interface'
 
 /**
  * Analyze ORDER BY statement
@@ -22,6 +23,6 @@ export class CompiledOrderBy extends OrderBy {
   constructor(jql: OrderBy, options: ICompileOptions) {
     super(jql)
     this.expression = compile(jql.expression, options)
-    if (this.expression instanceof ColumnExpression) this.id = this.expression.key
+    if (this.expression instanceof CompiledColumnExpression) this.id = this.expression.key
   }
 }

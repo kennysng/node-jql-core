@@ -1,7 +1,8 @@
 import { ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '../expr'
-import { compile, ICompileOptions } from '../expr/compile'
+import { compile } from '../expr/compile'
+import { ICompileOptions } from '../interface'
 
 /**
  * Analyze result columns

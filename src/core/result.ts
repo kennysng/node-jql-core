@@ -1,51 +1,6 @@
-import { IJQL } from 'node-jql'
 import { ArrayCursor } from '../memoryEngine/cursor'
-import { Column } from '../memoryEngine/table'
 import { NotFoundError } from '../utils/error/NotFoundError'
-
-/**
- * Base result structure
- */
-export interface IResult {
-  /**
-   * Related JQL
-   */
-  jql?: IJQL
-
-  /**
-   * Time used
-   */
-  time: number
-}
-
-/**
- * Result structure of CREATE, INSERT or UPDATE
- */
-export interface IUpdateResult extends IResult {
-  count: number
-}
-
-/**
- * Result structure of a prediction
- */
-export interface IPredictResult extends IResult {
-  columns: Column[]
-}
-
-/**
- * Result structure of SELECT
- */
-export interface IQueryResult extends IResult {
-  /**
-   * Result
-   */
-  rows: any[]
-
-  /**
-   * Result structure
-   */
-  columns: Column[]
-}
+import { IQueryResult } from './interface'
 
 /**
  * Handle query result

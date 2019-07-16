@@ -1,25 +1,25 @@
-import { ExistsExpression as NodeJQLExistsExpression, IExistsExpression } from 'node-jql'
+import { ExistsExpression, IExistsExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression } from '..'
 import { Cursor } from '../../cursor'
 import { FixedCursor } from '../../cursor/fixed'
+import { ICompileOptions } from '../../interface'
 import { CompiledQuery } from '../../query'
 import { Sandbox } from '../../sandbox'
-import { ICompileOptions } from '../compile'
 
 /**
  * Analyze ExistsExpression
  */
-export class ExistsExpression extends CompiledConditionalExpression implements IExistsExpression {
-  public readonly classname = ExistsExpression.name
+export class CompiledExistsExpression extends CompiledConditionalExpression implements IExistsExpression {
+  public readonly classname = CompiledExistsExpression.name
 
   public readonly query: CompiledQuery
 
   /**
-   * @param jql [NodeJQLExistsExpression]
+   * @param jql [ExistsExpression]
    * @param options [ICompileOptions]
    */
-  constructor(private readonly jql: NodeJQLExistsExpression, options: ICompileOptions) {
+  constructor(private readonly jql: ExistsExpression, options: ICompileOptions) {
     super()
     this.query = new CompiledQuery(jql.query, {
       ...options,

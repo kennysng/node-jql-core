@@ -2,22 +2,23 @@ import _ from 'lodash'
 import { ColumnExpression as NodeJQLColumnExpression, JQL, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { CompiledConditionalExpression } from '../expr'
-import { compile, ICompileOptions } from '../expr/compile'
-import { AndExpressions } from '../expr/expressions/AndExpressions'
-import { BetweenExpression } from '../expr/expressions/BetweenExpression'
-import { BinaryExpression } from '../expr/expressions/BinaryExpression'
-import { CaseExpression } from '../expr/expressions/CaseExpression'
-import { ColumnExpression } from '../expr/expressions/ColumnExpression'
-import { ExistsExpression } from '../expr/expressions/ExistsExpression'
-import { FunctionExpression } from '../expr/expressions/FunctionExpression'
-import { InExpression } from '../expr/expressions/InExpression'
-import { IsNullExpression } from '../expr/expressions/IsNullExpression'
-import { LikeExpression } from '../expr/expressions/LikeExpression'
-import { MathExpression } from '../expr/expressions/MathExpression'
-import { OrExpressions } from '../expr/expressions/OrExpressions'
-import { ParameterExpression } from '../expr/expressions/ParameterExpression'
+import { compile } from '../expr/compile'
+import { CompiledAndExpressions } from '../expr/expressions/AndExpressions'
+import { CompiledBetweenExpression } from '../expr/expressions/BetweenExpression'
+import { CompiledBinaryExpression } from '../expr/expressions/BinaryExpression'
+import { CompiledCaseExpression } from '../expr/expressions/CaseExpression'
+import { CompiledColumnExpression } from '../expr/expressions/ColumnExpression'
+import { CompiledExistsExpression } from '../expr/expressions/ExistsExpression'
+import { CompiledFunctionExpression } from '../expr/expressions/FunctionExpression'
+import { CompiledInExpression } from '../expr/expressions/InExpression'
+import { CompiledIsNullExpression } from '../expr/expressions/IsNullExpression'
+import { CompiledLikeExpression } from '../expr/expressions/LikeExpression'
+import { CompiledMathExpression } from '../expr/expressions/MathExpression'
+import { CompiledOrExpressions } from '../expr/expressions/OrExpressions'
+import { CompiledParameterExpression } from '../expr/expressions/ParameterExpression'
 import { JQLAggregateFunction, JQLFunction } from '../function'
-import { Column, Table } from '../table'
+import { ICompileOptions } from '../interface'
+import { MemoryColumn, MemoryTable } from '../table'
 import { CompiledFromTable } from './FromTable'
 import { CompiledGroupBy } from './GroupBy'
 import { CompiledLimitOffset } from './LimitOffset'
@@ -42,7 +43,7 @@ export class CompiledQuery extends Query {
    * @param jql [AnalyzedQuery]
    * @param options [ICompileOptions] optional
    */
-  constructor(private readonly jql: Query, options: Partial<ICompileOptions> & { getTable: (database: string, table: string) => Table, functions: _.Dictionary<() => JQLFunction> }) {
+  constructor(private readonly jql: Query, options: Partial<ICompileOptions> & { getTable: (database: string, table: string) => MemoryTable, functions: _.Dictionary<() => JQLFunction> }) {
     super(jql)
 
     // initialize options
@@ -119,17 +120,17 @@ export class CompiledQuery extends Query {
   /**
    * Predict the structure of the result
    */
-  get table(): Table {
-    return new Table(this.options.$as || uuid(), this.$select.map(({ id, expression, $as }) => {
-      const name = $as || (expression instanceof ColumnExpression ? expression.name : expression.toString())
-      return new Column(id, name, expression.type)
+  get table(): MemoryTable {
+    return new MemoryTable(this.options.$as || uuid(), this.$select.map(({ id, expression, $as }) => {
+      const name = $as || (expression instanceof CompiledColumnExpression ? expression.name : expression.toString())
+      return new MemoryColumn(id, name, expression.type)
     }))
   }
 
   /**
    * Columns required
    */
-  get columns(): ColumnExpression[] {
+  get columns(): CompiledColumnExpression[] {
     return this.options.columns
   }
 
@@ -144,7 +145,7 @@ export class CompiledQuery extends Query {
   /**
    * List of aggregate functions used
    */
-  get aggregateFunctions(): FunctionExpression[] {
+  get aggregateFunctions(): CompiledFunctionExpression[] {
     return this.options.aggregateFunctions
   }
 
@@ -167,38 +168,38 @@ export class CompiledQuery extends Query {
     if (jql instanceof CompiledQuery) {
       return jql.needAggregate
     }
-    else if (jql instanceof AndExpressions || jql instanceof OrExpressions) {
+    else if (jql instanceof CompiledAndExpressions || jql instanceof CompiledOrExpressions) {
       const { expressions } = jql
       for (const expression of expressions) if (this.checkAggregate(expression)) return true
     }
-    else if (jql instanceof BetweenExpression) {
+    else if (jql instanceof CompiledBetweenExpression) {
       const { left, start, end } = jql
       return this.checkAggregate(left) || this.checkAggregate(start) || this.checkAggregate(end)
     }
-    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+    else if (jql instanceof CompiledBinaryExpression || jql instanceof CompiledLikeExpression || jql instanceof CompiledMathExpression) {
       const { left, right } = jql
       return this.checkAggregate(left) || this.checkAggregate(right)
     }
-    else if (jql instanceof CaseExpression) {
+    else if (jql instanceof CompiledCaseExpression) {
       const { cases, $else } = jql
       for (const { $when, $then } of cases) if (this.checkAggregate($when) || this.checkAggregate($then)) return true
       if ($else) return this.checkAggregate($else)
     }
-    else if (jql instanceof ExistsExpression) {
+    else if (jql instanceof CompiledExistsExpression) {
       return this.checkAggregate(jql.query)
     }
-    else if (jql instanceof FunctionExpression) {
+    else if (jql instanceof CompiledFunctionExpression) {
       return jql.function instanceof JQLAggregateFunction
     }
-    else if (jql instanceof InExpression) {
+    else if (jql instanceof CompiledInExpression) {
       const { right } = jql
       return this.checkAggregate(right)
     }
-    else if (jql instanceof IsNullExpression) {
+    else if (jql instanceof CompiledIsNullExpression) {
       const { left } = jql
       return this.checkAggregate(left)
     }
-    else if (jql instanceof ParameterExpression) {
+    else if (jql instanceof CompiledParameterExpression) {
       const { expression } = jql
       return this.checkAggregate(expression)
     }

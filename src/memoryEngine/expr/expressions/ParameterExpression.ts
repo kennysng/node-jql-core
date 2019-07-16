@@ -1,23 +1,24 @@
-import { IExpression, IParameterExpression, ParameterExpression as NodeJQLParameterExpression, Type } from 'node-jql'
+import { IExpression, IParameterExpression, ParameterExpression, Type } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze ParameterExpression
  */
-export class ParameterExpression extends CompiledExpression implements IParameterExpression {
-  public readonly classname = ParameterExpression.name
+export class CompiledParameterExpression extends CompiledExpression implements IParameterExpression {
+  public readonly classname = CompiledParameterExpression.name
 
   public readonly expression: CompiledExpression
 
   /**
-   * @param jql [NodeJQLParameterExpression]
+   * @param jql [ParameterExpression]
    * @param options [ICompileOptions]
    */
-  constructor(private readonly jql: NodeJQLParameterExpression, options: ICompileOptions) {
+  constructor(private readonly jql: ParameterExpression, options: ICompileOptions) {
     super()
     this.expression = compile(jql.expression, options)
   }

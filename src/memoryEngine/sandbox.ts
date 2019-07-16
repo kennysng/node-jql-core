@@ -5,7 +5,7 @@ import timsort = require('timsort')
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '.'
 import { TEMP_DB_NAME } from '../core/constants'
-import { IQueryResult } from '../core/result'
+import { IQueryResult } from '../core/interface'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { ArrayCursor, Cursor } from './cursor'
@@ -13,37 +13,17 @@ import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
 import { RowCursor, TableCursor } from './cursor/table'
 import { UnionCursor } from './cursor/union'
-import { ICompileOptions } from './expr/compile'
 import { GenericJQLFunction } from './function'
+import { ICompileOptions, IQueryOptions } from './interface'
 import { CompiledQuery } from './query'
 import { CompiledFromTable } from './query/FromTable'
-import { Column, Table } from './table'
-
-/**
- * Options required for running query
- */
-export interface IQueryOptions {
-  /**
-   * Whether this is a subquery
-   */
-  subquery?: boolean
-
-  /**
-   * Return when there exists 1 row
-   */
-  exists?: boolean
-
-  /**
-   * Base cursor for running subquery
-   */
-  cursor?: Cursor
-}
+import { MemoryColumn, MemoryTable } from './table'
 
 /**
  * Sandbox environment for running query
  */
 export class Sandbox {
-  public readonly context: { [key: string]: { __tables: Table[], [key: string]: any[] } } = {}
+  public readonly context: { [key: string]: { __tables: MemoryTable[], [key: string]: any[] } } = {}
   private lastCheck = Date.now()
 
   /**
@@ -86,7 +66,7 @@ export class Sandbox {
    * @param database [string]
    * @param name [string]
    */
-  public getTable(database: string, name: string): Table|undefined {
+  public getTable(database: string, name: string): MemoryTable|undefined {
     return this.context[database].__tables.find(table => table.name === name)
   }
 
@@ -100,7 +80,7 @@ export class Sandbox {
       const database = jql.database || options.defDatabase
       if (!database) throw new NoDatabaseError()
       if (!this.context[database]) throw new NotFoundError(`Database ${database} not found in sandbox`)
-      this.context[database].__tables.push(new Table(jql.name, jql.columns, jql.constraints, ...(jql.options || [])))
+      this.context[database].__tables.push(new MemoryTable(jql.name, jql.columns, jql.constraints, ...(jql.options || [])))
     }
     else if (jql instanceof CreateFunctionJQL) {
       if (!options.functions) options.functions = {}
@@ -193,7 +173,7 @@ export class Sandbox {
               // check exists
               if (options.exists && rows.length) {
                 const key = uuid()
-                return resolve({ rows: [{ [key]: true }], columns: [new Column(key, 'exists', 'boolean')], time: 0 })
+                return resolve({ rows: [{ [key]: true }], columns: [new MemoryColumn(key, 'exists', 'boolean')], time: 0 })
               }
 
               // quick return

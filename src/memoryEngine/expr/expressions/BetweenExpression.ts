@@ -1,25 +1,26 @@
-import { BetweenExpression as NodeJQLBetweenExpression, IBetweenExpression } from 'node-jql'
+import { BetweenExpression, IBetweenExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze BetweenExpression
  */
-export class BetweenExpression extends CompiledConditionalExpression implements IBetweenExpression {
-  public readonly classname = BetweenExpression.name
+export class CompiledBetweenExpression extends CompiledConditionalExpression implements IBetweenExpression {
+  public readonly classname = CompiledBetweenExpression.name
 
   public readonly left: CompiledExpression
   public readonly start: CompiledExpression
   public readonly end: CompiledExpression
 
   /**
-   * @param jql [NodeJQLBetweenExpression]
+   * @param jql [BetweenExpression]
    * @param options [ICompileOptions]
    */
-  constructor(private readonly jql: NodeJQLBetweenExpression, options: ICompileOptions) {
+  constructor(private readonly jql: BetweenExpression, options: ICompileOptions) {
     super()
     this.left = compile(jql.left, options)
     this.start = compile(jql.start, options)

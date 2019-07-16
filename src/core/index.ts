@@ -10,26 +10,11 @@ import { SessionError } from '../utils/error/SessionError'
 import { TEMP_DB_NAME } from './constants'
 import { Database } from './database'
 import { DatabaseEngine } from './engine'
-import { IUpdateResult } from './result'
+import { IApplicationOptions, IUpdateResult } from './interface'
 import { Session } from './session'
 import { StatusCode, Task } from './task'
 
 let DEFAULT_IN_MEMORY_ENGINE: InMemoryDatabaseEngine
-
-/**
- * Application options
- */
-export interface IApplicationOptions {
-  /**
-   * Default engine used when creating database if not specified
-   */
-  defaultEngine?: DatabaseEngine
-
-  /**
-   * Default in-memory engine used
-   */
-  defaultInMemoryEngine?: InMemoryDatabaseEngine
-}
 
 /**
  * JavaScript-Database bridge application
