@@ -48,7 +48,7 @@ export class ApplicationCore {
       this.initing = true
 
       // create in-memory temporary database
-      await this.createDatabase(new CreateDatabaseJQL(TEMP_DB_NAME, true, 'InMemoryEngine'))
+      await this.createDatabase(new CreateDatabaseJQL(TEMP_DB_NAME, true, 'InMemoryEngine')).promise
 
       this.inited = true
       this.initing = false

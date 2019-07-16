@@ -2741,10 +2741,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^2.0.0-rc.38:
-  version "2.0.0-rc.38"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.38.tgz#3894baf1dda7bf87857d431a021bdde4c75a1f86"
-  integrity sha512-Z4YlnCvMJOTPssKEDNkPt2YLUaAmQ9/e0sje4+j+6Xl8ICNG8J3kMCfLw2nGcdjgSjv/TsVoZF6DtDs7VN3Rdw==
+node-jql@^2.0.0-rc.39:
+  version "2.0.0-rc.39"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.39.tgz#2d8016df2201cc76d7c979cfd1da105450414480"
+  integrity sha512-pM7XvGrPH06OWn1wDKWG/IaPZVxm/PFgd+tAvUfV9maerbidJFMt8A2b4FMyDXk3DIr9mgjx34sibcaK8baMoQ==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"

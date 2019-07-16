@@ -1,8 +1,8 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.14",
+  "version": "v2.0.0-rc.19",
   "description": "SQL database written in JavaScript",
-  "main": "dist/index.bundle.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest",
@@ -50,7 +50,7 @@
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.14",
     "moment": "^2.24.0",
-    "node-jql": "^2.0.0-rc.38",
+    "node-jql": "^2.0.0-rc.39",
     "numeral": "^2.0.6",
     "seedrandom": "^3.0.1",
     "timsort": "^0.3.0",
