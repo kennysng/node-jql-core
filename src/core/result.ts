@@ -26,7 +26,7 @@ export class Resultset extends ArrayCursor {
   /**
    * Do auto-mapping
    */
-  public toArray(): string[] {
+  public toArray(): any[] {
     if (!this.result.columns) return this.array
     const columns = this.result.columns
     return this.array.map(row => {
