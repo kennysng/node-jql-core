@@ -176,6 +176,7 @@ export class ApplicationCore {
    */
   public createFunction(jql: CreateFunctionJQL): Task<IUpdateResult> {
     // parse args
+    const aggregate = jql.aggregate
     const name = jql.name
     const fn = jql.fn
     const parameters = jql.parameters
@@ -196,7 +197,9 @@ export class ApplicationCore {
         try {
           await check()
 
-          database.engine.functions[name.toLocaleLowerCase()] = () => new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
+          database.engine.functions[name.toLocaleLowerCase()] = () => aggregate
+            ? new GenericJQLFunction(true, name.toLocaleUpperCase(), fn, type, parameters)
+            : new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
 
           // return
           task.status(StatusCode.COMPLETED)

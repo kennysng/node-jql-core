@@ -31,16 +31,48 @@ export abstract class JQLFunction<T = any> {
  * Generic JQL Function
  */
 export class GenericJQLFunction extends JQLFunction {
+  public readonly aggregate: boolean
+  public readonly fn: Function
   public readonly type: Type
+  public readonly parameters: Type[] = []
+
+  /**
+   * @param aggregate [boolean]
+   * @param name [string]
+   * @param type [Type]
+   * @param parameters [Array<Type>] optional
+   */
+  constructor(aggregate: true, name: string, fn: Function, type: Type, parameters: Type[])
 
   /**
    * @param name [string]
    * @param type [Type]
    * @param parameters [Array<Type>] optional
    */
-  constructor(name: string, public readonly fn: Function, type: Type, public readonly parameters: Type[] = []) {
-    super(name)
+  constructor(name: string, fn: Function, type: Type, parameters: Type[])
+
+  constructor(...args: any[]) {
+    super(typeof args[0] === 'boolean' ? args[1] : args[0])
+
+    // parse args
+    let aggregate = false, fn: Function, type: Type, parameters: Type[] = []
+    if (typeof args[0] === 'boolean') {
+      aggregate = args[0]
+      fn = args[2]
+      type = args[3]
+      parameters = args[4]
+    }
+    else {
+      fn = args[1]
+      type = args[2]
+      parameters = args[3]
+    }
+
+    // set args
+    this.aggregate = aggregate
+    this.fn = fn
     this.type = type
+    this.parameters = parameters
   }
 
   // @override
