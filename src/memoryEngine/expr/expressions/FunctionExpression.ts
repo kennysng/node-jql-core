@@ -3,7 +3,7 @@ import squel = require('squel')
 import uuid = require('uuid/v4')
 import { CompiledExpression } from '..'
 import { Cursor } from '../../cursor'
-import { JQLAggregateFunction, JQLFunction } from '../../function'
+import { GenericJQLFunction, JQLAggregateFunction, JQLFunction } from '../../function'
 import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
 import { CompiledParameterExpression } from './ParameterExpression'
@@ -49,7 +49,7 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     this.parameters = parameters.map(jql => new CompiledParameterExpression(jql, options))
 
     // register aggregate function
-    if (this.function instanceof JQLAggregateFunction) options.aggregateFunctions.push(this)
+    if (this.function instanceof JQLAggregateFunction || (this.function instanceof GenericJQLFunction && this.function.aggregate)) options.aggregateFunctions.push(this)
   }
 
   /**
@@ -92,7 +92,15 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
       if (!checkNull(value)) return value
 
       if (await cursor.moveToFirst()) {
-        do { args.push(await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))) }
+        do {
+          const row = {} as any
+          for (const { expression } of this.parameters) {
+            let name = expression.toString()
+            if (expression instanceof ColumnExpression && !row[expression.name]) name = expression.name
+            row[name] = await expression.evaluate(sandbox, cursor)
+          }
+          args.push(row)
+        }
         while (await cursor.next())
       }
     }

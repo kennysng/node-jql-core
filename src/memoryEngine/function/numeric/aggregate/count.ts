@@ -16,7 +16,7 @@ export class CountFunction extends JQLAggregateFunction<number> {
   }
 
   public run(...args: any[]): number {
-    args = args.filter((arg: any[]) => arg.reduce((result, value) => result || !checkNull(value), false))
+    args = args.filter(row => Object.keys(row).reduce<boolean>((result, key) => result || !checkNull(row[key]), false))
     if (this.$distinct) args = _.uniqBy(args, arg => JSON.stringify(arg))
     return args.length
   }
