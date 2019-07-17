@@ -2,9 +2,6 @@ import _ = require('lodash')
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLAggregateFunction } from '../..'
 
-/**
- * Neither COUNT(*), COUNT(DISTINCT *) nor COUNT(DISTINCT col1, col2, ...) is supported
- */
 export class CountFunction extends JQLAggregateFunction<number> {
   public readonly type = 'number'
   public $distinct: boolean = false

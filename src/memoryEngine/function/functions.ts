@@ -1,4 +1,5 @@
 import { JQLFunction } from '.'
+import { RowsFunction } from './advanced/aggregate/rows'
 import { IfNullFunction } from './advanced/if_null'
 import { CalcDateFunction } from './date/calcdate'
 import { CalcTimeFunction } from './date/calctime'
@@ -147,4 +148,5 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
 
   // advanced functions
   ifnull: () => new IfNullFunction('IFNULL'),
+  rows: () => new RowsFunction('ROWS'),
 }
