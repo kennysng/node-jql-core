@@ -49,14 +49,14 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     this.parameters = parameters.map(jql => new CompiledParameterExpression(jql, options))
 
     // register aggregate function
-    if (this.function instanceof JQLAggregateFunction || (this.function instanceof GenericJQLFunction && this.function.aggregate)) options.aggregateFunctions.push(this)
+    if (this.isAggregate) options.aggregateFunctions.push(this)
   }
 
   /**
    * Whether it is an aggregate function
    */
   get isAggregate(): boolean {
-    return this.function instanceof JQLAggregateFunction
+    return this.function instanceof JQLAggregateFunction || (this.function instanceof GenericJQLFunction && this.function.aggregate)
   }
 
   // @override
