@@ -26,7 +26,6 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     super()
     // set function
     this.function = options.functions[jql.name.toLocaleLowerCase()]()
-    if (this.isAggregate && jql.parameters.length !== 1) throw new SyntaxError(`Aggregate function ${jql.name} should have exactly 1 argument`)
     this.function.interpret(jql.parameters)
 
     // compile parameters
@@ -87,7 +86,7 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     let args: any[] = []
-    if (this.function instanceof JQLAggregateFunction) {
+    if (this.isAggregate) {
       const value = await cursor.get(this.id)
       if (!checkNull(value)) return value
 

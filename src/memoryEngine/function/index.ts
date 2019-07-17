@@ -95,7 +95,6 @@ export class GenericJQLFunction extends JQLFunction {
 
 /**
  * JQL Aggregate Function
- * This can only support exactly 1 arguments
  */
 export abstract class JQLAggregateFunction<T = any> extends JQLFunction<T> {
   // @override
