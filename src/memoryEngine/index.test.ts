@@ -1,19 +1,20 @@
 import { CancelError } from '@kennysng/c-promise'
-import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
+import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
-import { getStudents, getWarnings, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
+import { getClasses, getStudents, getWarnings, prepareClass, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
 
 jest.setTimeout(20000)
 
 let core: ApplicationCore
 let session: Session
 
-const students = getStudents(198)
-const warnings = getWarnings(998)
+const students = getStudents(200)
+const classes = getClasses(students)
+const warnings = getWarnings(1000)
 
 test('Initialize application core', async callback => {
   core = new ApplicationCore({ defaultEngine: new InMemoryDatabaseEngine({ logger: new Logger('InMemoryDatabaseEngine') }) })
@@ -33,6 +34,7 @@ test('Create database', async callback => {
 
 test('Prepare tables', async callback => {
   await prepareStudent(session, ...students)
+  await prepareClass(session, ...classes)
   await prepareWarning(session, ...warnings)
   await prepareClub(session)
   await prepareClubMember(session)
@@ -168,6 +170,20 @@ test('Select students with warning count', async callback => {
     }
   }
   while (await result.next())
+  callback()
+})
+
+test('Select students for each class', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: [
+      new ResultColumn(new ColumnExpression('c', 'className'), 'class'),
+      new ResultColumn(new FunctionExpression('ROWS'), 'students'),
+    ],
+    $from: new FromTable('Student', 's', new JoinClause('LEFT', new FromTable('Class', 'c'), new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')))),
+    $group: new GroupBy(new ColumnExpression('c', 'className')),
+    $order: new OrderBy(new ColumnExpression('c', 'className')),
+  }))).toArray()
+  expect(Array.isArray(result[0].students)).toBe(true)
   callback()
 })
 
