@@ -10,9 +10,8 @@ export class CalcTimeFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(datetime, addtime)`)
-    return parameters
   }
 
   public run(value: any, seconds: number): number {

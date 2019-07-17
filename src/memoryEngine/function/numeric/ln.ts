@@ -8,14 +8,14 @@ export class LnFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (this.baseSupported) {
       if (parameters.length < 1 || parameters.length > 2) throw new SyntaxError(`Invalid use of function ${this.name}([base, ]number)`)
     }
     else {
       if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function ${this.name}(number)`)
     }
-    return parameters
+
   }
 
   public run(arg1: any, arg2?: any): number {

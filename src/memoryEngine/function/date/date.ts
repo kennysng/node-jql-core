@@ -9,9 +9,8 @@ export class DateFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function ${this.name}(expression)`)
-    return parameters
   }
 
   public run(value: any): number {

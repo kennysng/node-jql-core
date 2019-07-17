@@ -8,9 +8,9 @@ import { JQLFunction } from '..'
 export class FieldFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length < 2) throw new SyntaxError(`Invalid use of function ${this.name}(target, ...values)`)
-    return parameters
+
   }
 
   public run(target: any, ...args: any[]): number {

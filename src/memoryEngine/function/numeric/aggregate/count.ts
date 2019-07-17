@@ -6,10 +6,10 @@ export class CountFunction extends JQLAggregateFunction<number> {
   public readonly type = 'number'
   public $distinct: boolean = false
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 1) throw new SyntaxError(`Invalid use of aggregate function ${this.name}(expression)`)
     if (parameters[0].prefix && parameters[0].prefix.toLocaleLowerCase() === 'distinct') this.$distinct = true
-    return parameters
+
   }
 
   public run(...args: any[]): number {

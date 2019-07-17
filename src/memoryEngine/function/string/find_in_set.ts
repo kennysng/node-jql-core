@@ -7,9 +7,9 @@ import { JQLFunction } from '..'
 export class FindInSetFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(string, string_list)`)
-    return parameters
+
   }
 
   public run(target: any, source: string): number {

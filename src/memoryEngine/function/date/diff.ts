@@ -10,9 +10,9 @@ export class DiffFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(value1, value2)`)
-    return parameters
+
   }
 
   public run(l: any, r: any): number {

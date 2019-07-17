@@ -4,9 +4,9 @@ import { JQLFunction } from '..'
 export class Atan2Function extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(a, b)`)
-    return parameters
+
   }
 
   public run(y: any, x: any): number {

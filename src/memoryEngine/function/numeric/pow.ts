@@ -4,9 +4,9 @@ import { JQLFunction } from '..'
 export class PowFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(x, y)`)
-    return parameters
+
   }
 
   public run(x: any, y: any): number {

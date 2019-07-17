@@ -16,13 +16,12 @@ export class CalcDateFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(date, days)`)
     if (parameters[1].prefix && parameters[1].prefix.toLocaleLowerCase() === 'interval') {
       if (!parameters[1].suffix) throw new SyntaxError(`Invalid use of function ${this.name}(date, INTERVAL value unit)`)
       this.unit = parameters[1].suffix.toLocaleLowerCase() as unit
     }
-    return parameters
   }
 
   public run(value: any, count: number): number {

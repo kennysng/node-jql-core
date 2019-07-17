@@ -8,9 +8,9 @@ export class PadFunction extends JQLFunction<string> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 3) throw new SyntaxError(`Invalid use of function ${this.name}(string, length, ${this.position === 'left' ? 'l' : 'r'}pad_string)`)
-    return parameters
+
   }
 
   public run(value: any, length: number, pad: any): string {

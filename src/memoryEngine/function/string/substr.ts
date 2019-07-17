@@ -8,14 +8,14 @@ export class SubstrFunction extends JQLFunction<string> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (this.startType === 'normal') {
       if (parameters.length !== 3) throw new SyntaxError(`Invalid use of function ${this.name}(string, start, length)`)
     }
     else {
       if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(string, number_of_chars)`)
     }
-    return parameters
+
   }
 
   public run(value: any, arg1: number, arg2: number): string {

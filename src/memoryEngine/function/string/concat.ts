@@ -8,14 +8,14 @@ export class ConcatFunction extends JQLFunction<string> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (this.separatorSupported) {
       if (parameters.length < 2) throw new SyntaxError(`Invalid use of function ${this.name}(separator, ...expressions)`)
     }
     else {
       if (parameters.length < 1) throw new SyntaxError(`Invalid use of function ${this.name}(...expressions)`)
     }
-    return parameters
+
   }
 
   public run(...args: any[]): string {
