@@ -95,7 +95,7 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
           const row = {} as any
           for (const { expression } of this.parameters) {
             let name = expression.toString()
-            if (expression instanceof ColumnExpression && !row[expression.name]) name = expression.name
+            if (expression instanceof ColumnExpression && checkNull(row[expression.name])) name = expression.name
             row[name] = await expression.evaluate(sandbox, cursor)
           }
           args.push(row)
