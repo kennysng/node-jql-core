@@ -188,9 +188,24 @@ export class ApplicationCore {
       task.status(StatusCode.PREPARING)
       const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
       const fn_ = database.engine.functions[name]
+      if (!jql.$ifNotExists && fn_) throw new ExistsError(`Function ${name} already exists`)
 
       // function created
-      if (fn_) throw new ExistsError(`Function ${name} already exists`)
+      if (fn_) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
 
       // function not created
       return new CancelablePromise(async (resolve, reject, check, canceled) => {
