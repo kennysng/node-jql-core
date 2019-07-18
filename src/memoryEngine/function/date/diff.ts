@@ -10,12 +10,13 @@ export class DiffFunction extends JQLFunction<number> {
     super(name)
   }
 
+  // @override
   public interpret(parameters: ParameterExpression[]): void {
-    if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(value1, value2)`)
-
+    if (parameters.length < 2 && parameters.length > 4) throw new SyntaxError(`Invalid use of function ${this.name}(value1, value2, value1Format?, value2Format?)`)
   }
 
-  public run(l: any, r: any): number {
-    return moment.utc(l).diff(moment.utc(r), this.unit)
+  // @override
+  public run(l: any, r: any, lFormat?: string, rFormat?: string): number {
+    return moment.utc(l, lFormat).diff(moment.utc(r, rFormat), this.unit)
   }
 }

@@ -1,4 +1,3 @@
-import _ = require('lodash')
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
@@ -10,11 +9,13 @@ export class CalcTimeFunction extends JQLFunction<number> {
     super(name)
   }
 
+  // @override
   public interpret(parameters: ParameterExpression[]): void {
-    if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(datetime, addtime)`)
+    if (parameters.length !== 2 && parameters.length !== 3) throw new SyntaxError(`Invalid use of function ${this.name}(datetime, addtime, format?)`)
   }
 
-  public run(value: any, seconds: number): number {
-    return moment.utc(value).add(seconds, 'second').toDate().getTime()
+  // @override
+  public run(value: any, seconds: number, format?: string): number {
+    return moment.utc(value, format).add(seconds, 'second').toDate().getTime()
   }
 }

@@ -1,31 +1,31 @@
-import _ = require('lodash')
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
-
-type unit = 'second'|'minute'|'hour'|'day'|'week'|'month'|'quarter'|'year' // |'minute_second'|'hour_second'|'hour_minute'|'day_second'|'day_minute'|'day_hour'|'year_month'
+import { CalcUnit } from '../interface'
 
 /**
  * microsecond is not supported in JavaScript
  */
 export class CalcDateFunction extends JQLFunction<number> {
   public readonly type = 'Date'
-  private unit: unit = 'day'
+  private unit: CalcUnit = 'day'
 
   constructor(protected readonly name: string, protected readonly calcType: 'add'|'sub') {
     super(name)
   }
 
+  // @override
   public interpret(parameters: ParameterExpression[]): void {
-    if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(date, days)`)
+    if (parameters.length !== 2 && parameters.length !== 3) throw new SyntaxError(`Invalid use of function ${this.name}(date, days, format?)`)
     if (parameters[1].prefix && parameters[1].prefix.toLocaleLowerCase() === 'interval') {
       if (!parameters[1].suffix) throw new SyntaxError(`Invalid use of function ${this.name}(date, INTERVAL value unit)`)
-      this.unit = parameters[1].suffix.toLocaleLowerCase() as unit
+      this.unit = parameters[1].suffix.toLocaleLowerCase() as CalcUnit
     }
   }
 
-  public run(value: any, count: number): number {
-    let mValue = moment.utc(value)
+  // @override
+  public run(value: any, count: number, format?: string): number {
+    let mValue = moment.utc(value, format)
     if (this.calcType === 'add') {
       mValue = mValue.add(count, this.unit)
     }
