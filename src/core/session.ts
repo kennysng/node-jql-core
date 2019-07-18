@@ -160,7 +160,7 @@ export class Session {
     this.closed = true
 
     // drop temporary tables created in this session
-    for (const [database, name] of this.tempTables) this.update(new DropTableJQL({ $temporary: true, database, name }))
+    for (const [database, name] of this.tempTables) this.update(new DropTableJQL({ $temporary: true, database, name })).catch(e => { /* do nothing */ })
   }
 
   private checkClosed(): void {
