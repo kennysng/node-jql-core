@@ -4,7 +4,7 @@ import { checkNull, CreateFunctionJQL, CreateJQL, CreateTableJQL, normalize } fr
 import timsort = require('timsort')
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '.'
-import { TEMP_DB_NAME } from '../core/constants'
+import { databaseName, TEMP_DB_NAME } from '../core/constants'
 import { IQueryResult } from '../core/interface'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
@@ -41,8 +41,8 @@ export class Sandbox {
     const database = table.database || (this.context[TEMP_DB_NAME].__tables.find(({ name }) => name === table.$as) && TEMP_DB_NAME) || this.defDatabase
     if (!database) throw new NoDatabaseError()
     const name = table.table.name
-    if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
-    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
+    if (!this.context[database]) throw new NotFoundError(`Database ${databaseName(database)} not found`)
+    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${databaseName(database)}`)
     return this.context[database][name].length
   }
 
@@ -55,9 +55,8 @@ export class Sandbox {
     const database = table.database || (this.context[TEMP_DB_NAME].__tables.find(({ name }) => name === table.$as) && TEMP_DB_NAME) || this.defDatabase
     if (!database) throw new NoDatabaseError()
     const name = table.table.name
-    if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
-    if (!this.context[database]) throw new NotFoundError(`Database ${database} not found`)
-    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${database}`)
+    if (!this.context[database]) throw new NotFoundError(`Database ${databaseName(database)} not found`)
+    if (!this.context[database][name]) throw new NotFoundError(`Table ${name} not found in database ${databaseName(database)}`)
     return this.context[database][name][i] || {}
   }
 
@@ -79,7 +78,7 @@ export class Sandbox {
     if (jql instanceof CreateTableJQL) {
       const database = jql.database || options.defDatabase
       if (!database) throw new NoDatabaseError()
-      if (!this.context[database]) throw new NotFoundError(`Database ${database} not found in sandbox`)
+      if (!this.context[database]) throw new NotFoundError(`Database ${databaseName(database)} not found in sandbox`)
       this.context[database].__tables.push(new MemoryTable(jql.name, jql.columns, jql.constraints, ...(jql.options || [])))
     }
     else if (jql instanceof CreateFunctionJQL) {

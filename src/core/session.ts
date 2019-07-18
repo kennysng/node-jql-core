@@ -6,6 +6,7 @@ import { ClosedError } from '../utils/error/ClosedError'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { SessionError } from '../utils/error/SessionError'
+import { databaseName } from './constants'
 import { IPredictResult, IQueryResult, IUpdateResult } from './interface'
 import { AnalyzedPredictJQL, AnalyzedQuery, PreparedQuery } from './query'
 import { Resultset } from './result'
@@ -52,7 +53,7 @@ export class Session {
    */
   public use(database: string): void {
     this.checkClosed()
-    if (!this.core.getDatabase(database)) throw new NotFoundError(`Database ${database} not found`)
+    if (!this.core.getDatabase(database)) throw new NotFoundError(`Database ${databaseName(database)} not found`)
     this.database = database
   }
 
@@ -119,8 +120,8 @@ export class Session {
     // check database engine
     for (const name of analyzed.databases) {
       const database = this.core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
-      if (!database.engine.isPredictSupported) throw new SyntaxError(`Database ${name} does not support PREDICT`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
+      if (!database.engine.isPredictSupported) throw new SyntaxError(`Database ${databaseName(name)} does not support PREDICT`)
     }
     const result = analyzed.multiEnginesInvolved(this.core) ? await this.predictWithMultiDatabases(analyzed) : await this.predictWithSingleDatabase(analyzed)
     return { ...result, jql, time: Date.now() - startTime }
@@ -207,33 +208,11 @@ export class Session {
       const name = jql.database as string
       if (!name) throw new NoDatabaseError()
       const database = this.core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
       return new CancelablePromise(
         () => database.executeUpdate(jql)(task),
         async (fn, resolve, reject, _check, canceled) => {
           try {
-            /* // INSERT INTO SELECT
-            if (jql instanceof InsertJQL && jql.query && new AnalyzedQuery(jql.query, this.database).multiEnginesInvolved(this.core)) {
-              const queryPromise = this.query(jql.query)
-              taskId = this.lastTaskId
-              const { rows, columns } = await queryPromise
-              taskId = undefined
-
-              if (!columns || columns.length !== (jql.columns as string[]).length) {
-                throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
-              }
-
-              const columns_ = jql.columns as string[]
-              const result = jql.values = [] as any[]
-              for (let i = 0, length = rows.length; i < length; i += 1) {
-                const row = rows[i]
-                result.push(columns.reduce((row_, { id }, i) => {
-                  row_[columns_[i]] = row[id]
-                  return row_
-                }, {} as any))
-              }
-            } */
-
             // run JQL
             const result = await fn()
 
@@ -267,15 +246,15 @@ export class Session {
     if (!jql.$as) return this.executeTableJQL(jql)
 
     // check multiple engines involved
-    const analyzed = new AnalyzedQuery(jql.$as, this.database)
+    const analyzed = jql.$as = new AnalyzedQuery(jql.$as, this.database)
     const name = jql.database || this.database
     if (!name) throw new NoDatabaseError()
     const database = this.core.getDatabase(name)
-    if (!database) throw new NotFoundError(`Database ${name} not found`)
+    if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
     const multiEnginesInvolved = analyzed.databases.reduce((result, name) => {
       if (result) return result
       const database_ = this.core.getDatabase(name)
-      if (!database_) throw new NotFoundError(`Database ${name} not found`)
+      if (!database_) throw new NotFoundError(`Database ${databaseName(name)} not found`)
       return database.engine !== database_.engine
     }, false)
 
@@ -326,15 +305,15 @@ export class Session {
     if (!jql.query) return this.executeTableJQL(jql)
 
     // check multiple engines involved
-    const analyzed = new AnalyzedQuery(jql.query, this.database)
+    const analyzed = jql.query = new AnalyzedQuery(jql.query, this.database)
     const name = jql.database || this.database
     if (!name) throw new NoDatabaseError()
     const database = this.core.getDatabase(name)
-    if (!database) throw new NotFoundError(`Database ${name} not found`)
+    if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
     const multiEnginesInvolved = analyzed.databases.reduce((result, name) => {
       if (result) return result
       const database_ = this.core.getDatabase(name)
-      if (!database_) throw new NotFoundError(`Database ${name} not found`)
+      if (!database_) throw new NotFoundError(`Database ${databaseName(name)} not found`)
       return database.engine !== database_.engine
     }, false)
 
@@ -396,7 +375,7 @@ export class Session {
       const name: string = jql.databases[0]
       if (!name) throw new NoDatabaseError()
       const database = this.core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
 
       return new CancelablePromise(
         () => database.predictQuery(jql)(task),
@@ -433,7 +412,7 @@ export class Session {
       const name: string = jql.databases[0]
       if (!name) throw new NoDatabaseError()
       const database = this.core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
 
       return new CancelablePromise(
         () => database.executeQuery(jql)(task),

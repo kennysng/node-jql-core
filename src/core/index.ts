@@ -7,7 +7,7 @@ import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { SessionError } from '../utils/error/SessionError'
-import { TEMP_DB_NAME } from './constants'
+import { databaseName, TEMP_DB_NAME } from './constants'
 import { Database } from './database'
 import { DatabaseEngine } from './engine'
 import { IApplicationOptions, IUpdateResult } from './interface'
@@ -125,7 +125,7 @@ export class ApplicationCore {
       // preparing
       task.status(StatusCode.PREPARING)
       const database = this.getDatabase(name)
-      if (database && !ifNotExists) throw new ExistsError(`Database ${name} already exists`)
+      if (database && !ifNotExists) throw new ExistsError(`Database ${databaseName(name)} already exists`)
 
       // database created
       if (database) {
@@ -298,7 +298,7 @@ export class ApplicationCore {
     return new Task(jql, task => {
       task.status(StatusCode.PREPARING)
       const index = this.databases.findIndex(({ name }) => name === database)
-      if ((index === -1 || this.databases[index].name === TEMP_DB_NAME) && !ifExists) throw new NotFoundError(`Database ${database} not found`)
+      if ((index === -1 || this.databases[index].name === TEMP_DB_NAME) && !ifExists) throw new NotFoundError(`Database ${databaseName(database)} not found`)
 
       // database not exists
       if (index === -1) {

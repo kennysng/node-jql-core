@@ -2,7 +2,7 @@ import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, ch
 import { ApplicationCore } from '.'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
-import { TEMP_DB_NAME } from './constants'
+import { databaseName, TEMP_DB_NAME } from './constants'
 import { DatabaseEngine } from './engine'
 
 /**
@@ -180,7 +180,7 @@ export class AnalyzedQuery extends Query {
     let engine: DatabaseEngine|undefined
     for (const name of this.databases) {
       const database = core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
       if (engine && engine !== database.engine) return true
       engine = database.engine
     }
@@ -288,7 +288,7 @@ export class AnalyzedPredictJQL extends PredictJQL {
     let engine: DatabaseEngine|undefined
     for (const name of this.databases) {
       const database = core.getDatabase(name)
-      if (!database) throw new NotFoundError(`Database ${name} not found`)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
       if (engine && engine !== database.engine) return true
       engine = database.engine
     }

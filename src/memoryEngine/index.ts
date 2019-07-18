@@ -1,6 +1,6 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import { checkNull, Column, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
-import { TEMP_DB_NAME } from '../core/constants'
+import { databaseName, TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
 import { IPredictResult, IQueryResult, IUpdateResult } from '../core/interface'
 import { AnalyzedQuery } from '../core/query'
@@ -76,7 +76,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   public getTable(database: string, name: string): MemoryTable {
     this.checkTable(database, name)
     const table = this.context[database].__tables.find(table => table.name === name)
-    if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+    if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
     return table
   }
 
@@ -97,7 +97,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       let count = 0
       if (checkNull(this.context[name])) {
         this.context[name] = { __tables: [] }
-        if (this.options.logger) this.options.logger.info(`Database ${name === TEMP_DB_NAME ? 'TEMP_DB_NAME' : name} created`)
+        if (this.options.logger) this.options.logger.info(`Database ${databaseName(name)} created`)
         count = 1
       }
 
@@ -116,7 +116,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       let count = 0
       if (this.context[name]) {
         delete this.context[name]
-        if (this.options.logger) this.options.logger.info(`Database ${name} dropped`)
+        if (this.options.logger) this.options.logger.info(`Database ${databaseName(name)} dropped`)
         count = 1
       }
 
@@ -248,7 +248,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    * @param database [string]
    */
   protected checkDatabase(database: string): void {
-    if (checkNull(this.context[database])) throw new NotFoundError(`Database ${database} not found`)
+    if (checkNull(this.context[database])) throw new NotFoundError(`Database ${databaseName(database)} not found`)
   }
 
   /**
@@ -258,7 +258,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected checkTable(database: string, table: string): void {
     this.checkDatabase(database)
-    if (!this.context[database].__tables.find(({ name }) => name === table)) throw new NotFoundError(`Table ${table} not found in database ${database}`)
+    if (!this.context[database].__tables.find(({ name }) => name === table)) throw new NotFoundError(`Table ${table} not found in database ${databaseName(database)}`)
   }
 
   /**
@@ -279,7 +279,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       try {
         // check table
         this.checkTable(database, name)
-        if (!$ifNotExists) throw new ExistsError(`Table ${name} already exists in database ${database}`)
+        if (!$ifNotExists) throw new ExistsError(`Table ${name} already exists in database ${databaseName(database)}`)
       }
       catch (e) {
         if (!(e instanceof NotFoundError)) throw e
@@ -335,12 +335,12 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
         // delete table
         const index = this.context[database].__tables.findIndex(table => table.name === name)
-        if (index === -1) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+        if (index === -1) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
         this.context[database].__tables.splice(index, 1)
         delete this.context[database][name]
 
         // return
-        if (this.options.logger) this.options.logger.info(`Table ${name} dropped from database ${database}`)
+        if (this.options.logger) this.options.logger.info(`Table ${name} dropped from database ${databaseName(database)}`)
         count = 1
       }
       catch (e) {
@@ -372,7 +372,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       // check table
       this.checkTable(database, name)
       const table = this.context[database].__tables.find(table => table.name === name)
-      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
 
       // check canceled
       await check()
@@ -424,7 +424,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         context.push(...nValues)
 
         // return
-        if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `- ${Date.now() - start}ms`)
+        if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${databaseName(database)}`, `- ${Date.now() - start}ms`)
         return resolve({ count: nValues.length, time: 0 })
       }
       finally {
