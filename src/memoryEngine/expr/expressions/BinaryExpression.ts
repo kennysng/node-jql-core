@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import { BinaryExpression, BinaryOperator, Expression, IBinaryExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
@@ -66,7 +67,7 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression impl
           case '<>':
             return left !== right
           case '=':
-            return left === right
+            return _.isEqual(left, right)
           case '>':
             return left > right
           case '>=':
