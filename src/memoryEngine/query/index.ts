@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { ColumnExpression as NodeJQLColumnExpression, JQL, Query, ResultColumn } from 'node-jql'
+import { ColumnExpression as NodeJQLColumnExpression, IQuery, JQL, Query, ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
 import { CompiledConditionalExpression } from '../expr'
 import { compile } from '../expr/compile'
@@ -16,7 +16,7 @@ import { CompiledLikeExpression } from '../expr/expressions/LikeExpression'
 import { CompiledMathExpression } from '../expr/expressions/MathExpression'
 import { CompiledOrExpressions } from '../expr/expressions/OrExpressions'
 import { CompiledParameterExpression } from '../expr/expressions/ParameterExpression'
-import { JQLAggregateFunction, JQLFunction } from '../function'
+import { JQLFunction } from '../function'
 import { ICompileOptions } from '../interface'
 import { MemoryColumn, MemoryTable } from '../table'
 import { CompiledFromTable } from './FromTable'
@@ -104,12 +104,10 @@ export class CompiledQuery extends Query {
     // analyze UNION query
     if (jql.$union) {
       this.$union = new CompiledQuery(jql.$union, {
-        ...options_,
-        tables: {},
-        tablesOrder: [],
-        ownTables: [],
-        columns: [],
-        aggregateFunctions: [],
+        axiosInstance: options.axiosInstance,
+        defDatabase: options.defDatabase,
+        getTable: options.getTable,
+        functions: options.functions,
       })
 
       // check column numbers
@@ -162,6 +160,11 @@ export class CompiledQuery extends Query {
   // @override
   public toString(): string {
     return this.jql.toString()
+  }
+
+  // @override
+  public toJson(): IQuery {
+    return this.jql.toJson()
   }
 
   private checkAggregate(jql: JQL): boolean {

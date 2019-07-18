@@ -33,11 +33,6 @@ export interface IInMemoryOptions {
  */
 export interface ICompileOptions {
   /**
-   * Sandbox environment
-   */
-  sandbox?: Sandbox
-
-  /**
    * Get table function
    */
   getTable: (database: string, table: string) => MemoryTable
