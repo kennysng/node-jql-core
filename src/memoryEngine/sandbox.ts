@@ -1,11 +1,13 @@
 import { CancelablePromise } from '@kennysng/c-promise'
 import _ from 'lodash'
-import { checkNull, CreateFunctionJQL, CreateJQL, CreateTableJQL, normalize } from 'node-jql'
+import { checkNull, CreateFunctionJQL, CreateJQL, CreateTableJQL, normalize, parseJQL } from 'node-jql'
 import timsort = require('timsort')
 import uuid = require('uuid/v4')
 import { InMemoryDatabaseEngine } from '.'
 import { databaseName, TEMP_DB_NAME } from '../core/constants'
 import { IQueryResult } from '../core/interface'
+import { AnalyzedQuery } from '../core/query'
+import { Task } from '../core/task'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { ArrayCursor, Cursor } from './cursor'
@@ -105,13 +107,19 @@ export class Sandbox {
         await Promise.all(jql.$from.map(async table => this.prepareTable(table, requests)))
       }
 
+      let rows = [] as any[]
+
+      // evaluate LIMIT & OFFSET values
+      const $limit = jql.$limit ? await jql.$limit.$limit.evaluate(this, new DummyCursor()) : Number.MAX_SAFE_INTEGER
+      const $offset = jql.$limit && jql.$limit.$offset ? await jql.$limit.$offset.evaluate(this, new DummyCursor()) : 0
+
       // quick query
       if (jql.isQuick || jql.isQuickCount) {
         let { database, table } = (jql.$from as [CompiledFromTable])[0]
         database = database || this.defDatabase
         if (!database) throw new NoDatabaseError()
 
-        let rows = this.context[database][table.name]
+        rows = this.context[database][table.name]
         const columns = jql.table.columns
 
         if (jql.isQuickCount) {
@@ -124,19 +132,13 @@ export class Sandbox {
             return row_
           })
         }
-        return resolve({ rows, columns, time: 0 })
       }
       // normal flow
       else {
-        // evaluate LIMIT & OFFSET values
-        const $limit = jql.$limit ? await jql.$limit.$limit.evaluate(this, new DummyCursor()) : Number.MAX_SAFE_INTEGER
-        const $offset = jql.$limit && jql.$limit.$offset ? await jql.$limit.$offset.evaluate(this, new DummyCursor()) : 0
-
         // build cursor
         let cursor: Cursor = jql.$from ? new Cursors(...jql.$from.map(table => new TableCursor(this, table))) : new DummyCursor()
 
         // traverse cursor
-        let rows = [] as any[]
         if (await cursor.moveToFirst()) {
           do {
             // check canceled
@@ -243,41 +245,43 @@ export class Sandbox {
           }
           while (await cursor.next())
         }
-
-        // DISTINCT
-        if (jql.$distinct) rows = _.sortedUniqBy(rows, row => jql.$select.map(({ id }) => normalize(row[id])).join(':'))
-
-        // LIMIT & OFFSET
-        if (jql.$limit) rows = rows.slice($offset, $limit)
-
-        // UNION
-        if (jql.$union) {
-          // run UNION query
-          unionPromise = this.run(jql.$union)
-          const result = await unionPromise
-
-          // post process
-          result.rows = result.rows.reduce<any[]>((result_, row) => {
-            const row_ = {} as any
-            for (let i = 0, length = result.columns.length; i < length; i += 1) {
-              const newColumn = jql.table.columns[i]
-              const oldColumn = result.columns[i]
-              row_[newColumn.id] = row[oldColumn.id]
-            }
-            result_.push(row_)
-            return result_
-          }, [])
-
-          // merge
-          rows = rows.concat(result.rows)
-        }
-
-        return resolve({
-          rows,
-          columns: jql.table.columns,
-          time: 0,
-        })
       }
+
+      // DISTINCT
+      if (jql.$distinct) rows = _.sortedUniqBy(rows, row => jql.$select.map(({ id }) => normalize(row[id])).join(':'))
+
+      // LIMIT & OFFSET
+      if (jql.$limit) rows = rows.slice($offset, $limit)
+
+      // UNION
+      if (jql.$union) {
+        // run UNION query
+        const unionQuery = parseJQL(jql.$union.toJson())
+        const task = new Task(unionQuery, task => this.engine.executeQuery(new AnalyzedQuery(unionQuery, this.defDatabase), true)(task))
+        unionPromise = task.promise
+        const result = await unionPromise
+
+        // post process
+        result.rows = result.rows.reduce<any[]>((result_, row) => {
+          const row_ = {} as any
+          for (let i = 0, length = result.columns.length; i < length; i += 1) {
+            const newColumn = jql.table.columns[i]
+            const oldColumn = result.columns[i]
+            row_[newColumn.id] = row[oldColumn.id]
+          }
+          result_.push(row_)
+          return result_
+        }, [])
+
+        // merge
+        rows = rows.concat(result.rows)
+      }
+
+      return resolve({
+        rows,
+        columns: jql.table.columns,
+        time: 0,
+      })
     })
     // cancel axios requests
     promise.on('cancel', () => {

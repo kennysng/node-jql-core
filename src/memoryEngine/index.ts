@@ -172,7 +172,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const query = new AnalyzedQuery(predictJQL.jql[i] as Query, database)
           const compiled = new CompiledQuery(query, {
             ...options,
-            sandbox,
             getTable: (database, table) => sandbox.getTable(database, table) || this.getTable(database, table),
             functions: {
               ...this.functions,
@@ -189,7 +188,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   }
 
   // @override
-  public executeQuery(jql: AnalyzedQuery): TaskFn<IQueryResult> {
+  public executeQuery(jql: AnalyzedQuery, noLog?: boolean): TaskFn<IQueryResult> {
     this.checkInited()
     const compiled = new CompiledQuery(jql, {
       axiosInstance: this.options.axiosInstance,
@@ -221,7 +220,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const result = await promise
 
           // return
-          if (this.options.logger) this.options.logger.info(jql.toString(), `- ${Date.now() - start}ms`)
+          if (this.options.logger && !noLog) this.options.logger.info(jql.toString(), `- ${Date.now() - start}ms`)
           task.status(StatusCode.ENDING)
           return resolve(result)
         }
@@ -290,7 +289,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         // create table
         let table: MemoryTable, values: any[] = []
         if ($as) {
-          const result = await this.executeQuery(new AnalyzedQuery($as))(task)
+          const result = await this.executeQuery($as as AnalyzedQuery)(task)
           const resultset = new Resultset(result)
           table = new MemoryTable($temporary, name, result.columns, constraints, ...(options || []))
           values = resultset.toArray()
@@ -386,7 +385,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
         let values_: any[]
         if (query) {
-          const { rows, columns } = await this.executeQuery(new AnalyzedQuery(query))(task)
+          const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
 
           if (!columns || columns.length !== (jql.columns as string[]).length) {
             throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)

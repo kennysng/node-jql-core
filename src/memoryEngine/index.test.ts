@@ -1,5 +1,5 @@
 import { CancelError } from '@kennysng/c-promise'
-import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
+import { AndExpressions, BinaryExpression, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
@@ -187,6 +187,39 @@ test('Select students for each class', async callback => {
   callback()
 })
 
+test('Select students from 1A and 1B', async callback => {
+  await session.update(new CreateTableJQL({
+    $temporary: true,
+    name: '1A',
+    $as: new Query({
+      $select: new ResultColumn(new ColumnExpression('s', '*')),
+      $from: new FromTable('Student', 's', new JoinClause('INNER', new FromTable('Class', 'c'), new AndExpressions([
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')),
+        new BinaryExpression(new ColumnExpression('c', 'className'), '=', '1A'),
+      ]))),
+    }),
+  }))
+  await session.update(new CreateTableJQL({
+    $temporary: true,
+    name: '1B',
+    $as: new Query({
+      $select: new ResultColumn(new ColumnExpression('s', '*')),
+      $from: new FromTable('Student', 's', new JoinClause('INNER', new FromTable('Class', 'c'), new AndExpressions([
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')),
+        new BinaryExpression(new ColumnExpression('c', 'className'), '=', '1B'),
+      ]))),
+    }),
+  }))
+  const aCount = (await session.query(new Query('1A'))).rows.length
+  const bCount = (await session.query(new Query('1B'))).rows.length
+  const result = await session.query(new Query({
+    $from: '1A',
+    $union: new Query('1B'),
+  }))
+  expect(result.rows.length === aCount + bCount).toBe(true)
+  callback()
+})
+
 test('Drop table', async callback => {
   await session.update(new DropTableJQL('Student'))
   callback()
@@ -198,5 +231,5 @@ test('Drop database', async callback => {
 })
 
 test('Close session', () => {
-  session.close(true)
+  session.close()
 })
