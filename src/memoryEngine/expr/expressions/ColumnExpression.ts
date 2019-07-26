@@ -59,7 +59,7 @@ export class CompiledColumnExpression extends CompiledExpression implements ICol
   }
 
   // @override
-  public toSquel(): squel.GetFieldBlock {
+  public toSquel(): squel.FunctionBlock {
     return this.jql.toSquel()
   }
 

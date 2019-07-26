@@ -42,7 +42,7 @@ export class CompiledBinaryExpression extends CompiledConditionalExpression impl
   }
 
   // @override
-  public toSquel(): squel.Expression {
+  public toSquel(): squel.BaseBuilder {
     return this.jql.toSquel()
   }
 
