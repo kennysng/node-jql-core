@@ -7,6 +7,7 @@ import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { SessionError } from '../utils/error/SessionError'
+import { parseCode } from '../utils/function'
 import { databaseName, TEMP_DB_NAME } from './constants'
 import { Database } from './database'
 import { DatabaseEngine } from './engine'
@@ -178,7 +179,7 @@ export class ApplicationCore {
     // parse args
     const aggregate = jql.aggregate
     const name = jql.name
-    const fn = jql.fn
+    const code = jql.code
     const parameters = jql.parameters
     const type = jql.type
 
@@ -212,6 +213,7 @@ export class ApplicationCore {
         try {
           await check()
 
+          const fn = parseCode(code)
           database.engine.functions[name.toLocaleLowerCase()] = () => aggregate
             ? new GenericJQLFunction(true, name.toLocaleUpperCase(), fn, type, parameters)
             : new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)

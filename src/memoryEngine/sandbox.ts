@@ -10,6 +10,7 @@ import { AnalyzedQuery } from '../core/query'
 import { Task } from '../core/task'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
+import { parseCode } from '../utils/function'
 import { ArrayCursor, Cursor } from './cursor'
 import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
@@ -85,7 +86,8 @@ export class Sandbox {
     }
     else if (jql instanceof CreateFunctionJQL) {
       if (!options.functions) options.functions = {}
-      options.functions[jql.name] = () => new GenericJQLFunction(jql.name, jql.fn, jql.type, jql.parameters)
+      const fn = parseCode(jql.code)
+      options.functions[jql.name] = () => new GenericJQLFunction(jql.name, fn, jql.type, jql.parameters)
     }
   }
 
