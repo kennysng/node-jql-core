@@ -12,6 +12,8 @@ export class NumberFormatFunction extends JQLFunction<string> {
 
   // @override
   public run(value: number, format: string): string {
-    return typeof value === 'number' ? numeral(value).format(format) : '#ERROR'
+    if (isNaN(value)) return 'NaN'
+    const nValue = numeral(value)
+    return isNaN(nValue.value()) ? 'NaN' : nValue.format(format)
   }
 }
