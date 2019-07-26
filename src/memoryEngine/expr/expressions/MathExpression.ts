@@ -56,7 +56,7 @@ export class CompiledMathExpression extends CompiledExpression implements IMathE
       switch (this.operator) {
         case '%':
         case 'MOD':
-          return left % right
+          return right === 0 ? NaN : left % right
         case '*':
           return left * right
         case '+':
@@ -64,9 +64,9 @@ export class CompiledMathExpression extends CompiledExpression implements IMathE
         case '-':
           return left - right
         case '/':
-          return left / right
+          return right === 0 ? NaN : left / right
         case 'DIV':
-          return Math.floor(left / right)
+          return right === 0 ? NaN : Math.floor(left / right)
       }
     }
     return NaN
