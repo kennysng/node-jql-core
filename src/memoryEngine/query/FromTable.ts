@@ -1,4 +1,4 @@
-import { CancelableAxiosPromise, CreatePromiseFn } from '@kennysng/c-promise'
+import { CancelableAxiosPromise, CancelablePromise, CreatePromiseFn } from '@kennysng/c-promise'
 import { AxiosResponse } from 'axios'
 import { FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
@@ -65,8 +65,16 @@ export class CompiledFromTable extends FromTable {
     }
     else {
       const axiosConfig = jql.table
-      this.remote = () => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance)
-      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type }) => new MemoryColumn<Type>(name, type || 'any')))
+      this.remote = () => new CancelablePromise(() => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance), async (fn, resolve) => {
+        const response = await fn()
+        response.data = response.data.map(row => {
+          const result: any = {}
+          for (const { name, $as } of axiosConfig.columns) result[$as || name] = row[name]
+          return result
+        })
+        return resolve(response)
+      })
+      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type, $as }) => new MemoryColumn<Type>($as || name, type || 'any')))
       options.tables[jql.$as as string] = this.table
       options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)
