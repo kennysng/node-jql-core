@@ -16,6 +16,7 @@ import { CompiledLikeExpression } from '../expr/expressions/LikeExpression'
 import { CompiledMathExpression } from '../expr/expressions/MathExpression'
 import { CompiledOrExpressions } from '../expr/expressions/OrExpressions'
 import { CompiledParameterExpression } from '../expr/expressions/ParameterExpression'
+import { CompiledRegexpExpression } from '../expr/expressions/RegexpExpression'
 import { JQLFunction } from '../function'
 import { ICompileOptions } from '../interface'
 import { MemoryColumn, MemoryTable } from '../table'
@@ -179,7 +180,7 @@ export class CompiledQuery extends Query {
       const { left, start, end } = jql
       return this.checkAggregate(left) || this.checkAggregate(start) || this.checkAggregate(end)
     }
-    else if (jql instanceof CompiledBinaryExpression || jql instanceof CompiledLikeExpression || jql instanceof CompiledMathExpression) {
+    else if (jql instanceof CompiledBinaryExpression || jql instanceof CompiledLikeExpression || jql instanceof CompiledMathExpression || jql instanceof CompiledRegexpExpression) {
       const { left, right } = jql
       return this.checkAggregate(left) || this.checkAggregate(right)
     }

@@ -1,4 +1,4 @@
-import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, CreateTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, PredictJQL, Query, Unknown } from 'node-jql'
+import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, CreateTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, PredictJQL, Query, RegexpExpression, Unknown } from 'node-jql'
 import { ApplicationCore } from '.'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
 import { NotFoundError } from '../utils/error/NotFoundError'
@@ -91,7 +91,7 @@ export class PreparedQuery extends Query {
       this.registerUnknown(start)
       this.registerUnknown(end)
     }
-    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression || jql instanceof RegexpExpression) {
       const { left, right } = jql
       this.registerUnknown(left)
       this.registerUnknown(right)
@@ -222,7 +222,7 @@ export class AnalyzedQuery extends Query {
       this.registerDatabase(start)
       this.registerDatabase(end)
     }
-    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression || jql instanceof RegexpExpression) {
       const { left, right } = jql
       this.registerDatabase(left)
       this.registerDatabase(right)

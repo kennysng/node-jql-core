@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.41",
+  "version": "v2.0.0-rc.42",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/kennysng/node-jql-core#readme",
   "devDependencies": {
     "@types/express": "^4.17.0",
-    "@types/jest": "^24.0.15",
+    "@types/jest": "^24.0.16",
     "@types/lodash": "^4.14.136",
     "@types/minimist": "^1.2.0",
     "@types/node": "^12.6.8",
