@@ -87,17 +87,18 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     let args: any[] = []
     if (this.isAggregate) {
-      const value = await cursor.get(this.id)
-      if (!checkNull(value)) return value
+      try {
+        const value = await cursor.get(this.id)
+        if (!checkNull(value)) return value
+      }
+      catch (e) {
+        // do nothing
+      }
 
       if (await cursor.moveToFirst()) {
         do {
-          const row = {} as any
-          for (const { expression } of this.parameters) {
-            let name = expression.toString()
-            if (expression instanceof ColumnExpression && checkNull(row[expression.name])) name = expression.name
-            row[name] = await expression.evaluate(sandbox, cursor)
-          }
+          const row = [] as any[]
+          for (const { expression } of this.parameters) row.push(await expression.evaluate(sandbox, cursor))
           args.push(row)
         }
         while (await cursor.next())

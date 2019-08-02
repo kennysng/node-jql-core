@@ -301,7 +301,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         this.context[database][name] = values
 
         // return
-        if (this.options.logger) this.options.logger.info(`Table ${name} created in database ${database}`)
+        if (this.options.logger) this.options.logger.info(`Table ${name}(${table.columns.map(({ name }) => name).join(', ')}) created in database ${database}`)
         count = 1
       }
 

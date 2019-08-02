@@ -187,7 +187,7 @@ export class Sandbox {
           }
           while (await cursor.next())
         }
-        if (!rows.length) return resolve({ rows, columns: [], time: 0 })
+        if (!jql.needAggregate && !rows.length) return resolve({ rows, columns: jql.table.columns, time: 0 })
 
         // check canceled
         if (jql.needAggregate || jql.$order) await check()
@@ -202,7 +202,7 @@ export class Sandbox {
           const promises = Object.keys(intermediate).map(async key => {
             let row = {} as any
             for (const expression of jql.aggregateFunctions) {
-              const cursor = new ArrayCursor(intermediate[key])
+              const cursor = new ArrayCursor(intermediate[key] || [])
               await cursor.moveToFirst()
               row[expression.id] = await expression.evaluate(this, cursor)
             }

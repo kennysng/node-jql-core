@@ -1,5 +1,6 @@
 import { CancelError } from '@kennysng/c-promise'
-import { AndExpressions, BinaryExpression, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
+import { ServerHttp2Session } from 'http2'
+import { AndExpressions, BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
@@ -33,6 +34,7 @@ test('Create database', async callback => {
 })
 
 test('Prepare tables', async callback => {
+  session.update(new CreateTableJQL('empty', [new Column('id', 'number')]))
   await prepareStudent(session, ...students)
   await prepareClass(session, ...classes)
   await prepareWarning(session, ...warnings)
@@ -217,6 +219,15 @@ test('Select students from 1A and 1B', async callback => {
     $union: new Query('1B'),
   }))
   expect(result.rows.length === aCount + bCount).toBe(true)
+  callback()
+})
+
+test('Test COUNT(*) on empty table', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('*')), 'count'),
+    $from: 'empty',
+  }))).toArray()
+  expect(result[0].count === 0).toBe(true)
   callback()
 })
 
