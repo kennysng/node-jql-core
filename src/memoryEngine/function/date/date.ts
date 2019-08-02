@@ -5,16 +5,13 @@ import { JQLFunction } from '..'
 export class DateFunction extends JQLFunction<number> {
   public readonly type = 'Date'
 
-  constructor(protected readonly name: string) {
-    super(name)
+  // @override
+  public interpret(parameters: ParameterExpression[]): void {
+    if (parameters.length !== 1 && parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(expression, format?)`)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
-    if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function ${this.name}(expression)`)
-    return parameters
-  }
-
-  public run(value: any): number {
-    return moment.utc(value).startOf('day').toDate().getTime()
+  // @override
+  public run(value: any, format?: string): number {
+    return moment.utc(value, format).startOf('day').toDate().getTime()
   }
 }

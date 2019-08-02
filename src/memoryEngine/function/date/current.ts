@@ -9,9 +9,8 @@ export class CurrentFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length > 0) throw new SyntaxError(`Invalid use of function ${this.name}()`)
-    return parameters
   }
 
   public run(): number {

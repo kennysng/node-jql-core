@@ -11,14 +11,14 @@ export class RoundFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (this.roundType === 'normal' || this.roundType === 'truncate') {
       if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(number, decimals)`)
     }
     else {
       if (parameters.length !== 1) throw new SyntaxError(`Invalid use of function ${this.name}(number)`)
     }
-    return parameters
+
   }
 
   public run(value: any, decimals: number): number {

@@ -1,30 +1,28 @@
-import { ColumnExpression as NodeJQLColumnExpression, IColumnExpression, Type } from 'node-jql'
+import { ColumnExpression, IColumnExpression, Type } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { Column } from '../../table'
-import { ICompileOptions } from '../compile'
+import { MemoryColumn } from '../../table'
 
 /**
  * Analyze ColumnExpression
  */
-export class ColumnExpression extends CompiledExpression implements IColumnExpression {
-  public readonly classname = ColumnExpression.name
+export class CompiledColumnExpression extends CompiledExpression implements IColumnExpression {
+  public readonly classname = CompiledColumnExpression.name
 
   public readonly key: string
   public readonly type: Type
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLColumnExpression]
+   * @param jql [ColumnExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLColumnExpression, options: ICompileOptions) {
+  constructor(private readonly jql: ColumnExpression, options: ICompileOptions) {
     super()
-    let column: Column|undefined
+    let column: MemoryColumn|undefined
     if (jql.table) {
       const table = options.tables[jql.table]
       if (!table) throw new InMemoryError(`[FATAL] Table ${jql.table} expected to be found`)
@@ -61,7 +59,7 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
   }
 
   // @override
-  public toSquel(): squel.GetFieldBlock {
+  public toSquel(): squel.FunctionBlock {
     return this.jql.toSquel()
   }
 
@@ -72,6 +70,6 @@ export class ColumnExpression extends CompiledExpression implements IColumnExpre
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
-    return await cursor.get(this.key)
+    return cursor.get(this.key)
   }
 }

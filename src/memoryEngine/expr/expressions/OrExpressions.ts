@@ -1,27 +1,26 @@
-import { IGroupedExpressions, OrExpressions as NodeJQLOrExpressions } from 'node-jql'
+import { IGroupedExpressions, OrExpressions } from 'node-jql'
 import squel from 'squel'
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze OrExpressions
  */
-export class OrExpressions extends CompiledConditionalExpression implements IGroupedExpressions {
-  public readonly classname = OrExpressions.name
+export class CompiledOrExpressions extends CompiledConditionalExpression implements IGroupedExpressions {
+  public readonly classname = CompiledOrExpressions.name
 
   public readonly expressions: CompiledExpression[]
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLOrExpressions]
+   * @param jql [OrExpressions]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLOrExpressions, options: ICompileOptions) {
+  constructor(private readonly jql: OrExpressions, options: ICompileOptions) {
     super()
-    this.expressions = jql.expressions.map(jql => compile(engine, jql, options))
+    this.expressions = jql.expressions.map(jql => compile(jql, options))
   }
 
   // @override

@@ -1,27 +1,26 @@
-import { AndExpressions as NodeJQLAndExpressions, IGroupedExpressions } from 'node-jql'
+import { AndExpressions, IGroupedExpressions } from 'node-jql'
 import squel from 'squel'
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze AndExpressions
  */
-export class AndExpressions extends CompiledConditionalExpression implements IGroupedExpressions {
-  public readonly classname = AndExpressions.name
+export class CompiledAndExpressions extends CompiledConditionalExpression implements IGroupedExpressions {
+  public readonly classname = CompiledAndExpressions.name
 
   public readonly expressions: CompiledExpression[]
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLAndExpressions]
+   * @param jql [AndExpressions]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLAndExpressions, options: ICompileOptions) {
+  constructor(private readonly jql: AndExpressions, options: ICompileOptions) {
     super()
-    this.expressions = jql.expressions.map(jql => compile(engine, jql, options))
+    this.expressions = jql.expressions.map(jql => compile(jql, options))
   }
 
   // @override

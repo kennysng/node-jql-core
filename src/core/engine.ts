@@ -1,13 +1,18 @@
 import { CancelablePromise } from '@kennysng/c-promise'
-import { JQL } from 'node-jql'
+import { JQL, PredictJQL } from 'node-jql'
+import { IPredictResult, IQueryResult, IUpdateResult } from './interface'
 import { AnalyzedQuery } from './query'
-import { IQueryResult, IUpdateResult } from './result'
 import { TaskFn } from './task'
 
 /**
  * Definition of a database engine
  */
 export abstract class DatabaseEngine {
+  /**
+   * Whether PREDICT syntax supported
+   */
+  public readonly isPredictSupported: boolean
+
   protected initing = false
   protected inited = false
 
@@ -47,6 +52,13 @@ export abstract class DatabaseEngine {
    * @param jql [JQL]
    */
   public abstract executeUpdate(jql: JQL): TaskFn<IUpdateResult>
+
+  /**
+   * Predict the result structure of a SELECT JQL
+   * @param jql [PredictJQL]
+   * @param database [string]
+   */
+  public abstract predictQuery(jql: PredictJQL, database?: string): TaskFn<IPredictResult>
 
   /**
    * Execute a SELECT JQL

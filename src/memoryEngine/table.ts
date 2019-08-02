@@ -1,11 +1,11 @@
-import { checkNull, Column as NodeJQLColumn, IColumn, ICreateTableJQL, Type, type } from 'node-jql'
+import { checkNull, Column, IColumn, ICreateTableJQL, Type, type } from 'node-jql'
 import uuid = require('uuid/v4')
 import { ReadWriteLock } from '../utils/lock'
 
 /**
  * In-memory column in NodeJQL
  */
-export class Column<Default = any> extends NodeJQLColumn<Type, Default> {
+export class MemoryColumn<Default = any> extends Column<Type, Default> {
   public readonly id = uuid()
 
   public readonly name: string
@@ -79,8 +79,8 @@ export class Column<Default = any> extends NodeJQLColumn<Type, Default> {
 /**
  * In-memory table
  */
-export class Table implements ICreateTableJQL {
-  public classname = Table.name
+export class MemoryTable implements ICreateTableJQL {
+  public classname = MemoryTable.name
 
   /**
    * Table lock
@@ -89,7 +89,7 @@ export class Table implements ICreateTableJQL {
 
   public readonly $temporary: boolean
   public readonly name: string
-  public readonly columns: Column[]
+  public readonly columns: MemoryColumn[]
   public readonly constraints?: string[]
   public readonly options?: string[]
 
@@ -99,7 +99,7 @@ export class Table implements ICreateTableJQL {
    * @param constraints [Array<string>|string] optional
    * @param options [Array<string>] optional
    */
-  constructor(name: string, columns: Array<NodeJQLColumn<Type>>, constraints?: string[]|string, ...options: string[])
+  constructor(name: string, columns: Array<Column<Type>>, constraints?: string[]|string, ...options: string[])
 
   /**
    * @param $temporary [boolean]
@@ -108,11 +108,11 @@ export class Table implements ICreateTableJQL {
    * @param constraints [Array<string>|string] optional
    * @param options [Array<string>] optional
    */
-  constructor($temporary: boolean, name: string, columns: Array<NodeJQLColumn<Type>>, constraints?: string[]|string, ...options: string[])
+  constructor($temporary: boolean, name: string, columns: Array<Column<Type>>, constraints?: string[]|string, ...options: string[])
 
   constructor(...args: any[]) {
     // parse args
-    let $temporary = false, name: string, columns: Array<NodeJQLColumn<Type>>, constraints: string[]|string|undefined, options: string[]
+    let $temporary = false, name: string, columns: Array<Column<Type>>, constraints: string[]|string|undefined, options: string[]
     if (typeof args[0] === 'boolean') {
       $temporary = args[0]
       name = args[1]
@@ -130,7 +130,7 @@ export class Table implements ICreateTableJQL {
     // set args
     this.$temporary = $temporary
     this.name = name
-    this.columns = columns.map(column => column instanceof Column ? column : new Column(column.toJson()))
+    this.columns = columns.map(column => column instanceof MemoryColumn ? column : new MemoryColumn(column.toJson()))
     if (constraints) this.constraints = Array.isArray(constraints) ? constraints : [constraints]
     if (options.length) this.options = options
   }

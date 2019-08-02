@@ -1,30 +1,29 @@
-import { IMathExpression, MathExpression as NodeJQLMathExpression, MathOperator } from 'node-jql'
+import { IMathExpression, MathExpression, MathOperator } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze MathExpression
  */
-export class MathExpression extends CompiledExpression implements IMathExpression {
-  public readonly classname = MathExpression.name
+export class CompiledMathExpression extends CompiledExpression implements IMathExpression {
+  public readonly classname = CompiledMathExpression.name
   public readonly type = 'number'
 
   public readonly left: CompiledExpression
   public readonly right: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLMathExpression]
+   * @param jql [MathExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLMathExpression, options: ICompileOptions) {
+  constructor(private readonly jql: MathExpression, options: ICompileOptions) {
     super()
-    this.left = compile(engine, jql.left, options)
-    this.right = compile(engine, jql.right, options)
+    this.left = compile(jql.left, options)
+    this.right = compile(jql.right, options)
   }
 
   // @override
@@ -57,7 +56,7 @@ export class MathExpression extends CompiledExpression implements IMathExpressio
       switch (this.operator) {
         case '%':
         case 'MOD':
-          return left % right
+          return right === 0 ? NaN : left % right
         case '*':
           return left * right
         case '+':
@@ -65,9 +64,9 @@ export class MathExpression extends CompiledExpression implements IMathExpressio
         case '-':
           return left - right
         case '/':
-          return left / right
+          return right === 0 ? NaN : left / right
         case 'DIV':
-          return Math.floor(left / right)
+          return right === 0 ? NaN : Math.floor(left / right)
       }
     }
     return NaN

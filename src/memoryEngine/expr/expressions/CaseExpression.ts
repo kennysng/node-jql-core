@@ -1,30 +1,29 @@
-import { CaseExpression as NodeJQLCaseExpression, ICaseExpression } from 'node-jql'
+import { CaseExpression, ICaseExpression } from 'node-jql'
 import squel = require('squel')
 import { CompiledConditionalExpression, CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze CaseExpression
  */
-export class CaseExpression extends CompiledConditionalExpression implements ICaseExpression {
-  public readonly classname = CaseExpression.name
+export class CompiledCaseExpression extends CompiledConditionalExpression implements ICaseExpression {
+  public readonly classname = CompiledCaseExpression.name
   public readonly type = 'any'
 
   public readonly cases: Array<{ $when: CompiledConditionalExpression, $then: CompiledExpression }>
   public readonly $else?: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLCaseExpression]
+   * @param jql [CaseExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLCaseExpression, options: ICompileOptions) {
+  constructor(private readonly jql: CaseExpression, options: ICompileOptions) {
     super()
-    this.cases = jql.cases.map(({ $when, $then }) => ({ $when: compile(engine, $when, options), $then: compile(engine, $then, options) }))
-    if (jql.$else) this.$else = compile(engine, jql.$else, options)
+    this.cases = jql.cases.map(({ $when, $then }) => ({ $when: compile($when, options), $then: compile($then, options) }))
+    if (jql.$else) this.$else = compile(jql.$else, options)
   }
 
   // @override
@@ -46,7 +45,7 @@ export class CaseExpression extends CompiledConditionalExpression implements ICa
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
     for (const { $when, $then } of this.cases) {
       if (await $when.evaluate(sandbox, cursor)) {
-        return await $then.evaluate(sandbox, cursor)
+        return $then.evaluate(sandbox, cursor)
       }
     }
     return this.$else ? await this.$else.evaluate(sandbox, cursor) : null

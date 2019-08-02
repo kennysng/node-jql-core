@@ -1,52 +1,34 @@
 import { CancelablePromise } from '@kennysng/c-promise'
-import { AxiosInstance } from 'axios'
-import { checkNull, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize } from 'node-jql'
-import { TEMP_DB_NAME } from '../core/constants'
+import { checkNull, Column, CreateJQL, CreateTableJQL, DropTableJQL, InsertJQL, isParseable, JQL, normalize, PredictJQL, Query } from 'node-jql'
+import { databaseName, TEMP_DB_NAME } from '../core/constants'
 import { DatabaseEngine } from '../core/engine'
+import { IPredictResult, IQueryResult, IUpdateResult } from '../core/interface'
 import { AnalyzedQuery } from '../core/query'
-import { IQueryResult, IUpdateResult } from '../core/result'
+import { Resultset } from '../core/result'
 import { StatusCode, TaskFn } from '../core/task'
 import { ExistsError } from '../utils/error/ExistsError'
 import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
-import { ILogger } from '../utils/logger'
 import { functions } from './function/functions'
+import { ICompileOptions, IInMemoryOptions } from './interface'
 import { CompiledQuery } from './query'
 import { Sandbox } from './sandbox'
-import { Table } from './table'
-
-/**
- * In-memory database engine options
- */
-export interface IInMemoryOptions {
-  /**
-   * Default axios instance
-   */
-  axiosInstance?: AxiosInstance
-
-  /**
-   * Custom logging
-   */
-  logger?: ILogger
-
-  /**
-   * Time gap between each cancel check
-   * The smaller the time gap, the more sensitive the cancel trigger, the higher the overhead
-   */
-  checkWindowSize?: number
-}
+import { MemoryTable } from './table'
 
 /**
  * Save data in volatile memory i.e. RAM
  */
 export class InMemoryDatabaseEngine extends DatabaseEngine {
+  // @override
+  public readonly isPredictSupported = true
+
   /**
    * JQL functions
    */
   public readonly functions = functions
 
-  protected readonly context: { [key: string]: { __tables: Table[], [key: string]: any[] } } = {}
+  protected readonly context: { [key: string]: { __tables: MemoryTable[], [key: string]: any[] } } = {}
 
   constructor(protected readonly options: IInMemoryOptions = {}) {
     super()
@@ -91,11 +73,19 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    * @param database [string]
    * @param name [string]
    */
-  public getTable(database: string, name: string): Table {
+  public getTable(database: string, name: string): MemoryTable {
     this.checkTable(database, name)
     const table = this.context[database].__tables.find(table => table.name === name)
-    if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+    if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
     return table
+  }
+
+  /**
+   * Create a sandbox
+   * @param database [string] optional
+   */
+  public prepareSandbox(database?: string): Sandbox {
+    return new Sandbox(this, database)
   }
 
   // @override
@@ -107,7 +97,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       let count = 0
       if (checkNull(this.context[name])) {
         this.context[name] = { __tables: [] }
-        if (this.options.logger) this.options.logger.info(`Database ${name === TEMP_DB_NAME ? 'TEMP_DB_NAME' : name} created`)
+        if (this.options.logger) this.options.logger.info(`Database ${databaseName(name)} created`)
         count = 1
       }
 
@@ -126,7 +116,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       let count = 0
       if (this.context[name]) {
         delete this.context[name]
-        if (this.options.logger) this.options.logger.info(`Database ${name} dropped`)
+        if (this.options.logger) this.options.logger.info(`Database ${databaseName(name)} dropped`)
         count = 1
       }
 
@@ -155,11 +145,59 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   }
 
   // @override
-  public executeQuery(jql: AnalyzedQuery): TaskFn<IQueryResult> {
+  public predictQuery(predictJQL: PredictJQL, database?: string): TaskFn<IPredictResult> {
     this.checkInited()
-    const compiled = new CompiledQuery(this, jql, { axiosInstance: this.options.axiosInstance, defDatabase: jql.defDatabase })
+    return _task => new CancelablePromise(async (resolve, _reject, check) => {
+      // check canceled
+      await check()
+
+      // single query
+      if (predictJQL.jql.length === 1) {
+        const query = new AnalyzedQuery(predictJQL.jql[0] as Query, database)
+        const compiled = new CompiledQuery(query, {
+          axiosInstance: this.options.axiosInstance,
+          defDatabase: query.defDatabase,
+          getTable: this.getTable.bind(this),
+          functions: this.functions,
+        })
+        return resolve({ columns: compiled.table.columns, time: 0 })
+      }
+
+      // multiple query
+      const sandbox = this.prepareSandbox(database)
+      const options = { axiosInstance: this.options.axiosInstance } as Partial<ICompileOptions>
+      for (let i = 0, length = predictJQL.jql.length; i < length; i += 1) {
+        const jql = predictJQL.jql[i]
+        if (i === predictJQL.jql.length - 1) {
+          const query = new AnalyzedQuery(predictJQL.jql[i] as Query, database)
+          const compiled = new CompiledQuery(query, {
+            ...options,
+            getTable: (database, table) => sandbox.getTable(database, table) || this.getTable(database, table),
+            functions: {
+              ...this.functions,
+              ...(options.functions || {}),
+            },
+          })
+          return resolve({ columns: compiled.table.columns, time: 0 })
+        }
+        else if (jql instanceof CreateJQL) {
+          await sandbox.prepare(jql, options)
+        }
+      }
+    })
+  }
+
+  // @override
+  public executeQuery(jql: AnalyzedQuery, noLog?: boolean): TaskFn<IQueryResult> {
+    this.checkInited()
+    const compiled = new CompiledQuery(jql, {
+      axiosInstance: this.options.axiosInstance,
+      defDatabase: jql.defDatabase,
+      getTable: this.getTable.bind(this),
+      functions: this.functions,
+    })
     return task => new CancelablePromise(
-      new Sandbox(this, jql.defDatabase).run(compiled),
+      this.prepareSandbox(jql.defDatabase).run(compiled),
       async (promise, resolve, _reject, check) => {
         const start = Date.now()
 
@@ -182,7 +220,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
           const result = await promise
 
           // return
-          if (this.options.logger) this.options.logger.info(jql.toString(), `- ${Date.now() - start}ms`)
+          if (this.options.logger && !noLog) this.options.logger.info(jql.toString(), `- ${Date.now() - start}ms`)
           task.status(StatusCode.ENDING)
           return resolve(result)
         }
@@ -209,7 +247,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    * @param database [string]
    */
   protected checkDatabase(database: string): void {
-    if (checkNull(this.context[database])) throw new NotFoundError(`Database ${database} not found`)
+    if (checkNull(this.context[database])) throw new NotFoundError(`Database ${databaseName(database)} not found`)
   }
 
   /**
@@ -219,7 +257,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected checkTable(database: string, table: string): void {
     this.checkDatabase(database)
-    if (!this.context[database].__tables.find(({ name }) => name === table)) throw new NotFoundError(`Table ${table} not found in database ${database}`)
+    if (!this.context[database].__tables.find(({ name }) => name === table)) throw new NotFoundError(`Table ${table} not found in database ${databaseName(database)}`)
   }
 
   /**
@@ -228,7 +266,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected createTable(jql: CreateTableJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { $temporary, database, name, $ifNotExists, columns, constraints, options } = jql
+    const { $temporary, database, name, $ifNotExists, columns, constraints, options, $as } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -240,7 +278,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       try {
         // check table
         this.checkTable(database, name)
-        if (!$ifNotExists) throw new ExistsError(`Table ${name} already exists in database ${database}`)
+        if (!$ifNotExists) throw new ExistsError(`Table ${name} already exists in database ${databaseName(database)}`)
       }
       catch (e) {
         if (!(e instanceof NotFoundError)) throw e
@@ -249,12 +287,21 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         await check()
 
         // create table
-        const table = new Table($temporary, name, columns, constraints, ...(options || []))
+        let table: MemoryTable, values: any[] = []
+        if ($as) {
+          const result = await this.executeQuery($as as AnalyzedQuery)(task)
+          const resultset = new Resultset(result)
+          table = new MemoryTable($temporary, name, result.columns, constraints, ...(options || []))
+          values = resultset.toArray()
+        }
+        else {
+          table = new MemoryTable($temporary, name, columns as Column[], constraints, ...(options || []))
+        }
         this.context[database].__tables.push(table)
-        this.context[database][name] = []
+        this.context[database][name] = values
 
         // return
-        if (this.options.logger) this.options.logger.info(`Table ${name} created in database ${database}`)
+        if (this.options.logger) this.options.logger.info(`Table ${name}(${table.columns.map(({ name }) => name).join(', ')}) created in database ${database}`)
         count = 1
       }
 
@@ -287,12 +334,12 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
         // delete table
         const index = this.context[database].__tables.findIndex(table => table.name === name)
-        if (index === -1) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+        if (index === -1) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
         this.context[database].__tables.splice(index, 1)
         delete this.context[database][name]
 
         // return
-        if (this.options.logger) this.options.logger.info(`Table ${name} dropped from database ${database}`)
+        if (this.options.logger) this.options.logger.info(`Table ${name} dropped from database ${databaseName(database)}`)
         count = 1
       }
       catch (e) {
@@ -311,7 +358,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected insert(jql: InsertJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { database, name, values } = jql
+    const { database, name, values, columns, query } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -324,7 +371,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       // check table
       this.checkTable(database, name)
       const table = this.context[database].__tables.find(table => table.name === name)
-      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${database}`)
+      if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
 
       // check canceled
       await check()
@@ -336,8 +383,30 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       try {
         task.status(StatusCode.RUNNING)
 
+        let values_: any[]
+        if (query) {
+          const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
+
+          if (!columns || columns.length !== (jql.columns as string[]).length) {
+            throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+          }
+
+          const columns_ = jql.columns as string[]
+          values_ = [] as any[]
+          for (let i = 0, length = rows.length; i < length; i += 1) {
+            const row = rows[i]
+            values_.push(columns.reduce((row_, { id }, i) => {
+              row_[columns_[i]] = row[id]
+              return row_
+            }, {} as any))
+          }
+        }
+        else {
+          values_ = values || []
+        }
+
         const nValues = [] as any[]
-        for (const row of values) {
+        for (const row of values_) {
           const nRow = {} as any
           for (const column of table.columns) {
             // validate value
@@ -354,7 +423,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         context.push(...nValues)
 
         // return
-        if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${database}`, `- ${Date.now() - start}ms`)
+        if (this.options.logger) this.options.logger.info(`Inserted ${nValues.length} rows into table ${name} in database ${databaseName(database)}`, `- ${Date.now() - start}ms`)
         return resolve({ count: nValues.length, time: 0 })
       }
       finally {

@@ -7,29 +7,15 @@ import { InMemoryError } from '../utils/error/InMemoryError'
 import { NotFoundError } from '../utils/error/NotFoundError'
 import { NotInitedError } from '../utils/error/NotInitedError'
 import { SessionError } from '../utils/error/SessionError'
-import { TEMP_DB_NAME } from './constants'
+import { parseCode } from '../utils/function'
+import { databaseName, TEMP_DB_NAME } from './constants'
 import { Database } from './database'
 import { DatabaseEngine } from './engine'
-import { IUpdateResult } from './result'
+import { IApplicationOptions, IUpdateResult } from './interface'
 import { Session } from './session'
 import { StatusCode, Task } from './task'
 
 let DEFAULT_IN_MEMORY_ENGINE: InMemoryDatabaseEngine
-
-/**
- * Application options
- */
-export interface IApplicationOptions {
-  /**
-   * Default engine used when creating database if not specified
-   */
-  defaultEngine?: DatabaseEngine
-
-  /**
-   * Default in-memory engine used
-   */
-  defaultInMemoryEngine?: InMemoryDatabaseEngine
-}
 
 /**
  * JavaScript-Database bridge application
@@ -63,7 +49,7 @@ export class ApplicationCore {
       this.initing = true
 
       // create in-memory temporary database
-      await this.createDatabase(new CreateDatabaseJQL(TEMP_DB_NAME, true, 'InMemoryEngine'))
+      await this.createDatabase(new CreateDatabaseJQL(TEMP_DB_NAME, true, 'InMemoryEngine')).promise
 
       this.inited = true
       this.initing = false
@@ -140,7 +126,7 @@ export class ApplicationCore {
       // preparing
       task.status(StatusCode.PREPARING)
       const database = this.getDatabase(name)
-      if (database && !ifNotExists) throw new ExistsError(`Database ${name} already exists`)
+      if (database && !ifNotExists) throw new ExistsError(`Database ${databaseName(name)} already exists`)
 
       // database created
       if (database) {
@@ -191,8 +177,9 @@ export class ApplicationCore {
    */
   public createFunction(jql: CreateFunctionJQL): Task<IUpdateResult> {
     // parse args
+    const aggregate = jql.aggregate
     const name = jql.name
-    const fn = jql.fn
+    const code = jql.code
     const parameters = jql.parameters
     const type = jql.type
 
@@ -202,16 +189,34 @@ export class ApplicationCore {
       task.status(StatusCode.PREPARING)
       const database = this.getDatabase(TEMP_DB_NAME) as Database<InMemoryDatabaseEngine>
       const fn_ = database.engine.functions[name]
+      if (!jql.$ifNotExists && fn_) throw new ExistsError(`Function ${name} already exists`)
 
       // function created
-      if (fn_) throw new ExistsError(`Function ${name} already exists`)
+      if (fn_) {
+        return new CancelablePromise(async (resolve, reject, check, canceled) => {
+          try {
+            await check()
+
+            // return
+            task.status(StatusCode.COMPLETED)
+            return resolve({ count: 0, jql, time: 0 })
+          }
+          catch (e) {
+            if (e instanceof CancelError) canceled()
+            return reject(e)
+          }
+        })
+      }
 
       // function not created
       return new CancelablePromise(async (resolve, reject, check, canceled) => {
         try {
           await check()
 
-          database.engine.functions[name.toLocaleLowerCase()] = () => new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
+          const fn = parseCode(code)
+          database.engine.functions[name.toLocaleLowerCase()] = () => aggregate
+            ? new GenericJQLFunction(true, name.toLocaleUpperCase(), fn, type, parameters)
+            : new GenericJQLFunction(name.toLocaleUpperCase(), fn, type, parameters)
 
           // return
           task.status(StatusCode.COMPLETED)
@@ -310,7 +315,7 @@ export class ApplicationCore {
     return new Task(jql, task => {
       task.status(StatusCode.PREPARING)
       const index = this.databases.findIndex(({ name }) => name === database)
-      if ((index === -1 || this.databases[index].name === TEMP_DB_NAME) && !ifExists) throw new NotFoundError(`Database ${database} not found`)
+      if ((index === -1 || this.databases[index].name === TEMP_DB_NAME) && !ifExists) throw new NotFoundError(`Database ${databaseName(database)} not found`)
 
       // database not exists
       if (index === -1) {

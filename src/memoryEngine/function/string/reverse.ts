@@ -5,9 +5,9 @@ import { JQLFunction } from '..'
 export class ReverseFunction extends JQLFunction<string> {
   public readonly type = 'string'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 3) throw new SyntaxError(`Invalid use of function ${this.name}(string)`)
-    return parameters
+
   }
 
   public run(value: any): string {

@@ -7,7 +7,7 @@ import { TaskError } from '../utils/error/TaskError'
 /**
  * Status function
  */
-export type TaskFn<T> = (task: Task<T>) => CancelablePromise<T>
+export type TaskFn<T> = (task: Task) => CancelablePromise<T>
 
 /**
  * Represent a task

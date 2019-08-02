@@ -5,7 +5,7 @@ import { InMemoryError } from '../../utils/error/InMemoryError'
 import { CompiledConditionalExpression } from '../expr'
 import { CompiledFromTable } from '../query/FromTable'
 import { Sandbox } from '../sandbox'
-import { Table } from '../table'
+import { MemoryTable } from '../table'
 import { DummyCursor } from './dummy'
 
 export class RowCursor extends DummyCursor {
@@ -195,7 +195,7 @@ export class TableCursor extends Cursor {
     return row
   }
 
-  private updateRow(l: any, r: any, table: Table) {
+  private updateRow(l: any, r: any, table: MemoryTable) {
     for (const { id, name } of table.columns) l[id] = r[name]
   }
 }

@@ -5,9 +5,9 @@ import { JQLFunction } from '..'
 export class RandFunction extends JQLFunction<number> {
   public readonly type = 'number'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length > 1) throw new SyntaxError(`Invalid use of function ${this.name}(seed)`)
-    return parameters
+
   }
 
   public run(seed?: string): number {

@@ -1,27 +1,26 @@
-import { IExpression, IParameterExpression, ParameterExpression as NodeJQLParameterExpression, Type } from 'node-jql'
+import { IExpression, IParameterExpression, ParameterExpression, Type } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { compile, ICompileOptions } from '../compile'
+import { compile } from '../compile'
 
 /**
  * Analyze ParameterExpression
  */
-export class ParameterExpression extends CompiledExpression implements IParameterExpression {
-  public readonly classname = ParameterExpression.name
+export class CompiledParameterExpression extends CompiledExpression implements IParameterExpression {
+  public readonly classname = CompiledParameterExpression.name
 
   public readonly expression: CompiledExpression
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLParameterExpression]
+   * @param jql [ParameterExpression]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, private readonly jql: NodeJQLParameterExpression, options: ICompileOptions) {
+  constructor(private readonly jql: ParameterExpression, options: ICompileOptions) {
     super()
-    this.expression = compile(engine, jql.expression, options)
+    this.expression = compile(jql.expression, options)
   }
 
   // @override
@@ -56,6 +55,6 @@ export class ParameterExpression extends CompiledExpression implements IParamete
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<any> {
-    return await this.expression.evaluate(sandbox, cursor)
+    return this.expression.evaluate(sandbox, cursor)
   }
 }

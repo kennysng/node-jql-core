@@ -5,9 +5,9 @@ import { JQLFunction } from '..'
 export class FormatFunction extends JQLFunction<string> {
   public readonly type = 'string'
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(number, decimal_places)`)
-    return parameters
+
   }
 
   public run(value: number, dp: number): string {

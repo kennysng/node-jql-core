@@ -1,5 +1,9 @@
-import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, Query, Unknown } from 'node-jql'
+import { AndExpressions, BetweenExpression, BinaryExpression, CaseExpression, checkNull, CreateTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, IQuery, IsNullExpression, JQL, JQLError, LikeExpression, LimitOffset, MathExpression, OrderBy, OrExpressions, ParameterExpression, PredictJQL, Query, RegexpExpression, Unknown } from 'node-jql'
+import { ApplicationCore } from '.'
 import { NoDatabaseError } from '../utils/error/NoDatabaseError'
+import { NotFoundError } from '../utils/error/NotFoundError'
+import { databaseName, TEMP_DB_NAME } from './constants'
+import { DatabaseEngine } from './engine'
 
 /**
  * Reusable query with unknowns
@@ -27,6 +31,9 @@ export class PreparedQuery extends Query {
 
     // $limit
     if (this.$limit) this.registerUnknown(this.$limit)
+
+    // $union
+    if (this.$union) this.registerUnknown(this.$union)
   }
 
   /**
@@ -45,7 +52,7 @@ export class PreparedQuery extends Query {
    */
   public commit(): Query {
     try {
-      return this.clone()
+      return new Query(this)
     }
     finally {
       for (const unknown of this.unknowns) unknown.value = undefined
@@ -84,7 +91,7 @@ export class PreparedQuery extends Query {
       this.registerUnknown(start)
       this.registerUnknown(end)
     }
-    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression || jql instanceof RegexpExpression) {
       const { left, right } = jql
       this.registerUnknown(left)
       this.registerUnknown(right)
@@ -156,22 +163,28 @@ export class AnalyzedQuery extends Query {
     // $limit
     if (this.$limit) this.registerDatabase(this.$limit)
 
+    // $unino
+    if (this.$union) this.registerDatabase(this.$union)
+
     // unique databases
     this.databases = Array.from(new Set(this.databases))
+
+    // no database
+    if (!this.databases.length) this.databases.push(TEMP_DB_NAME)
   }
 
   /**
-   * Whether no database involved in this query
+   * Whether multiple database engines involved in this query
    */
-  get noDatbaseInvolved(): boolean {
-    return !this.databases.length
-  }
-
-  /**
-   * Whether multiple databases involved in this query
-   */
-  get multiDatabasesInvolved(): boolean {
-    return this.databases.length > 1
+  public multiEnginesInvolved(core: ApplicationCore): boolean {
+    let engine: DatabaseEngine|undefined
+    for (const name of this.databases) {
+      const database = core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
+      if (engine && engine !== database.engine) return true
+      engine = database.engine
+    }
+    return false
   }
 
   private registerDatabase(jql: JQL): void {
@@ -209,7 +222,7 @@ export class AnalyzedQuery extends Query {
       this.registerDatabase(start)
       this.registerDatabase(end)
     }
-    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression) {
+    else if (jql instanceof BinaryExpression || jql instanceof LikeExpression || jql instanceof MathExpression || jql instanceof RegexpExpression) {
       const { left, right } = jql
       this.registerDatabase(left)
       this.registerDatabase(right)
@@ -241,5 +254,44 @@ export class AnalyzedQuery extends Query {
       const { expression } = jql
       this.registerDatabase(expression)
     }
+  }
+}
+/**
+ * Analyze PREDICT JQL for processing and optimization
+ */
+export class AnalyzedPredictJQL extends PredictJQL {
+  public readonly databases: string[] = []
+
+  /**
+   * @param jql [PredictJQL]
+   */
+  constructor(jql: PredictJQL, defDatabase?: string) {
+    super(...jql.jql)
+
+    for (const jql of this.jql) {
+      if (jql instanceof CreateTableJQL) {
+        const database = jql.database || defDatabase
+        if (!database) throw new NoDatabaseError()
+        this.databases.push(database)
+      }
+      else if (jql instanceof Query) {
+        const analyzed = new AnalyzedQuery(jql, defDatabase)
+        this.databases.push(...analyzed.databases)
+      }
+    }
+  }
+
+  /**
+   * Whether multiple database engines involved in this query
+   */
+  public multiEnginesInvolved(core: ApplicationCore): boolean {
+    let engine: DatabaseEngine|undefined
+    for (const name of this.databases) {
+      const database = core.getDatabase(name)
+      if (!database) throw new NotFoundError(`Database ${databaseName(name)} not found`)
+      if (engine && engine !== database.engine) return true
+      engine = database.engine
+    }
+    return false
   }
 }

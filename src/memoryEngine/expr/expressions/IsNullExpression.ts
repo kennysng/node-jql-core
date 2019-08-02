@@ -1,13 +1,13 @@
 import { checkNull, IIsNullExpression } from 'node-jql'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
-import { BinaryExpression } from './BinaryExpression'
+import { CompiledBinaryExpression } from './BinaryExpression'
 
 /**
  * Analyze IsNullExpression
  */
-export class IsNullExpression extends BinaryExpression implements IIsNullExpression {
-  public readonly classname = IsNullExpression.name
+export class CompiledIsNullExpression extends CompiledBinaryExpression implements IIsNullExpression {
+  public readonly classname = CompiledIsNullExpression.name
 
   public readonly operator = 'IS'
   public readonly right = null

@@ -1,8 +1,8 @@
 import { ResultColumn } from 'node-jql'
 import uuid = require('uuid/v4')
-import { InMemoryDatabaseEngine } from '..'
 import { CompiledExpression } from '../expr'
-import { compile, ICompileOptions } from '../expr/compile'
+import { compile } from '../expr/compile'
+import { ICompileOptions } from '../interface'
 
 /**
  * Analyze result columns
@@ -16,12 +16,11 @@ export class CompiledResultColumn extends ResultColumn {
   public readonly $as?: string
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
    * @param jql [ResultColumn]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, jql: ResultColumn, options: ICompileOptions) {
+  constructor(jql: ResultColumn, options: ICompileOptions) {
     super(jql)
-    this.expression = compile(engine, jql.expression, options)
+    this.expression = compile(jql.expression, options)
   }
 }

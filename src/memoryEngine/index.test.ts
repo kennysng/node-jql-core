@@ -1,19 +1,21 @@
 import { CancelError } from '@kennysng/c-promise'
-import { BinaryExpression, ColumnExpression, CreateDatabaseJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, Query, ResultColumn, Value } from 'node-jql'
+import { ServerHttp2Session } from 'http2'
+import { AndExpressions, BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
 import { Session } from '../core/session'
 import { Logger } from '../utils/logger'
-import { getStudents, getWarnings, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
+import { getClasses, getStudents, getWarnings, prepareClass, prepareClub, prepareClubMember, prepareStudent, prepareWarning } from './test.utils'
 
 jest.setTimeout(20000)
 
 let core: ApplicationCore
 let session: Session
 
-const students = getStudents(198)
-const warnings = getWarnings(998)
+const students = getStudents(200)
+const classes = getClasses(students)
+const warnings = getWarnings(1000)
 
 test('Initialize application core', async callback => {
   core = new ApplicationCore({ defaultEngine: new InMemoryDatabaseEngine({ logger: new Logger('InMemoryDatabaseEngine') }) })
@@ -32,7 +34,9 @@ test('Create database', async callback => {
 })
 
 test('Prepare tables', async callback => {
+  session.update(new CreateTableJQL('empty', [new Column('id', 'number')]))
   await prepareStudent(session, ...students)
+  await prepareClass(session, ...classes)
   await prepareWarning(session, ...warnings)
   await prepareClub(session)
   await prepareClubMember(session)
@@ -119,6 +123,29 @@ test('Select students with warning(s) with INNER JOIN', async callback => {
   callback()
 })
 
+test('Predict Select students with warning count', async callback => {
+  const result = await session.predict(new PredictJQL(new Query({
+    $select: [
+      new ResultColumn(new ColumnExpression('s', '*')),
+      new ResultColumn(new FunctionExpression('IFNULL', new ColumnExpression('w', 'warnings'), 0), 'warnings'),
+    ],
+    $from: new FromTable('Student', 's',
+      new JoinClause('LEFT', new FromTable(new Query({
+        $select: [
+          new ResultColumn('studentId'),
+          new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'warnings'),
+        ],
+        $from: 'Warning',
+        $group: new GroupBy('studentId'),
+      }), 'w'),
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('w', 'studentId')),
+      ),
+    ),
+  })))
+  expect(result.columns.length).toBe(7)
+  callback()
+})
+
 test('Select students with warning count', async callback => {
   const result = new Resultset(await session.query(new Query({
     $select: [
@@ -148,6 +175,62 @@ test('Select students with warning count', async callback => {
   callback()
 })
 
+test('Select students for each class', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: [
+      new ResultColumn(new ColumnExpression('c', 'className'), 'class'),
+      new ResultColumn(new FunctionExpression('ROWS'), 'students'),
+    ],
+    $from: new FromTable('Student', 's', new JoinClause('LEFT', new FromTable('Class', 'c'), new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')))),
+    $group: new GroupBy(new ColumnExpression('c', 'className')),
+    $order: new OrderBy(new ColumnExpression('c', 'className')),
+  }))).toArray()
+  expect(Array.isArray(result[0].students)).toBe(true)
+  callback()
+})
+
+test('Select students from 1A and 1B', async callback => {
+  await session.update(new CreateTableJQL({
+    $temporary: true,
+    name: '1A',
+    $as: new Query({
+      $select: new ResultColumn(new ColumnExpression('s', '*')),
+      $from: new FromTable('Student', 's', new JoinClause('INNER', new FromTable('Class', 'c'), new AndExpressions([
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')),
+        new BinaryExpression(new ColumnExpression('c', 'className'), '=', '1A'),
+      ]))),
+    }),
+  }))
+  await session.update(new CreateTableJQL({
+    $temporary: true,
+    name: '1B',
+    $as: new Query({
+      $select: new ResultColumn(new ColumnExpression('s', '*')),
+      $from: new FromTable('Student', 's', new JoinClause('INNER', new FromTable('Class', 'c'), new AndExpressions([
+        new BinaryExpression(new ColumnExpression('s', 'id'), '=', new ColumnExpression('c', 'studentId')),
+        new BinaryExpression(new ColumnExpression('c', 'className'), '=', '1B'),
+      ]))),
+    }),
+  }))
+  const aCount = (await session.query(new Query('1A'))).rows.length
+  const bCount = (await session.query(new Query('1B'))).rows.length
+  const result = await session.query(new Query({
+    $from: '1A',
+    $union: new Query('1B'),
+  }))
+  expect(result.rows.length === aCount + bCount).toBe(true)
+  callback()
+})
+
+test('Test COUNT(*) on empty table', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: new ResultColumn(new FunctionExpression('IFNULL', new FunctionExpression('FIND', new BinaryExpression(new ColumnExpression('id'), '=', 0), new ColumnExpression('id')), -1), 'id'),
+    $from: 'empty',
+  }))).toArray()
+  expect(result[0].id === -1).toBe(true)
+  callback()
+})
+
 test('Drop table', async callback => {
   await session.update(new DropTableJQL('Student'))
   callback()
@@ -159,5 +242,5 @@ test('Drop database', async callback => {
 })
 
 test('Close session', () => {
-  session.close(true)
+  session.close()
 })

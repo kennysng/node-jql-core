@@ -8,14 +8,14 @@ export class LocateFunction extends JQLFunction<number> {
     super(name)
   }
 
-  public interpret(parameters: ParameterExpression[]): ParameterExpression[] {
+  public interpret(parameters: ParameterExpression[]): void {
     if (this.startSupported) {
       if (parameters.length < 2 || parameters.length > 3) throw new SyntaxError(`Invalid use of function ${this.name}(target, source, start)`)
     }
     else {
       if (parameters.length !== 2) throw new SyntaxError(`Invalid use of function ${this.name}(target, source)`)
     }
-    return parameters
+
   }
 
   public run(target: any, source: any, start = 0): number {

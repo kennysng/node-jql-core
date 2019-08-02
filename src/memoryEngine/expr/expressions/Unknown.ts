@@ -1,24 +1,22 @@
-import { IUnknown, Type, type, Unknown as NodeJQLUnknown } from 'node-jql'
+import { IUnknown, Type, type, Unknown } from 'node-jql'
 import squel = require('squel')
 import { CompiledExpression } from '..'
-import { InMemoryDatabaseEngine } from '../..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
+import { ICompileOptions } from '../../interface'
 import { Sandbox } from '../../sandbox'
-import { ICompileOptions } from '../compile'
 
 /**
  * Analyze Unknown
  */
-export class Unknown extends CompiledExpression implements IUnknown {
-  public readonly classname = Unknown.name
+export class CompiledUnknown extends CompiledExpression implements IUnknown {
+  public readonly classname = CompiledUnknown.name
 
   /**
-   * @param engine [InMemoryDatabaseEngine]
-   * @param jql [NodeJQLUnknown]
+   * @param jql [Unknown]
    * @param options [ICompileOptions]
    */
-  constructor(engine: InMemoryDatabaseEngine, protected readonly jql: NodeJQLUnknown, options: ICompileOptions) {
+  constructor(protected readonly jql: Unknown, options: ICompileOptions) {
     super()
   }
 

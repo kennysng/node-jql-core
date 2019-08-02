@@ -1,24 +1,40 @@
 import { JQLFunction } from '.'
+import { FindFunction } from './advanced/aggregate/find'
+import { RowsFunction } from './advanced/aggregate/rows'
+import { BinFunction } from './advanced/bin'
+import { CoalesceFunction } from './advanced/coalesce'
+import { ConvFunction } from './advanced/conv'
+import { IfFunction } from './advanced/if'
 import { IfNullFunction } from './advanced/if_null'
+import { IndexOfFunction } from './advanced/indexof'
+import { IsNullFunction } from './advanced/is_null'
+import { NullIfFunction } from './advanced/nullif'
 import { CalcDateFunction } from './date/calcdate'
 import { CalcTimeFunction } from './date/calctime'
 import { CurrentFunction } from './date/current'
 import { DateFunction } from './date/date'
 import { DateFormatFunction } from './date/date_format'
-import { DayFunction } from './date/day'
-import { DayNameFunction } from './date/dayname'
 import { DiffFunction } from './date/diff'
+import { ExtractFunction } from './date/extract'
+import { FromDaysFunction } from './date/from_days'
+import { GetFunction } from './date/get'
+import { LastDayFunction } from './date/last_day'
+import { MakeDateFunction } from './date/makedate'
+import { MakeTimeFunction } from './date/maketime'
+import { NameFunction } from './date/name'
+import { NowFunction } from './date/now'
 import { AbsFunction } from './numeric/abs'
 import { CountFunction } from './numeric/aggregate/count'
-import { MinMaxFunction as MinMaxAggregateFunction } from './numeric/aggregate/minmax'
+import { MinMaxFunction } from './numeric/aggregate/minmax'
 import { SumFunction } from './numeric/aggregate/sum'
 import { Atan2Function } from './numeric/atan2'
 import { ATrigoFunction } from './numeric/atrigo'
 import { ExpFunction } from './numeric/exp'
+import { GreatestLeastFunction } from './numeric/greatest_least'
 import { LnFunction } from './numeric/ln'
 import { LnWithBaseFunction } from './numeric/ln_with_base'
-import { MinMaxFunction } from './numeric/minmax'
 import { ModFunction } from './numeric/mod'
+import { NumberFormatFunction } from './numeric/number_format'
 import { PiFunction } from './numeric/pi'
 import { PowFunction } from './numeric/pow'
 import { RandFunction } from './numeric/rand'
@@ -67,15 +83,16 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   degrees: () => new TrigoConvertFunction('DEGREES', 'radians-degrees'),
   exp: () => new ExpFunction('EXP'),
   floor: () => new RoundFunction('FLOOR', 'floor'),
-  greatest: () => new MinMaxFunction('GREATEST', 'max'),
-  least: () => new MinMaxFunction('LEAST', 'min'),
+  greatest: () => new GreatestLeastFunction('GREATEST', 'max'),
+  least: () => new GreatestLeastFunction('LEAST', 'min'),
   ln: () => new LnFunction('LN'),
   log: () => new LnFunction('LOG', true),
   log10: () => new LnWithBaseFunction('LOG10', 10),
   log2: () => new LnWithBaseFunction('LOG2', 2),
-  max: () => new MinMaxAggregateFunction('MAX', 'max'),
-  min: () => new MinMaxAggregateFunction('MIN', 'min'),
+  max: () => new MinMaxFunction('MAX', 'max'),
+  min: () => new MinMaxFunction('MIN', 'min'),
   mod: () => new ModFunction('MOD'),
+  number_format: () => new NumberFormatFunction('NUMBER_FORMAT'),
   pi: () => new PiFunction('PI'),
   pow: () => new PowFunction('POW'),
   power: () => new PowFunction('POWER'),
@@ -137,14 +154,36 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   date_add: () => new CalcDateFunction('DATE_ADD', 'add'),
   date_format: () => new DateFormatFunction('DATE_FORMAT'),
   date_sub: () => new CalcDateFunction('DATE_SUB', 'sub'),
-  day: () => new DayFunction('DAY', 'month'),
-  dayname: () => new DayNameFunction('DAYNAME'),
-  dayofmonth: () => new DayFunction('DAYOFMONTH', 'month'),
-  dayofweek: () => new DayFunction('DAYOFWEEK', 'week'),
-  dayofyear: () => new DayFunction('DAYOFYEAR', 'year'),
+  day: () => new GetFunction('DAY', 'date'),
+  dayname: () => new NameFunction('DAYNAME', 'dddd'),
+  dayofmonth: () => new GetFunction('DATOFMONTH', 'date'),
+  dayofweek: () => new GetFunction('DAYOFWEEK', 'weekday'),
+  dayofyear: () => new GetFunction('DAYOFYEAR', 'dayOfYear'),
+  extract: () => new ExtractFunction('EXTRACT'),
+  from_days: () => new FromDaysFunction('FROM_DAYS'),
+  hour: () => new GetFunction('HOUR', 'hour'),
+  last_day: () => new LastDayFunction('LAST_DAY'),
+  localtime: () => new NowFunction('LOCALTIME'),
+  localtimestamp: () => new NowFunction('LOCALTIMESTAMP'),
+  makedate: () => new MakeDateFunction('MAKEDATE'),
+  maketime: () => new MakeTimeFunction('MAKETIME'),
+  minute: () => new GetFunction('MINUTE', 'minute'),
+  month: () => new GetFunction('MONTH', 'month'),
+  monthname: () => new NameFunction('MONTHNAME', 'MMMM'),
+  now: () => new NowFunction('NOW'),
   subdate: () => new CalcDateFunction('SUBDATE', 'sub'),
   subtime: () => new CalcTimeFunction('SUBTIME', 'sub'),
+  year: () => new GetFunction('YEAR', 'year'),
 
   // advanced functions
+  bin: () => new BinFunction('BIN'),
+  coalesce: () => new CoalesceFunction('COALESCE'),
+  conv: () => new ConvFunction('CONV'),
+  find: () => new FindFunction('FIND'),
+  if: () => new IfFunction('IF'),
   ifnull: () => new IfNullFunction('IFNULL'),
+  indexof: () => new IndexOfFunction('INDEXOF'),
+  isnull: () => new IsNullFunction('ISNULL'),
+  nullif: () => new NullIfFunction('NULLIF'),
+  rows: () => new RowsFunction('ROWS'),
 }

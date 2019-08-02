@@ -2,7 +2,7 @@ import moment = require('moment')
 import { CreateTableJQL, InsertJQL, Type } from 'node-jql'
 import { Session } from '../core/session'
 import { randomDate, randomFrom, randomInteger, randomName } from '../utils/random'
-import { Column } from './table'
+import { MemoryColumn } from './table'
 
 /**
  * Create a list of sequential numbers
@@ -49,17 +49,41 @@ export function getWarnings(length: number): any[] {
 }
 
 /**
+ * Create a list of student-class relationship
+ * @param students [Array]
+ */
+export function getClasses(students: any[]): any[] {
+  const count = {} as any
+  return students.map(({ id }, i) => {
+    const result = {
+      id: i,
+      className: '',
+      studentId: id,
+      joinAt: new Date(),
+    }
+    let className
+    do {
+      className = randomFrom(['1A', '1B', '1C', '1D', '1E'])
+    }
+    while ((count[className] || 0) >= 45)
+    result.className = className
+    count[className] = (count[className] || 0) + 1
+    return result
+  })
+}
+
+/**
  * Prepare student table
  * @param session [Session]
  */
 export async function prepareStudent(session: Session, ...students: any[]): Promise<void> {
   await session.update(new CreateTableJQL('Student', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('name', 'string', false),
-    new Column<Type>('gender', 'string', false),
-    new Column<Type>('birthday', 'Date', false),
-    new Column<Type>('admittedAt', 'Date', false),
-    new Column<Type>('graduatedAt', 'Date', true),
+    new MemoryColumn<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new MemoryColumn<Type>('name', 'string', false),
+    new MemoryColumn<Type>('gender', 'string', false),
+    new MemoryColumn<Type>('birthday', 'Date', false),
+    new MemoryColumn<Type>('admittedAt', 'Date', false),
+    new MemoryColumn<Type>('graduatedAt', 'Date', true),
   ]))
   await session.update(new InsertJQL('Student', ...students))
 }
@@ -70,9 +94,9 @@ export async function prepareStudent(session: Session, ...students: any[]): Prom
  */
 export async function prepareWarning(session: Session, ...warnings: any[]): Promise<void> {
   await session.update(new CreateTableJQL('Warning', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('studentId', 'number', false),
-    new Column<Type>('createdAt', 'Date', false),
+    new MemoryColumn<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new MemoryColumn<Type>('studentId', 'number', false),
+    new MemoryColumn<Type>('createdAt', 'Date', false),
   ]))
   await session.update(new InsertJQL('Warning', ...warnings))
 }
@@ -83,10 +107,10 @@ export async function prepareWarning(session: Session, ...warnings: any[]): Prom
  */
 export async function prepareClub(session: Session): Promise<void> {
   await session.update(new CreateTableJQL('Club', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('name', 'string', false),
-    new Column<Type>('createdAt', 'Date', false),
-    new Column<Type>('deletedAt', 'Date', true),
+    new MemoryColumn<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new MemoryColumn<Type>('name', 'string', false),
+    new MemoryColumn<Type>('createdAt', 'Date', false),
+    new MemoryColumn<Type>('deletedAt', 'Date', true),
   ]))
   await session.update(new InsertJQL('Club',
     { id: 1, name: 'Kendo Club', createdAt: moment('2000-04-04').toDate() },
@@ -99,13 +123,28 @@ export async function prepareClub(session: Session): Promise<void> {
  */
 export async function prepareClubMember(session: Session): Promise<void> {
   await session.update(new CreateTableJQL('ClubMember', [
-    new Column<Type>('id', 'number', false, 'PRIMARY KEY'),
-    new Column<Type>('clubId', 'number', false),
-    new Column<Type>('studentId', 'number', false),
-    new Column<Type>('joinAt', 'Date', false),
-    new Column<Type>('leaveAt', 'Date', true),
+    new MemoryColumn<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new MemoryColumn<Type>('clubId', 'number', false),
+    new MemoryColumn<Type>('studentId', 'number', false),
+    new MemoryColumn<Type>('joinAt', 'Date', false),
+    new MemoryColumn<Type>('leaveAt', 'Date', true),
   ]))
   await session.update(new InsertJQL('ClubMember',
     { id: 1, clubId: 1, studentId: 2, joinAt: new Date() },
   ))
+}
+
+/**
+ * Prepare class table
+ * @param session [Session]
+ */
+export async function prepareClass(session: Session, ...classes: any[]): Promise<void> {
+  await session.update(new CreateTableJQL('Class', [
+    new MemoryColumn<Type>('id', 'number', false, 'PRIMARY KEY'),
+    new MemoryColumn<Type>('className', 'string', false),
+    new MemoryColumn<Type>('studentId', 'number', false),
+    new MemoryColumn<Type>('joinAt', 'Date', false),
+    new MemoryColumn<Type>('leaveAt', 'Date', true),
+  ]))
+  await session.update(new InsertJQL('Class', ...classes))
 }
