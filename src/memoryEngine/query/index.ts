@@ -193,7 +193,7 @@ export class CompiledQuery extends Query {
       return this.checkAggregate(jql.query)
     }
     else if (jql instanceof CompiledFunctionExpression) {
-      return jql.isAggregate
+      return jql.isAggregate || jql.parameters.reduce<boolean>((result, expression) => result || this.checkAggregate(expression), false)
     }
     else if (jql instanceof CompiledInExpression) {
       const { right } = jql

@@ -224,10 +224,10 @@ test('Select students from 1A and 1B', async callback => {
 
 test('Test COUNT(*) on empty table', async callback => {
   const result = new Resultset(await session.query(new Query({
-    $select: new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('*')), 'count'),
+    $select: new ResultColumn(new FunctionExpression('IFNULL', new FunctionExpression('FIND', new BinaryExpression(new ColumnExpression('id'), '=', 0), new ColumnExpression('id')), -1), 'id'),
     $from: 'empty',
   }))).toArray()
-  expect(result[0].count === 0).toBe(true)
+  expect(result[0].id === -1).toBe(true)
   callback()
 })
 
