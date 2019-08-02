@@ -1,4 +1,5 @@
 import { JQLFunction } from '.'
+import { FindFunction } from './advanced/aggregate/find'
 import { RowsFunction } from './advanced/aggregate/rows'
 import { BinFunction } from './advanced/bin'
 import { CoalesceFunction } from './advanced/coalesce'
@@ -178,6 +179,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   bin: () => new BinFunction('BIN'),
   coalesce: () => new CoalesceFunction('COALESCE'),
   conv: () => new ConvFunction('CONV'),
+  find: () => new FindFunction('FIND'),
   if: () => new IfFunction('IF'),
   ifnull: () => new IfNullFunction('IFNULL'),
   indexof: () => new IndexOfFunction('INDEXOF'),
