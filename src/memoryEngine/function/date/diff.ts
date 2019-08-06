@@ -2,6 +2,7 @@ import _ = require('lodash')
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class DiffFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -16,7 +17,7 @@ export class DiffFunction extends JQLFunction<number> {
   }
 
   // @override
-  public run(l: any, r: any, lFormat?: string, rFormat?: string): number {
+  public run(parameters: CompiledParameterExpression[], l: any, r: any, lFormat?: string, rFormat?: string): number {
     return moment.utc(l, lFormat).diff(moment.utc(r, rFormat), this.unit)
   }
 }

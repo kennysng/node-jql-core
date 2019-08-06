@@ -1,5 +1,6 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class IfNullFunction extends JQLFunction<any> {
   public readonly type = 'any'
@@ -10,7 +11,7 @@ export class IfNullFunction extends JQLFunction<any> {
   }
 
   // @override
-  public run(target: any, altValue: any): any {
+  public run(parameters: CompiledParameterExpression[], target: any, altValue: any): any {
     return checkNull(target) ? altValue : target
   }
 }

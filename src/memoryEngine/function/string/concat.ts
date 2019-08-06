@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class ConcatFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -18,7 +19,7 @@ export class ConcatFunction extends JQLFunction<string> {
 
   }
 
-  public run(...args: any[]): string {
+  public run(parameters: CompiledParameterExpression[], ...args: any[]): string {
     let separator = ''
     if (this.separatorSupported) {
       separator = String(args[0])

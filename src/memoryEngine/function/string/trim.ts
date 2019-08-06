@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class TrimFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -13,7 +14,7 @@ export class TrimFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any): string {
+  public run(parameters: CompiledParameterExpression[], value: any): string {
     switch (this.trimType) {
       case 'left':
         return String(value).trimLeft()

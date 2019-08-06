@@ -1,6 +1,7 @@
 import { ParameterExpression } from 'node-jql'
 import numeral from 'numeral'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class NumberFormatFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -11,7 +12,7 @@ export class NumberFormatFunction extends JQLFunction<string> {
   }
 
   // @override
-  public run(value: number, format: string): string {
+  public run(parameters: CompiledParameterExpression[], value: number, format: string): string {
     if (isNaN(value)) return 'NaN'
     const nValue = numeral(value)
     return isNaN(nValue.value()) ? 'NaN' : nValue.format(format)

@@ -107,6 +107,6 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     else {
       args = await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))
     }
-    return this.function.run(...args)
+    return this.function.run(this.parameters, ...args)
   }
 }

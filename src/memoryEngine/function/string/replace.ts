@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class ReplaceFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -9,7 +10,7 @@ export class ReplaceFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any, target: any, replace: any): string {
+  public run(parameters: CompiledParameterExpression[], value: any, target: any, replace: any): string {
     return String(value).replace(new RegExp(String(target), 'g'), String(replace))
   }
 }

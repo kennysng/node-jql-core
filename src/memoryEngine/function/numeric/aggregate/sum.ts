@@ -1,5 +1,6 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLAggregateFunction } from '../..'
+import { CompiledParameterExpression } from '../../../expr/expressions/ParameterExpression'
 
 export class SumFunction extends JQLAggregateFunction<number> {
   public readonly type = 'number'
@@ -13,7 +14,7 @@ export class SumFunction extends JQLAggregateFunction<number> {
 
   }
 
-  public run(...args: number[]): number {
+  public run(parameters: CompiledParameterExpression[], ...args: number[]): number {
     args = args.filter(arg => !checkNull(arg))
     let result = args.reduce((result, arg) => {
       arg = +arg

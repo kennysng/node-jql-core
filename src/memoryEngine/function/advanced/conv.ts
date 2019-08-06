@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class ConvFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -10,7 +11,7 @@ export class ConvFunction extends JQLFunction<string> {
   }
 
   // @override
-  public run(value: number, fromBase: number, toBase: number): string {
+  public run(parameters: CompiledParameterExpression[], value: number, fromBase: number, toBase: number): string {
     return parseInt(String(value), fromBase).toString(toBase)
   }
 }

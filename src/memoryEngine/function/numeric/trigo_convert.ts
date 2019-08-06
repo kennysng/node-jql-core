@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class TrigoConvertFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -13,7 +14,7 @@ export class TrigoConvertFunction extends JQLFunction<number> {
 
   }
 
-  public run(value: any): number {
+  public run(parameters: CompiledParameterExpression[], value: any): number {
     switch (this.convertType) {
       case 'radians-degrees':
         return +value * (180 / Math.PI)

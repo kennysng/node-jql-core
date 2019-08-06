@@ -1,6 +1,7 @@
 import { reverse } from 'esrever'
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class ReverseFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -10,7 +11,7 @@ export class ReverseFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any): string {
+  public run(parameters: CompiledParameterExpression[], value: any): string {
     return reverse(String(value))
   }
 }

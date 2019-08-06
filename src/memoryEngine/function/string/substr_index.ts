@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class SubstrIndexFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -13,7 +14,7 @@ export class SubstrIndexFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any, delimiter: any, count: number): string {
+  public run(parameters: CompiledParameterExpression[], value: any, delimiter: any, count: number): string {
     value = String(value)
     delimiter = String(delimiter)
     const length = value.length

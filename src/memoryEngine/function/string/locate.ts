@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class LocateFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -18,7 +19,7 @@ export class LocateFunction extends JQLFunction<number> {
 
   }
 
-  public run(target: any, source: any, start = 0): number {
+  public run(parameters: CompiledParameterExpression[], target: any, source: any, start = 0): number {
     if (!this.startSupported) start = 0
     return String(source).toLocaleLowerCase().indexOf(String(target).toLocaleLowerCase(), start)
   }

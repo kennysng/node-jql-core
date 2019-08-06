@@ -1,6 +1,7 @@
 import _ = require('lodash')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 /**
  * Note that this returns 0-based index
@@ -13,7 +14,7 @@ export class FieldFunction extends JQLFunction<number> {
 
   }
 
-  public run(target: any, ...args: any[]): number {
+  public run(parameters: CompiledParameterExpression[], target: any, ...args: any[]): number {
     return args.findIndex(arg => _.isEqual(target, arg))
   }
 }

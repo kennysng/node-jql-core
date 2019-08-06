@@ -1,6 +1,7 @@
 import { ParameterExpression } from 'node-jql'
 import seedrandom = require('seedrandom')
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class RandFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -10,7 +11,7 @@ export class RandFunction extends JQLFunction<number> {
 
   }
 
-  public run(seed?: string): number {
+  public run(parameters: CompiledParameterExpression[], seed?: string): number {
     return seedrandom(seed)()
   }
 }

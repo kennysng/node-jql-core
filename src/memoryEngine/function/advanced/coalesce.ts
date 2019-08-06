@@ -1,5 +1,6 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class CoalesceFunction extends JQLFunction<any> {
   public readonly type = 'any'
@@ -10,7 +11,7 @@ export class CoalesceFunction extends JQLFunction<any> {
   }
 
   // @override
-  public run(...values: any[]): any {
+  public run(parameters: CompiledParameterExpression[], ...values: any[]): any {
     for (const value of values) {
       if (!checkNull(value)) return value
     }

@@ -23,6 +23,7 @@ import { MakeDateFunction } from './date/makedate'
 import { MakeTimeFunction } from './date/maketime'
 import { NameFunction } from './date/name'
 import { NowFunction } from './date/now'
+import { TimestampDiffFunction } from './date/timestamp_diff'
 import { AbsFunction } from './numeric/abs'
 import { CountFunction } from './numeric/aggregate/count'
 import { MinMaxFunction } from './numeric/aggregate/minmax'
@@ -173,6 +174,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   now: () => new NowFunction('NOW'),
   subdate: () => new CalcDateFunction('SUBDATE', 'sub'),
   subtime: () => new CalcTimeFunction('SUBTIME', 'sub'),
+  timestampdiff: () => new TimestampDiffFunction('TIMESTAMPDIFF'),
   year: () => new GetFunction('YEAR', 'year'),
 
   // advanced functions

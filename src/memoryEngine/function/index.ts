@@ -1,4 +1,5 @@
 import { ParameterExpression, Type } from 'node-jql'
+import { CompiledParameterExpression } from '../expr/expressions/ParameterExpression'
 
 /**
  * JQL Function
@@ -22,9 +23,10 @@ export abstract class JQLFunction<T = any> {
 
   /**
    * Do calculation
+   * @param parameters [Array<CompiledParameterExpression>]
    * @param args [Array]
    */
-  public abstract run(...args: any[]): T
+  public abstract run(parameters: CompiledParameterExpression[], ...args: any[]): T
 }
 
 /**
@@ -83,8 +85,8 @@ export class GenericJQLFunction extends JQLFunction {
   }
 
   // @override
-  public run(...args: any[]): any {
-    return this.fn(...args)
+  public run(parameters: CompiledParameterExpression[], ...args: any[]): any {
+    return this.fn(parameters, ...args)
   }
 
   // @override
@@ -98,5 +100,5 @@ export class GenericJQLFunction extends JQLFunction {
  */
 export abstract class JQLAggregateFunction<T = any> extends JQLFunction<T> {
   // @override
-  public abstract run(...args: T[]): T
+  public abstract run(parameters: CompiledParameterExpression[], ...args: T[]): T
 }

@@ -1,6 +1,7 @@
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class NameFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -15,7 +16,7 @@ export class NameFunction extends JQLFunction<string> {
   }
 
   // @override
-  public run(value: any, format?: string): string {
+  public run(parameters: CompiledParameterExpression[], value: any, format?: string): string {
     return moment.utc(value, format).format(this.format)
   }
 }

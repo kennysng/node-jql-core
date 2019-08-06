@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class SpaceFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -9,7 +10,7 @@ export class SpaceFunction extends JQLFunction<string> {
 
   }
 
-  public run(count: number): string {
+  public run(parameters: CompiledParameterExpression[], count: number): string {
     return ' '.repeat(count)
   }
 }

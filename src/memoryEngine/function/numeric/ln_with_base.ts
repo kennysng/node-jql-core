@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class LnWithBaseFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -13,7 +14,7 @@ export class LnWithBaseFunction extends JQLFunction<number> {
 
   }
 
-  public run(value: any): number {
+  public run(parameters: CompiledParameterExpression[], value: any): number {
     return Math.log(+value) / Math.log(this.base)
   }
 }

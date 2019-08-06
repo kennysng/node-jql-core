@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class PadFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -13,7 +14,7 @@ export class PadFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any, length: number, pad: any): string {
+  public run(parameters: CompiledParameterExpression[], value: any, length: number, pad: any): string {
     value = String(value)
     pad = String(pad)
     let i = 0

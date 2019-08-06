@@ -1,5 +1,6 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLAggregateFunction } from '../..'
+import { CompiledParameterExpression } from '../../../expr/expressions/ParameterExpression'
 
 export class MinMaxFunction extends JQLAggregateFunction<number> {
   public readonly type = 'number'
@@ -13,7 +14,7 @@ export class MinMaxFunction extends JQLAggregateFunction<number> {
 
   }
 
-  public run(...args: any[]): number {
+  public run(parameters: CompiledParameterExpression[], ...args: any[]): number {
     args = args.filter(arg => !checkNull(arg))
     if (this.target === 'max') {
       return args.reduce((result, arg) => arg > result ? arg : result, Number.MIN_SAFE_INTEGER)

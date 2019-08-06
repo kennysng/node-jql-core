@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class SubstrFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -18,7 +19,7 @@ export class SubstrFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any, arg1: number, arg2: number): string {
+  public run(parameters: CompiledParameterExpression[], value: any, arg1: number, arg2: number): string {
     switch (this.startType) {
       case 'left':
         return String(value).substr(0, arg1)

@@ -1,5 +1,6 @@
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class LnFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -18,7 +19,7 @@ export class LnFunction extends JQLFunction<number> {
 
   }
 
-  public run(arg1: any, arg2?: any): number {
+  public run(parameters: CompiledParameterExpression[], arg1: any, arg2?: any): number {
     if (this.baseSupported && !checkNull(arg2)) {
       return Math.log(+arg2) / Math.log(+arg1)
     }
