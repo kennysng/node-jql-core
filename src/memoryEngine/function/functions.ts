@@ -9,6 +9,7 @@ import { IfNullFunction } from './advanced/if_null'
 import { IndexOfFunction } from './advanced/indexof'
 import { IsNullFunction } from './advanced/is_null'
 import { NullIfFunction } from './advanced/nullif'
+import { StringFunction } from './advanced/string'
 import { CalcDateFunction } from './date/calcdate'
 import { CalcTimeFunction } from './date/calctime'
 import { CurrentFunction } from './date/current'
@@ -172,6 +173,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   month: () => new GetFunction('MONTH', 'month'),
   monthname: () => new NameFunction('MONTHNAME', 'MMMM'),
   now: () => new NowFunction('NOW'),
+  quarter: () => new GetFunction('QUARTER', 'quarter'),
   subdate: () => new CalcDateFunction('SUBDATE', 'sub'),
   subtime: () => new CalcTimeFunction('SUBTIME', 'sub'),
   timestampdiff: () => new TimestampDiffFunction('TIMESTAMPDIFF'),
@@ -187,5 +189,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   indexof: () => new IndexOfFunction('INDEXOF'),
   isnull: () => new IsNullFunction('ISNULL'),
   nullif: () => new NullIfFunction('NULLIF'),
+  number: () => new StringFunction('NUMBER'),
   rows: () => new RowsFunction('ROWS'),
+  string: () => new StringFunction('STRING'),
 }
