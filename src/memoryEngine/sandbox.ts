@@ -204,7 +204,7 @@ export class Sandbox {
             for (const expression of jql.aggregateFunctions) {
               const cursor = new ArrayCursor(intermediate[key] || [])
               await cursor.moveToFirst()
-              row[expression.id] = await expression.evaluate(this, cursor)
+              row[expression.id] = (await expression.evaluate(this, cursor)) || null
             }
             row = Object.assign({}, intermediate[key][0], row)
             if (!jql.$group || !jql.$group.$having || await jql.$group.$having.evaluate(this, new RowCursor(row))) {
