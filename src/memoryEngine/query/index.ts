@@ -137,6 +137,7 @@ export class CompiledQuery extends Query {
    * Check aggregation required
    */
   get needAggregate(): boolean {
+    if (this.$group) return true
     for (const { expression } of this.$select) if (this.checkAggregate(expression)) return true
     return false
   }
