@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.55",
+  "version": "v2.0.0-rc.57",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,22 +26,22 @@
   ],
   "homepage": "https://github.com/kennysng/node-jql-core#readme",
   "devDependencies": {
-    "@types/express": "^4.17.0",
-    "@types/jest": "^24.0.17",
-    "@types/lodash": "^4.14.136",
+    "@types/express": "^4.17.1",
+    "@types/jest": "^24.0.18",
+    "@types/lodash": "^4.14.137",
     "@types/minimist": "^1.2.0",
-    "@types/node": "^12.7.1",
+    "@types/node": "^12.7.2",
     "@types/numeral": "^0.0.26",
     "@types/seedrandom": "^2.4.28",
     "@types/timsort": "^0.3.0",
     "@types/uuid": "^3.4.5",
     "chalk": "^2.4.2",
     "express": "^4.17.1",
-    "jest": "^24.8.0",
+    "jest": "^24.9.0",
     "minimist": "^1.2.0",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
-    "tslint": "^5.18.0",
+    "tslint": "^5.19.0",
     "typescript": "^3.5.3"
   },
   "dependencies": {
@@ -50,12 +50,12 @@
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
-    "node-jql": "^2.0.0-rc.53",
+    "node-jql": "^2.0.0-rc.55",
     "numeral": "^2.0.6",
     "regexp-like": "^1.1.1",
     "seedrandom": "^3.0.3",
     "timsort": "^0.3.0",
-    "uuid": "^3.3.2",
+    "uuid": "^3.3.3",
     "wolfy87-eventemitter": "^5.2.6"
   }
 }

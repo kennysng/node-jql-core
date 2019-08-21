@@ -219,9 +219,9 @@ export class Sandbox {
         if (jql.$order) {
           const $order = jql.$order
           timsort.sort(rows, (l, r) => {
-            for (const { id } of $order) {
-              if (normalize(l[id]) < normalize(r[id])) return -1
-              if (normalize(l[id]) > normalize(r[id])) return 1
+            for (const { id, order } of $order) {
+              if (normalize(l[id]) < normalize(r[id])) return order === 'DESC' ? 1 : -1
+              if (normalize(l[id]) > normalize(r[id])) return order === 'DESC' ? -1 : 1
             }
             return 0
           })
