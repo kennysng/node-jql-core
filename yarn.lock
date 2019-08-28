@@ -410,10 +410,10 @@
   dependencies:
     "@types/jest-diff" "*"
 
-"@types/lodash@^4.14.137":
-  version "4.14.137"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.137.tgz#8a4804937dc6462274ffcc088df8f14fc1b368e2"
-  integrity sha512-g4rNK5SRKloO+sUGbuO7aPtwbwzMgjK+bm9BBhLD7jGUiGR7zhwYEhSln/ihgYQBeIJ5j7xjyaYzrWTcu3UotQ==
+"@types/lodash@^4.14.138":
+  version "4.14.138"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.138.tgz#34f52640d7358230308344e579c15b378d91989e"
+  integrity sha512-A4uJgHz4hakwNBdHNPdxOTkYmXNgmUAKLbXZ7PKGslgeV0Mb8P3BlbYfPovExek1qnod4pDfRbxuzcVs3dlFLg==
 
 "@types/mime@*":
   version "2.0.1"
@@ -2760,10 +2760,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-jql@^2.0.0-rc.55:
-  version "2.0.0-rc.55"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.55.tgz#55103ec459149c771dcd4b9b0cd527dc42756ffe"
-  integrity sha512-gNRCtCU09Fridikx1culH3h9EBdD+6LkhW74VBe+HFZ563DS+wwqWt4xwULzTLyNhQD7gSxUfKsMf4qfMmHguQ==
+node-jql@^2.0.0-rc.56:
+  version "2.0.0-rc.56"
+  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.56.tgz#e38ac0a14c728717a443b1429bcf9c80e9c1ad4e"
+  integrity sha512-6NqcBGZsqHN71JWokwuePi6WB3tZTW9qxMWtAVvLZaR9y04WtKJyhzcQvPXX+UN0IT5y7hIFvbOM/cs3LNyb7A==
   dependencies:
     axios "^0.19.0"
     deep-diff "^1.0.2"
