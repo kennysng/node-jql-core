@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.59",
+  "version": "v2.0.0-rc.60",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -50,12 +50,15 @@
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
-    "node-jql": "^2.0.0-rc.56",
     "numeral": "^2.0.6",
     "regexp-like": "^1.1.1",
     "seedrandom": "^3.0.3",
+    "squel": "^5.13.0",
     "timsort": "^0.3.0",
     "uuid": "^3.3.3",
     "wolfy87-eventemitter": "^5.2.6"
+  },
+  "peerDependencies": {
+    "node-jql": "^2.0.0-rc.56"
   }
 }

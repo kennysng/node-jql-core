@@ -1079,11 +1079,6 @@ decode-uri-component@^0.2.0:
   resolved "https://registry.yarnpkg.com/decode-uri-component/-/decode-uri-component-0.2.0.tgz#eb3913333458775cb84cd1a1fae062106bb87545"
   integrity sha1-6zkTMzRYd1y4TNGh+uBiEGu4dUU=
 
-deep-diff@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/deep-diff/-/deep-diff-1.0.2.tgz#afd3d1f749115be965e89c63edc7abb1506b9c26"
-  integrity sha512-aWS3UIVH+NPGCD1kki+DCU9Dua032iSsO43LqQpcs4R3+dVv7tX0qBGjiVHJHjplsoUM2XRO/KB92glqc68awg==
-
 deep-extend@^0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.6.0.tgz#c4fa7c95404a17a9c3e8ca7e1537312b736330ac"
@@ -2759,16 +2754,6 @@ node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
-
-node-jql@^2.0.0-rc.56:
-  version "2.0.0-rc.56"
-  resolved "https://registry.yarnpkg.com/node-jql/-/node-jql-2.0.0-rc.56.tgz#e38ac0a14c728717a443b1429bcf9c80e9c1ad4e"
-  integrity sha512-6NqcBGZsqHN71JWokwuePi6WB3tZTW9qxMWtAVvLZaR9y04WtKJyhzcQvPXX+UN0IT5y7hIFvbOM/cs3LNyb7A==
-  dependencies:
-    axios "^0.19.0"
-    deep-diff "^1.0.2"
-    moment "^2.24.0"
-    squel "^5.13.0"
 
 node-modules-regexp@^1.0.0:
   version "1.0.0"
