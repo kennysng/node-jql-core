@@ -1,5 +1,6 @@
 import { JQLFunction } from '.'
 import { FindFunction } from './advanced/aggregate/find'
+import { GroupConcatFunction } from './advanced/aggregate/group_concat'
 import { RowsFunction } from './advanced/aggregate/rows'
 import { BinFunction } from './advanced/bin'
 import { CoalesceFunction } from './advanced/coalesce'
@@ -184,6 +185,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   coalesce: () => new CoalesceFunction('COALESCE'),
   conv: () => new ConvFunction('CONV'),
   find: () => new FindFunction('FIND'),
+  group_concat: () => new GroupConcatFunction('GROUP_CONCAT'),
   if: () => new IfFunction('IF'),
   ifnull: () => new IfNullFunction('IFNULL'),
   indexof: () => new IndexOfFunction('INDEXOF'),
