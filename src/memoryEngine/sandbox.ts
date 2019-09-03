@@ -204,7 +204,7 @@ export class Sandbox {
             for (const expression of jql.aggregateFunctions) {
               const cursor = new ArrayCursor(intermediate[key] || [])
               await cursor.moveToFirst()
-              row[expression.id] = await expression.evaluate(this, cursor)
+              row[expression.id] = (await expression.evaluate(this, cursor)) || null
             }
             row = Object.assign({}, intermediate[key][0], row)
             if (!jql.$group || !jql.$group.$having || await jql.$group.$having.evaluate(this, new RowCursor(row))) {
@@ -219,9 +219,9 @@ export class Sandbox {
         if (jql.$order) {
           const $order = jql.$order
           timsort.sort(rows, (l, r) => {
-            for (const { id } of $order) {
-              if (normalize(l[id]) < normalize(r[id])) return -1
-              if (normalize(l[id]) > normalize(r[id])) return 1
+            for (const { id, order } of $order) {
+              if (normalize(l[id]) < normalize(r[id])) return order === 'DESC' ? 1 : -1
+              if (normalize(l[id]) > normalize(r[id])) return order === 'DESC' ? -1 : 1
             }
             return 0
           })

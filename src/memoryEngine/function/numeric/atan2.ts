@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class Atan2Function extends JQLFunction<number> {
   public readonly type = 'number'
@@ -9,7 +10,7 @@ export class Atan2Function extends JQLFunction<number> {
 
   }
 
-  public run(y: any, x: any): number {
+  public run(parameters: CompiledParameterExpression[], y: any, x: any): number {
     return Math.atan2(+y, +x)
   }
 }

@@ -89,7 +89,7 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     if (this.isAggregate) {
       try {
         const value = await cursor.get(this.id)
-        if (!checkNull(value)) return value
+        if (typeof value !== 'undefined') return value
       }
       catch (e) {
         // do nothing
@@ -107,6 +107,6 @@ export class CompiledFunctionExpression extends CompiledExpression implements IF
     else {
       args = await Promise.all(this.parameters.map(parameter => parameter.evaluate(sandbox, cursor)))
     }
-    return this.function.run(...args)
+    return this.function.run(this.parameters, ...args)
   }
 }

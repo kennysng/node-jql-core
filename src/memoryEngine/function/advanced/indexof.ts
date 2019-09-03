@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class IndexOfFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -10,7 +11,7 @@ export class IndexOfFunction extends JQLFunction<number> {
   }
 
   // @override
-  public run(value: any, list: any[]): number {
+  public run(parameters: CompiledParameterExpression[], value: any, list: any[]): number {
     const index = list.indexOf(value)
     return index === -1 ? Number.MAX_SAFE_INTEGER : index
   }

@@ -1,6 +1,7 @@
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class DateFunction extends JQLFunction<number> {
   public readonly type = 'Date'
@@ -11,7 +12,7 @@ export class DateFunction extends JQLFunction<number> {
   }
 
   // @override
-  public run(value: any, format?: string): number {
+  public run(parameters: CompiledParameterExpression[], value: any, format?: string): number {
     return moment.utc(value, format).startOf('day').toDate().getTime()
   }
 }

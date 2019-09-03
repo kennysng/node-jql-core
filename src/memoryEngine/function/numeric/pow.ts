@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class PowFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -9,7 +10,7 @@ export class PowFunction extends JQLFunction<number> {
 
   }
 
-  public run(x: any, y: any): number {
+  public run(parameters: CompiledParameterExpression[], x: any, y: any): number {
     return Math.pow(x, y)
   }
 }

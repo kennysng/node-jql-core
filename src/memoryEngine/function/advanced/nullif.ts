@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import { checkNull, ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class NullIfFunction extends JQLFunction<any> {
   public readonly type = 'any'
@@ -11,7 +12,7 @@ export class NullIfFunction extends JQLFunction<any> {
   }
 
   // @override
-  public run(value1: any, value2: any): any {
+  public run(parameters: CompiledParameterExpression[], value1: any, value2: any): any {
     return _.isEqual(value1, value2) ? null : value1
   }
 }

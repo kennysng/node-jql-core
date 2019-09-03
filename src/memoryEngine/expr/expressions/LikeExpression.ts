@@ -1,4 +1,4 @@
-import { ILikeExpression } from 'node-jql'
+import { BinaryOperator, ILikeExpression } from 'node-jql'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { CompiledBinaryExpression } from './BinaryExpression'
@@ -9,7 +9,10 @@ import { CompiledBinaryExpression } from './BinaryExpression'
 export class CompiledLikeExpression extends CompiledBinaryExpression implements ILikeExpression {
   public readonly classname = CompiledLikeExpression.name
 
-  public readonly operator: 'LIKE'
+  // @override
+  get operator(): BinaryOperator {
+    return 'LIKE'
+  }
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {

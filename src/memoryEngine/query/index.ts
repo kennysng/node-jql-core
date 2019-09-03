@@ -48,7 +48,7 @@ export class CompiledQuery extends Query {
     super(jql)
 
     // initialize options
-    let options_ = this.options = {
+    let options_: ICompileOptions = this.options = {
       tables: {},
       tablesOrder: [],
       ...options,
@@ -97,7 +97,13 @@ export class CompiledQuery extends Query {
     if (jql.$where) this.$where = compile(jql.$where, options_)
 
     // analyze ORDER BY statement
-    if (jql.$order) this.$order = jql.$order.map(jql => new CompiledOrderBy(jql, options_))
+    if (jql.$order) {
+      const temp = new MemoryTable(uuid(), this.$select.filter(({ $as }) => typeof $as === 'string').map(({ id, expression, $as }) => {
+        const name = $as || (expression instanceof CompiledColumnExpression ? expression.name : expression.toString())
+        return new MemoryColumn(id, name, expression.type)
+      }))
+      this.$order = jql.$order.map(jql => new CompiledOrderBy(jql, temp, options_))
+    }
 
     // analyze OFFSET statement
     if (jql.$limit) this.$limit = new CompiledLimitOffset(jql.$limit, options_)
@@ -137,6 +143,7 @@ export class CompiledQuery extends Query {
    * Check aggregation required
    */
   get needAggregate(): boolean {
+    if (this.$group) return true
     for (const { expression } of this.$select) if (this.checkAggregate(expression)) return true
     return false
   }

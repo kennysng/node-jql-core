@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class BinFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -10,7 +11,7 @@ export class BinFunction extends JQLFunction<string> {
   }
 
   // @override
-  public run(value: number): string {
+  public run(parameters: CompiledParameterExpression[], value: number): string {
     return typeof value === 'number' ? value.toString(2) : '0'
   }
 }

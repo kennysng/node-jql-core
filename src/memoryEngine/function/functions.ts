@@ -1,5 +1,7 @@
 import { JQLFunction } from '.'
+import { AnyValueFunction } from './advanced/aggregate/any_value'
 import { FindFunction } from './advanced/aggregate/find'
+import { GroupConcatFunction } from './advanced/aggregate/group_concat'
 import { RowsFunction } from './advanced/aggregate/rows'
 import { BinFunction } from './advanced/bin'
 import { CoalesceFunction } from './advanced/coalesce'
@@ -9,6 +11,7 @@ import { IfNullFunction } from './advanced/if_null'
 import { IndexOfFunction } from './advanced/indexof'
 import { IsNullFunction } from './advanced/is_null'
 import { NullIfFunction } from './advanced/nullif'
+import { StringFunction } from './advanced/string'
 import { CalcDateFunction } from './date/calcdate'
 import { CalcTimeFunction } from './date/calctime'
 import { CurrentFunction } from './date/current'
@@ -23,6 +26,7 @@ import { MakeDateFunction } from './date/makedate'
 import { MakeTimeFunction } from './date/maketime'
 import { NameFunction } from './date/name'
 import { NowFunction } from './date/now'
+import { TimestampDiffFunction } from './date/timestamp_diff'
 import { AbsFunction } from './numeric/abs'
 import { CountFunction } from './numeric/aggregate/count'
 import { MinMaxFunction } from './numeric/aggregate/minmax'
@@ -171,19 +175,25 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   month: () => new GetFunction('MONTH', 'month'),
   monthname: () => new NameFunction('MONTHNAME', 'MMMM'),
   now: () => new NowFunction('NOW'),
+  quarter: () => new GetFunction('QUARTER', 'quarter'),
   subdate: () => new CalcDateFunction('SUBDATE', 'sub'),
   subtime: () => new CalcTimeFunction('SUBTIME', 'sub'),
+  timestampdiff: () => new TimestampDiffFunction('TIMESTAMPDIFF'),
   year: () => new GetFunction('YEAR', 'year'),
 
   // advanced functions
+  any_value: () => new AnyValueFunction('ANY_VALUE'),
   bin: () => new BinFunction('BIN'),
   coalesce: () => new CoalesceFunction('COALESCE'),
   conv: () => new ConvFunction('CONV'),
   find: () => new FindFunction('FIND'),
+  group_concat: () => new GroupConcatFunction('GROUP_CONCAT'),
   if: () => new IfFunction('IF'),
   ifnull: () => new IfNullFunction('IFNULL'),
   indexof: () => new IndexOfFunction('INDEXOF'),
   isnull: () => new IsNullFunction('ISNULL'),
   nullif: () => new NullIfFunction('NULLIF'),
+  number: () => new StringFunction('NUMBER'),
   rows: () => new RowsFunction('ROWS'),
+  string: () => new StringFunction('STRING'),
 }

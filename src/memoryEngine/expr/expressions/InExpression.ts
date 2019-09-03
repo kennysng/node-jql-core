@@ -1,4 +1,4 @@
-import { Expression, IInExpression, InExpression } from 'node-jql'
+import { BinaryOperator, Expression, IInExpression, InExpression } from 'node-jql'
 import { CompiledExpression } from '..'
 import { InMemoryError } from '../../../utils/error/InMemoryError'
 import { Cursor } from '../../cursor'
@@ -14,8 +14,6 @@ import { CompiledBinaryExpression } from './BinaryExpression'
  */
 export class CompiledInExpression extends CompiledBinaryExpression implements IInExpression {
   public readonly classname = CompiledInExpression.name
-
-  public readonly operator: 'IN'
   public readonly right: CompiledExpression|CompiledQuery
 
   /**
@@ -37,6 +35,11 @@ export class CompiledInExpression extends CompiledBinaryExpression implements II
       })
       if (this.right.table.columns.length !== 1) throw new InMemoryError('[FATAL] Result of subquery for InExpression does not have exactly 1 column')
     }
+  }
+
+  // @override
+  get operator(): BinaryOperator {
+    return 'IN'
   }
 
   // @override

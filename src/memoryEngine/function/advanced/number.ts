@@ -1,9 +1,9 @@
-import { checkNull, ParameterExpression } from 'node-jql'
+import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
 import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
-export class IsNullFunction extends JQLFunction<boolean> {
-  public readonly type = 'boolean'
+export class NumberFunction extends JQLFunction<number> {
+  public readonly type = 'string'
 
   // @override
   public interpret(parameters: ParameterExpression[]): void {
@@ -11,7 +11,12 @@ export class IsNullFunction extends JQLFunction<boolean> {
   }
 
   // @override
-  public run(parameters: CompiledParameterExpression[], target: any): boolean {
-    return checkNull(target)
+  public run(parameters: CompiledParameterExpression[], target: any): number {
+    try {
+      return +target
+    }
+    catch (e) {
+      return NaN
+    }
   }
 }

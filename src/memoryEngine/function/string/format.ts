@@ -1,6 +1,7 @@
 import { ParameterExpression } from 'node-jql'
 import numeral = require('numeral')
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class FormatFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -10,7 +11,7 @@ export class FormatFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: number, dp: number): string {
+  public run(parameters: CompiledParameterExpression[], value: number, dp: number): string {
     let format = '0,0'
     for (let i = 0; i < dp; i += 1) {
       if (i === 0) format += '.'

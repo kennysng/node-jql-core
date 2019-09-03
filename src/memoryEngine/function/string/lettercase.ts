@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class LetterCaseFunction extends JQLFunction<string> {
   public readonly type = 'string'
@@ -13,7 +14,7 @@ export class LetterCaseFunction extends JQLFunction<string> {
 
   }
 
-  public run(value: any): string {
+  public run(parameters: CompiledParameterExpression[], value: any): string {
     return this.lettercase === 'lower' ? String(value).toLocaleLowerCase() : String(value).toLocaleUpperCase()
   }
 }

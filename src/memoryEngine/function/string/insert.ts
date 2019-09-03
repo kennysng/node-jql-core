@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 /**
  * Note that @params position uses 0-based index
@@ -12,7 +13,7 @@ export class InsertFunction extends JQLFunction<string> {
 
   }
 
-  public run(target: any, start: number, length: number, value: any): string {
+  public run(parameters: CompiledParameterExpression[], target: any, start: number, length: number, value: any): string {
     return String(target).substr(0, start) + String(value) + target.substr(start + 1 + length)
   }
 }

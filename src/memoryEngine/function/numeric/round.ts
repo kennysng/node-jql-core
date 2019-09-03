@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 /**
  * Pay attention to the JavaScript precision problem
@@ -21,7 +22,7 @@ export class RoundFunction extends JQLFunction<number> {
 
   }
 
-  public run(value: any, decimals: number): number {
+  public run(parameters: CompiledParameterExpression[], value: any, decimals: number): number {
     switch (this.roundType) {
       case 'ceil':
         return Math.ceil(+value)

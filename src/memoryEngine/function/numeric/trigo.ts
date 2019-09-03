@@ -1,5 +1,6 @@
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 
 export class TrigoFunction extends JQLFunction<number> {
   public readonly type = 'number'
@@ -13,7 +14,7 @@ export class TrigoFunction extends JQLFunction<number> {
 
   }
 
-  public run(value: any): number {
+  public run(parameters: CompiledParameterExpression[], value: any): number {
     switch (this.trigoType) {
       case 'sin':
         return Math.sin(+value)

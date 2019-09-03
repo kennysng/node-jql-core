@@ -1,6 +1,7 @@
 import moment = require('moment')
 import { ParameterExpression } from 'node-jql'
 import { JQLFunction } from '..'
+import { CompiledParameterExpression } from '../../expr/expressions/ParameterExpression'
 import { CalcUnit } from '../interface'
 
 /**
@@ -24,7 +25,7 @@ export class CalcDateFunction extends JQLFunction<number> {
   }
 
   // @override
-  public run(value: any, count: number, format?: string): number {
+  public run(parameters: CompiledParameterExpression[], value: any, count: number, format?: string): number {
     let mValue = moment.utc(value, format)
     if (this.calcType === 'add') {
       mValue = mValue.add(count, this.unit)
