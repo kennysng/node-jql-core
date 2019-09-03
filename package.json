@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.60",
+  "version": "v2.0.0-rc.61",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,8 +9,8 @@
     "lint": "tslint -p tsconfig.json",
     "bundle": "ts-node ./script/concat-ts.ts -p ./post-process src/index.ts && tslint -p tsconfig.bundle.json --fix",
     "build": "npm run bundle && tsc -p tsconfig.bundle.json &&  rm -rf intermediate",
-    "prepublishOnly": "npm i && npm run build",
-    "postpublish": "rm package-lock.json && rm -rf dist"
+    "prepublishOnly": "npm run build",
+    "postpublish": "rm -rf dist"
   },
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
     "@types/jest": "^24.0.18",
     "@types/lodash": "^4.14.138",
     "@types/minimist": "^1.2.0",
-    "@types/node": "^12.7.2",
+    "@types/node": "^12.7.3",
     "@types/numeral": "^0.0.26",
     "@types/seedrandom": "^2.4.28",
     "@types/timsort": "^0.3.0",
@@ -42,7 +42,7 @@
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
     "tslint": "^5.19.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.2"
   },
   "dependencies": {
     "@kennysng/c-promise": "^2.0.0",
@@ -59,6 +59,6 @@
     "wolfy87-eventemitter": "^5.2.6"
   },
   "peerDependencies": {
-    "node-jql": "^2.0.0-rc.56"
+    "node-jql": "^2.0.0-rc.57"
   }
 }
