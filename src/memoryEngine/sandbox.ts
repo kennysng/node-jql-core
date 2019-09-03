@@ -16,6 +16,7 @@ import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
 import { RowCursor, TableCursor } from './cursor/table'
 import { UnionCursor } from './cursor/union'
+import { CompiledExpression } from './expr'
 import { GenericJQLFunction } from './function'
 import { ICompileOptions, IQueryOptions } from './interface'
 import { CompiledQuery } from './query'
@@ -217,6 +218,21 @@ export class Sandbox {
 
         // ORDER BY
         if (jql.$order) {
+          const cursor = new ArrayCursor(rows)
+          if (await cursor.moveToFirst()) {
+            do {
+              const row = cursor.row
+              for (const orderBy of jql.$order) {
+                const id = orderBy.id
+                const resultColumn = jql.$select.find(r => id === r.id)
+                let expression = orderBy.expression
+                if (resultColumn) expression = resultColumn.expression
+                if (checkNull(row[id])) row[id] = await expression.evaluate(this, cursor)
+              }
+            }
+            while (await cursor.next())
+          }
+
           const $order = jql.$order
           timsort.sort(rows, (l, r) => {
             for (const { id, order } of $order) {

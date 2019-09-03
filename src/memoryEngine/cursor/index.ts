@@ -32,6 +32,10 @@ export class ArrayCursor<T = any> extends Cursor {
     super()
   }
 
+  get row(): T {
+    return this.array[this.index]
+  }
+
   /**
    * Result length
    */
