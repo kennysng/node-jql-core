@@ -1,4 +1,4 @@
-import { checkNull, IIsNullExpression } from 'node-jql'
+import { BinaryOperator, checkNull, IIsNullExpression } from 'node-jql'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { CompiledBinaryExpression } from './BinaryExpression'
@@ -8,9 +8,12 @@ import { CompiledBinaryExpression } from './BinaryExpression'
  */
 export class CompiledIsNullExpression extends CompiledBinaryExpression implements IIsNullExpression {
   public readonly classname = CompiledIsNullExpression.name
-
-  public readonly operator = 'IS'
   public readonly right = null
+
+  // @override
+  get operator(): BinaryOperator {
+    return 'IS'
+  }
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {

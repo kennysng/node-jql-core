@@ -1,6 +1,6 @@
 /* tslint:disable:no-eval */
 
-import { IRegexpExpression } from 'node-jql'
+import { BinaryOperator, IRegexpExpression } from 'node-jql'
 import { Cursor } from '../../cursor'
 import { Sandbox } from '../../sandbox'
 import { CompiledBinaryExpression } from './BinaryExpression'
@@ -11,7 +11,10 @@ import { CompiledBinaryExpression } from './BinaryExpression'
 export class CompiledRegexpExpression extends CompiledBinaryExpression implements IRegexpExpression {
   public readonly classname = CompiledRegexpExpression.name
 
-  public readonly operator: 'REGEXP'
+  // @override
+  get operator(): BinaryOperator {
+    return 'REGEXP'
+  }
 
   // @override
   public async evaluate(sandbox: Sandbox, cursor: Cursor): Promise<boolean> {
