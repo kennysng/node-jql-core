@@ -1,5 +1,4 @@
 import { CancelError } from '@kennysng/c-promise'
-import { ServerHttp2Session } from 'http2'
 import { AndExpressions, BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
@@ -222,12 +221,26 @@ test('Select students from 1A and 1B', async callback => {
   callback()
 })
 
-test('Test COUNT(*) on empty table', async callback => {
+test('SPECIAL: Query COUNT(*) on empty table', async callback => {
   const result = new Resultset(await session.query(new Query({
     $select: new ResultColumn(new FunctionExpression('IFNULL', new FunctionExpression('FIND', new BinaryExpression(new ColumnExpression('id'), '=', 0), new ColumnExpression('id')), -1), 'id'),
     $from: 'empty',
   }))).toArray()
   expect(result[0].id === -1).toBe(true)
+  callback()
+})
+
+test('SPECIAL: Try ORDER BY after GROUP BY', async callback => {
+  const result = new Resultset(await session.query(new Query({
+    $select: [
+      new ResultColumn('className'),
+      new ResultColumn(new FunctionExpression('COUNT', new ColumnExpression('studentId')), 'noOfStudents'),
+    ],
+    $from: 'Class',
+    $group: 'className',
+    $order: new OrderBy('noOfStudents', 'DESC'),
+  }))).toArray()
+  expect(result.length).toBe(5)
   callback()
 })
 

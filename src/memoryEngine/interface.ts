@@ -4,7 +4,6 @@ import { Cursor } from './cursor'
 import { CompiledColumnExpression } from './expr/expressions/ColumnExpression'
 import { CompiledFunctionExpression } from './expr/expressions/FunctionExpression'
 import { JQLFunction } from './function'
-import { Sandbox } from './sandbox'
 import { MemoryTable } from './table'
 
 /**
