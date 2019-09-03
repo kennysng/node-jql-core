@@ -1,4 +1,5 @@
 import { JQLFunction } from '.'
+import { AnyValueFunction } from './advanced/aggregate/any_value'
 import { FindFunction } from './advanced/aggregate/find'
 import { GroupConcatFunction } from './advanced/aggregate/group_concat'
 import { RowsFunction } from './advanced/aggregate/rows'
@@ -181,6 +182,7 @@ export const functions: _.Dictionary<CreateJQLFunction> = {
   year: () => new GetFunction('YEAR', 'year'),
 
   // advanced functions
+  any_value: () => new AnyValueFunction('ANY_VALUE'),
   bin: () => new BinFunction('BIN'),
   coalesce: () => new CoalesceFunction('COALESCE'),
   conv: () => new ConvFunction('CONV'),
