@@ -358,7 +358,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected insert(jql: InsertJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { database, name, values, columns, query } = jql
+    const { database, name, values, query } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -378,32 +378,33 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
 
       // acquire table lock
       task.status(StatusCode.WAITING)
+
+      let values_: any[]
+      if (query) {
+        const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
+
+        if (!columns || columns.length !== (jql.columns as string[]).length) {
+          throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+        }
+
+        const columns_ = jql.columns as string[]
+        values_ = [] as any[]
+        for (let i = 0, length = rows.length; i < length; i += 1) {
+          const row = rows[i]
+          values_.push(columns.reduce((row_, { id }, i) => {
+            row_[columns_[i]] = row[id]
+            return row_
+          }, {} as any))
+        }
+      }
+      else {
+        values_ = values || []
+      }
+
       await table.lock.write()
 
       try {
         task.status(StatusCode.RUNNING)
-
-        let values_: any[]
-        if (query) {
-          const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
-
-          if (!columns || columns.length !== (jql.columns as string[]).length) {
-            throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
-          }
-
-          const columns_ = jql.columns as string[]
-          values_ = [] as any[]
-          for (let i = 0, length = rows.length; i < length; i += 1) {
-            const row = rows[i]
-            values_.push(columns.reduce((row_, { id }, i) => {
-              row_[columns_[i]] = row[id]
-              return row_
-            }, {} as any))
-          }
-        }
-        else {
-          values_ = values || []
-        }
 
         const nValues = [] as any[]
         for (const row of values_) {

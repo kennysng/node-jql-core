@@ -1,5 +1,6 @@
 import { CancelError } from '@kennysng/c-promise'
-import { AndExpressions, BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
+import moment = require('moment')
+import { AndExpressions, BinaryExpression, Column, ColumnExpression, CreateDatabaseJQL, CreateTableJQL, DropDatabaseJQL, DropTableJQL, ExistsExpression, FromTable, FunctionExpression, GroupBy, InExpression, InsertJQL, JoinClause, OrderBy, PredictJQL, Query, ResultColumn, Value } from 'node-jql'
 import { InMemoryDatabaseEngine } from '.'
 import { ApplicationCore } from '../core'
 import { Resultset } from '../core/result'
@@ -39,6 +40,31 @@ test('Prepare tables', async callback => {
   await prepareWarning(session, ...warnings)
   await prepareClub(session)
   await prepareClubMember(session)
+  callback()
+})
+
+test('Insert from Select', async callback => {
+  const student = {
+    id: 201,
+    name: 'Kenny Ng',
+    gender: 'M',
+    birthday: moment('1992-06-08').toDate(),
+    admittedAt: new Date(),
+  }
+  await session.update(new InsertJQL({
+    name: 'Student',
+    columns: ['id', 'name', 'gender', 'birthday', 'admittedAt'],
+    query: new Query({
+      $select: [
+        new ResultColumn(new Value(student.id), 'id'),
+        new ResultColumn(new Value(student.name), 'name'),
+        new ResultColumn(new Value(student.gender), 'gender'),
+        new ResultColumn(new Value(student.birthday), 'birthday'),
+        new ResultColumn(new Value(student.admittedAt), 'admittedAt'),
+      ],
+    }),
+  }))
+  students.push(student)
   callback()
 })
 
