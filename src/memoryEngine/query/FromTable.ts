@@ -74,7 +74,7 @@ export class CompiledFromTable extends FromTable {
         })
         return resolve(response)
       })
-      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type, $as }) => new MemoryColumn<Type>($as || name, type || 'any')))
+      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type, $as, nullable }) => new MemoryColumn<Type>($as || name, type || 'any', nullable)))
       options.tables[jql.$as as string] = this.table
       options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)
