@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.65",
+  "version": "v2.0.0-rc.66",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -69,7 +69,18 @@ export class CompiledFromTable extends FromTable {
         const response = await fn()
         response.data = response.data.map(row => {
           const result: any = {}
-          for (const { name, $as } of axiosConfig.columns) result[$as || name] = row[name]
+          for (const { name, type, $as } of axiosConfig.columns) {
+            let value = row[name]
+            switch (type) {
+              case 'number':
+                value = +String(value)
+                if (isNaN(value)) value = 0
+                break
+              case 'string':
+                value = String(value)
+            }
+            result[$as || name] = value
+          }
           return result
         })
         return resolve(response)
