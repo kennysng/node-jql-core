@@ -1,6 +1,6 @@
 import { CancelableAxiosPromise, CancelablePromise, CreatePromiseFn } from '@kennysng/c-promise'
 import { AxiosResponse } from 'axios'
-import { FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
+import { checkNull, FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
 import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
 import { CompiledConditionalExpression } from '../expr'
@@ -77,7 +77,7 @@ export class CompiledFromTable extends FromTable {
                 if (isNaN(value)) value = 0
                 break
               case 'string':
-                value = String(value)
+                if (!checkNull(value)) value = typeof value === 'object' ? JSON.stringify(value) : String(value)
             }
             result[$as || name] = value
           }
