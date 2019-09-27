@@ -1,6 +1,6 @@
 {
   "name": "node-jql-core",
-  "version": "v2.0.0-rc.66",
+  "version": "v2.0.0-rc.67",
   "description": "SQL database written in JavaScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,9 +28,9 @@
   "devDependencies": {
     "@types/express": "^4.17.1",
     "@types/jest": "^24.0.18",
-    "@types/lodash": "^4.14.139",
+    "@types/lodash": "^4.14.140",
     "@types/minimist": "^1.2.0",
-    "@types/node": "^12.7.5",
+    "@types/node": "^12.7.8",
     "@types/numeral": "^0.0.26",
     "@types/seedrandom": "^2.4.28",
     "@types/timsort": "^0.3.0",
@@ -45,7 +45,7 @@
     "typescript": "^3.6.3"
   },
   "dependencies": {
-    "@kennysng/c-promise": "^2.0.0",
+    "@kennysng/c-promise": "^2.1.0",
     "esrever": "^0.2.0",
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.15",

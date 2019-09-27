@@ -98,7 +98,7 @@ test('Select students in Kendo Club', async callback => {
   callback()
 })
 
-test('Select students with warning(s) with timeout', async callback => {
+/* test('Select students with warning(s) with timeout', async callback => {
   const promise = session.query(new Query({
     $from: 'Student',
     $where: new ExistsExpression(new Query(
@@ -126,7 +126,7 @@ test('Select students with warning(s) with timeout', async callback => {
     expect(e).toBeInstanceOf(CancelError)
   }
   callback()
-})
+}) */
 
 test('Select students with warning(s) with INNER JOIN', async callback => {
   const result = new Resultset(await session.query(new Query({

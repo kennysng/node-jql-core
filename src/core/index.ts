@@ -132,8 +132,6 @@ export class ApplicationCore {
       if (database) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
           try {
-            await check()
-
             // return
             task.status(StatusCode.COMPLETED)
             return resolve({ count: 0, jql, time: 0 })
@@ -151,9 +149,6 @@ export class ApplicationCore {
         () => database_.create()(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
-            // check canceled
-            await check()
-
             // create database
             const result = await fn()
             this.databases.push(database_)
@@ -195,8 +190,6 @@ export class ApplicationCore {
       if (fn_) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
           try {
-            await check()
-
             // return
             task.status(StatusCode.COMPLETED)
             return resolve({ count: 0, jql, time: 0 })
@@ -211,8 +204,6 @@ export class ApplicationCore {
       // function not created
       return new CancelablePromise(async (resolve, reject, check, canceled) => {
         try {
-          await check()
-
           const fn = parseCode(code)
           database.engine.functions[name.toLocaleLowerCase()] = () => aggregate
             ? new GenericJQLFunction(true, name.toLocaleUpperCase(), fn, type, parameters)
@@ -255,8 +246,6 @@ export class ApplicationCore {
       if (!fn_) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
           try {
-            await check()
-
             // return
             task.status(StatusCode.COMPLETED)
             return resolve({ count: 0, jql, time: 0 })
@@ -271,8 +260,6 @@ export class ApplicationCore {
       // function exists
       return new CancelablePromise(async (resolve, reject, check, canceled) => {
         try {
-          await check()
-
           delete database.engine.functions[name]
 
           // return
@@ -321,8 +308,6 @@ export class ApplicationCore {
       if (index === -1) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
           try {
-            await check()
-
             // return
             task.status(StatusCode.COMPLETED)
             return resolve({ count: 0, jql, time: 0 })
@@ -339,9 +324,6 @@ export class ApplicationCore {
         () => this.databases[index].drop()(task),
         async (fn, resolve, reject, check, canceled) => {
           try {
-            // check canceled
-            await check()
-
             // delete database
             const result = await fn()
             this.databases.splice(index, 1)

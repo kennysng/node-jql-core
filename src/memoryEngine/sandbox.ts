@@ -16,7 +16,6 @@ import { Cursors } from './cursor/cursors'
 import { DummyCursor } from './cursor/dummy'
 import { RowCursor, TableCursor } from './cursor/table'
 import { UnionCursor } from './cursor/union'
-import { CompiledExpression } from './expr'
 import { GenericJQLFunction } from './function'
 import { ICompileOptions, IQueryOptions } from './interface'
 import { CompiledQuery } from './query'
@@ -100,11 +99,7 @@ export class Sandbox {
   public run(jql: CompiledQuery, options: Partial<IQueryOptions> = {}): CancelablePromise<IQueryResult> {
     const requests: CancelablePromise[] = []
     let unionPromise: CancelablePromise<IQueryResult>|undefined
-    const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject, check_) => {
-      const check = async () => {
-        if (!options.subquery && Date.now() > this.lastCheck + this.engine.checkWindowSize) await check_()
-      }
-
+    const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject) => {
       // prepare temp tables
       if (jql.$from) {
         await Promise.all(jql.$from.map(async table => this.prepareTable(table, requests)))
@@ -144,9 +139,6 @@ export class Sandbox {
         // traverse cursor
         if (await cursor.moveToFirst()) {
           do {
-            // check canceled
-            await check()
-
             if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
 
             if (!jql.$where || await jql.$where.evaluate(this, cursor)) {
@@ -189,9 +181,6 @@ export class Sandbox {
           while (await cursor.next())
         }
         if (!jql.needAggregate && !rows.length) return resolve({ rows, columns: jql.table.columns, time: 0 })
-
-        // check canceled
-        if (jql.needAggregate || jql.$order) await check()
 
         // GROUP BY
         if (jql.needAggregate) {
@@ -242,9 +231,6 @@ export class Sandbox {
             return 0
           })
         }
-
-        // check canceled
-        await check()
 
         // SELECT
         cursor = new ArrayCursor(rows)

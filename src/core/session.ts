@@ -268,7 +268,6 @@ export class Session {
         const queryPromise = this.query(analyzed)
         taskId = this.lastTaskId
         const queryResult = await queryPromise
-        check()
         const values = new Resultset(queryResult).toArray()
         taskId = undefined
 
@@ -277,7 +276,6 @@ export class Session {
         const createPromise = this.update({ ...jql, columns: queryResult.columns, $as: undefined })
         taskId = this.lastTaskId
         const createResult = await createPromise
-        check()
 
         // insert into table
         if (createResult.count === 1) {
@@ -327,7 +325,6 @@ export class Session {
         const queryPromise = this.query(analyzed)
         taskId = this.lastTaskId
         const { rows, columns } = await queryPromise
-        check()
         taskId = undefined
 
         // post process
