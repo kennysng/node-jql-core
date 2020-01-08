@@ -80,7 +80,7 @@ test('Select number of students', async callback => {
     $from: 'Student',
   })))
   expect(await result.moveToFirst()).toBe(true)
-  expect(await result.get('COUNT(*)')).toBe(students.length)
+  expect(await result.get('COUNT(`*`)')).toBe(students.length)
   callback()
 })
 

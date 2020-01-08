@@ -1,5 +1,5 @@
 import { CancelableAxiosPromise, CancelablePromise, CreatePromiseFn } from '@kennysng/c-promise'
-import { AxiosResponse } from 'axios'
+import { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { checkNull, FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
 import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
@@ -65,7 +65,7 @@ export class CompiledFromTable extends FromTable {
     }
     else {
       const axiosConfig = jql.table
-      this.remote = () => new CancelablePromise(() => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance), async (fn, resolve) => {
+      this.remote = () => new CancelablePromise(() => new CancelableAxiosPromise<any[]>(axiosConfig as AxiosRequestConfig, options.axiosInstance), async (fn, resolve) => {
         const response = await fn()
         response.data = response.data.map(row => {
           const result: any = {}
