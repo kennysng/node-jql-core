@@ -71,7 +71,7 @@ type CreateJQLFunction = () => JQLFunction
 /**
  * Supported functions
  */
-export const functions: { [key: string]: CreateJQLFunction } = {
+export const functions: _.Dictionary<CreateJQLFunction> = {
   // numeric functions
   abs: () => new AbsFunction('ABS'),
   acos: () => new ATrigoFunction('ACOS', 'cos'),

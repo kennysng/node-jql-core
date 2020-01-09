@@ -187,7 +187,7 @@ export class ApplicationCore {
       if (!jql.$ifNotExists && fn_) throw new ExistsError(`Function ${name} already exists`)
 
       // function created
-      if (fn_ === undefined) {
+      if (fn_) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
           try {
             // return
@@ -238,6 +238,10 @@ export class ApplicationCore {
       const fn_ = database.engine.functions[name]
       if (!fn_ && !$ifExists) throw new NotFoundError(`Function ${name.toLocaleUpperCase()} not found`)
 
+      // not user-defined
+      const instance = fn_()
+      if (!(instance instanceof GenericJQLFunction)) throw new InMemoryError(`Fail to drop built-in function ${name.toLocaleUpperCase()}`)
+
       // function not exists
       if (!fn_) {
         return new CancelablePromise(async (resolve, reject, check, canceled) => {
@@ -252,10 +256,6 @@ export class ApplicationCore {
           }
         })
       }
-
-      // not user-defined
-      const instance = fn_()
-      if (!(instance instanceof GenericJQLFunction)) throw new InMemoryError(`Fail to drop built-in function ${name.toLocaleUpperCase()}`)
 
       // function exists
       return new CancelablePromise(async (resolve, reject, check, canceled) => {
