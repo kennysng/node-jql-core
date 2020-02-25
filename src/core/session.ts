@@ -43,8 +43,8 @@ export class Session {
   /**
    * Get the id of the last running task
    */
-  get lastTaskId(): string {
-    return this.tasks[this.tasks.length - 1].id
+  get lastTaskId(): string|undefined {
+    return this.tasks[this.tasks.length - 1] ? this.tasks[this.tasks.length - 1].id : undefined
   }
 
   /**
