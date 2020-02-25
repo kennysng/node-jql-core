@@ -148,9 +148,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
   public predictQuery(predictJQL: PredictJQL, database?: string): TaskFn<IPredictResult> {
     this.checkInited()
     return _task => new CancelablePromise(async (resolve, _reject, check) => {
-      // check canceled
-      await check()
-
       // single query
       if (predictJQL.jql.length === 1) {
         const query = new AnalyzedQuery(predictJQL.jql[0] as Query, database)
@@ -201,9 +198,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       async (promise, resolve, _reject, check) => {
         const start = Date.now()
 
-        // check canceled
-        await check()
-
         // wait for table lock
         task.status(StatusCode.WAITING)
         for (const name of compiled.options.tablesOrder) {
@@ -212,9 +206,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         }
 
         try {
-          // check canceled
-          await check()
-
           // run query
           task.status(StatusCode.RUNNING)
           const result = await promise
@@ -283,9 +274,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       catch (e) {
         if (!(e instanceof NotFoundError)) throw e
 
-        // check canceled
-        await check()
-
         // create table
         let table: MemoryTable, values: any[] = []
         if ($as) {
@@ -329,9 +317,6 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
         // check table
         this.checkTable(database, name)
 
-        // check canceled
-        await check()
-
         // delete table
         const index = this.context[database].__tables.findIndex(table => table.name === name)
         if (index === -1) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
@@ -358,7 +343,7 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
    */
   protected insert(jql: InsertJQL): TaskFn<IUpdateResult> {
     // parse args
-    const { database, name, values, columns, query } = jql
+    const { database, name, values, query } = jql
 
     // check args
     if (!database) throw new InMemoryError('No database is selected')
@@ -373,37 +358,35 @@ export class InMemoryDatabaseEngine extends DatabaseEngine {
       const table = this.context[database].__tables.find(table => table.name === name)
       if (!table) throw new InMemoryError(`[FATAL] Table ${name} expected to be found in database ${databaseName(database)}`)
 
-      // check canceled
-      await check()
-
       // acquire table lock
       task.status(StatusCode.WAITING)
+
+      let values_: any[]
+      if (query) {
+        const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
+
+        if (!columns || columns.length !== (jql.columns as string[]).length) {
+          throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
+        }
+
+        const columns_ = jql.columns as string[]
+        values_ = [] as any[]
+        for (let i = 0, length = rows.length; i < length; i += 1) {
+          const row = rows[i]
+          values_.push(columns.reduce((row_, { id }, i) => {
+            row_[columns_[i]] = row[id]
+            return row_
+          }, {} as any))
+        }
+      }
+      else {
+        values_ = values || []
+      }
+
       await table.lock.write()
 
       try {
         task.status(StatusCode.RUNNING)
-
-        let values_: any[]
-        if (query) {
-          const { rows, columns } = await this.executeQuery(query as AnalyzedQuery)(task)
-
-          if (!columns || columns.length !== (jql.columns as string[]).length) {
-            throw new SyntaxError(`Columns unmatched: ${jql.toString()}`)
-          }
-
-          const columns_ = jql.columns as string[]
-          values_ = [] as any[]
-          for (let i = 0, length = rows.length; i < length; i += 1) {
-            const row = rows[i]
-            values_.push(columns.reduce((row_, { id }, i) => {
-              row_[columns_[i]] = row[id]
-              return row_
-            }, {} as any))
-          }
-        }
-        else {
-          values_ = values || []
-        }
 
         const nValues = [] as any[]
         for (const row of values_) {

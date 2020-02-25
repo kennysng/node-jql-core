@@ -99,11 +99,7 @@ export class Sandbox {
   public run(jql: CompiledQuery, options: Partial<IQueryOptions> = {}): CancelablePromise<IQueryResult> {
     const requests: CancelablePromise[] = []
     let unionPromise: CancelablePromise<IQueryResult>|undefined
-    const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject, check_) => {
-      const check = async () => {
-        if (!options.subquery && Date.now() > this.lastCheck + this.engine.checkWindowSize) await check_()
-      }
-
+    const promise = new CancelablePromise<IQueryResult>(async (resolve, _reject) => {
       // prepare temp tables
       if (jql.$from) {
         await Promise.all(jql.$from.map(async table => this.prepareTable(table, requests)))
@@ -143,9 +139,6 @@ export class Sandbox {
         // traverse cursor
         if (await cursor.moveToFirst()) {
           do {
-            // check canceled
-            await check()
-
             if (options.cursor) cursor = cursor instanceof DummyCursor ? options.cursor : new UnionCursor(cursor, options.cursor)
 
             if (!jql.$where || await jql.$where.evaluate(this, cursor)) {
@@ -189,9 +182,6 @@ export class Sandbox {
         }
         if (!jql.needAggregate && !rows.length) return resolve({ rows, columns: jql.table.columns, time: 0 })
 
-        // check canceled
-        if (jql.needAggregate || jql.$order) await check()
-
         // GROUP BY
         if (jql.needAggregate) {
           let intermediate: _.Dictionary<any[]> = { __DEFAULT__: rows }
@@ -217,6 +207,21 @@ export class Sandbox {
 
         // ORDER BY
         if (jql.$order) {
+          const cursor = new ArrayCursor(rows)
+          if (await cursor.moveToFirst()) {
+            do {
+              const row = cursor.row
+              for (const orderBy of jql.$order) {
+                const id = orderBy.id
+                const resultColumn = jql.$select.find(r => id === r.id)
+                let expression = orderBy.expression
+                if (resultColumn) expression = resultColumn.expression
+                if (checkNull(row[id])) row[id] = await expression.evaluate(this, cursor)
+              }
+            }
+            while (await cursor.next())
+          }
+
           const $order = jql.$order
           timsort.sort(rows, (l, r) => {
             for (const { id, order } of $order) {
@@ -226,9 +231,6 @@ export class Sandbox {
             return 0
           })
         }
-
-        // check canceled
-        await check()
 
         // SELECT
         cursor = new ArrayCursor(rows)

@@ -32,7 +32,7 @@ export class CompiledColumnExpression extends CompiledExpression implements ICol
       for (const table of Object.keys(options.tables)) {
         const column_ = options.tables[table].columns.find(column => column.name === jql.name)
         if (column && column_) throw new InMemoryError(`Ambiguous column ${jql.name}`)
-        column = column_
+        column = column_ || column
       }
     }
     if (!column) throw new SyntaxError(`Column ${jql.name} is not found ${jql.table ? `in table ${jql.table}` : '' }`)

@@ -1,6 +1,6 @@
 import { CancelableAxiosPromise, CancelablePromise, CreatePromiseFn } from '@kennysng/c-promise'
-import { AxiosResponse } from 'axios'
-import { FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
+import { AxiosRequestConfig, AxiosResponse } from 'axios'
+import { checkNull, FromTable, JoinClause, JoinOperator, Query, Type } from 'node-jql'
 import { CompiledQuery } from '.'
 import { NoDatabaseError } from '../../utils/error/NoDatabaseError'
 import { CompiledConditionalExpression } from '../expr'
@@ -65,16 +65,27 @@ export class CompiledFromTable extends FromTable {
     }
     else {
       const axiosConfig = jql.table
-      this.remote = () => new CancelablePromise(() => new CancelableAxiosPromise<any[]>(axiosConfig, options.axiosInstance), async (fn, resolve) => {
+      this.remote = () => new CancelablePromise(() => new CancelableAxiosPromise<any[]>(axiosConfig as AxiosRequestConfig, options.axiosInstance), async (fn, resolve) => {
         const response = await fn()
         response.data = response.data.map(row => {
           const result: any = {}
-          for (const { name, $as } of axiosConfig.columns) result[$as || name] = row[name]
+          for (const { name, type, $as } of axiosConfig.columns) {
+            let value = row[name]
+            switch (type) {
+              case 'number':
+                value = +String(value)
+                if (isNaN(value)) value = 0
+                break
+              case 'string':
+                if (!checkNull(value)) value = typeof value === 'object' ? JSON.stringify(value) : String(value)
+            }
+            result[$as || name] = value
+          }
           return result
         })
         return resolve(response)
       })
-      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type, $as }) => new MemoryColumn<Type>($as || name, type || 'any')))
+      this.table = new MemoryTable(jql.$as as string, jql.table.columns.map(({ name, type, $as, nullable }) => new MemoryColumn<Type>($as || name, type || 'any', nullable)))
       options.tables[jql.$as as string] = this.table
       options.ownTables.push(jql.$as as string)
       options.tablesOrder.push(jql.$as as string)
