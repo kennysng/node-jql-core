@@ -49,7 +49,7 @@
     "esrever": "^0.2.0",
     "is-regexp": "^2.1.0",
     "lodash": "^4.17.15",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "node-jql": "^2.0.0-rc.72",
     "numeral": "^2.0.6",
     "regexp-like": "^1.1.1",
